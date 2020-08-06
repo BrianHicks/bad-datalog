@@ -158,6 +158,7 @@ evalRule kb (Rule head body) =
     List.map (substitute head) (walk kb body)
 
 
-immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase
-immediateConsequence rules kb =
-    nub << (++) kb << List.concatMap (evalRule kb) <| rules
+
+-- immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase
+-- immediateConsequence rules kb =
+--     nub << (++) kb << List.concatMap (evalRule kb) <| rules

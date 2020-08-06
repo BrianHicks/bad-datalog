@@ -8,5 +8,13 @@ let
 in with nixpkgs;
 stdenv.mkDerivation {
   name = "bad-datalog";
-  buildInputs = [ niv.niv git elmPackages.elm elmPackages.elm-format ];
+  buildInputs = [
+    niv.niv
+    git
+
+    # elm
+    elmPackages.elm
+    elmPackages.elm-format
+    elmPackages.elm-test
+  ];
 }

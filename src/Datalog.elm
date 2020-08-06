@@ -9,7 +9,7 @@ module Datalog exposing (..)
 
 {-| a head and body. All of these are rules:
 
-    parent("Nate", "Brian") // Brian is the parent of nate
+    parent("Nate", "Brian"). // Brian is the parent of nate
 
     ancestor(X, Y) :- parent(X, Y).
     ancestor(X, Y) :- parent(X, Z), ancestory(Z, Y).

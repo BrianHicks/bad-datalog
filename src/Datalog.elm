@@ -228,14 +228,14 @@ isRangeRestricted (Rule (Atom _ terms) body) =
             List.all (\term -> List.member term bodyTerms) terms
 
 
-query : List Term -> List Atom -> Program -> List (List Term)
+query : List Term -> List Atom -> Program -> List Substitution
 query queryHead queryBody program =
     (Rule (Atom "query" queryHead) queryBody :: program)
         |> solve
         |> List.filterMap
             (\(Atom candidatePredicate body) ->
                 if candidatePredicate == "query" then
-                    Just body
+                    Just (List.map2 Tuple.pair queryHead body)
 
                 else
                     Nothing

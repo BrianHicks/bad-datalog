@@ -17,8 +17,8 @@ smokeTest =
                         , Atom "academicAncestor" [ Var "Intermediate", Sym "Mistral Contrastin" ]
                         ]
                     |> Expect.equal
-                        [ [ Sym "Alan Mycroft" ]
-                        , [ Sym "Dominic Orchard" ]
+                        [ [ ( Var "Intermediate", Sym "Alan Mycroft" ) ]
+                        , [ ( Var "Intermediate", Sym "Dominic Orchard" ) ]
                         ]
         , test "does not find any connection between Alan Turing and Mistral Contrastin" <|
             \_ ->

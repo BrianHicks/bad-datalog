@@ -188,10 +188,62 @@ immediateConsequence rules kb =
     nub << (++) kb << List.concatMap (evalRule kb) <| rules
 
 
+solve : Program -> KnowledgeBase
+solve rules =
+    let
+        step : KnowledgeBase -> KnowledgeBase
+        step currentKB =
+            let
+                nextKB =
+                    immediateConsequence rules currentKB
+            in
+            if nextKB == currentKB then
+                currentKB
 
--- stuff from ported Haskell implementation
+            else
+                step nextKB
+    in
+    if List.all isRangeRestricted rules then
+        step []
+
+    else
+        Debug.todo "The input program is not range-restricted."
 
 
+{-| "In a rule, if every variable in the head appears somewhere in the body,
+we call the rule range-restricted."
+-}
+isRangeRestricted : Rule -> Bool
+isRangeRestricted (Rule (Atom _ terms) body) =
+    case body of
+        [] ->
+            -- this rule just defines data. No `:-` clause, etc.
+            True
+
+        _ ->
+            let
+                bodyTerms =
+                    List.concatMap (\(Atom _ terms_) -> terms_) body
+            in
+            List.all (\term -> List.member term bodyTerms) terms
+
+
+query : List Term -> List Atom -> Program -> List (List Term)
+query queryHead queryBody program =
+    (Rule (Atom "query" queryHead) queryBody :: program)
+        |> solve
+        |> List.filterMap
+            (\(Atom candidatePredicate body) ->
+                if candidatePredicate == "query" then
+                    Just body
+
+                else
+                    Nothing
+            )
+
+
+{-| make a list behave like a set
+-}
 nub : KnowledgeBase -> KnowledgeBase
 nub kb =
     kb

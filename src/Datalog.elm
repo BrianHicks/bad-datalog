@@ -21,10 +21,25 @@ type Rule
     = Rule Atom (List Atom)
 
 
+ruleToString : Rule -> String
+ruleToString (Rule head body) =
+    case body of
+        [] ->
+            atomToString head ++ "."
+
+        _ ->
+            atomToString head ++ " :- " ++ String.join ", " (List.map atomToString body) ++ "."
+
+
 {-| a predicate name and list of terms.
 -}
 type Atom
     = Atom String (List Term)
+
+
+atomToString : Atom -> String
+atomToString (Atom name terms) =
+    name ++ "(" ++ String.join ", " (List.map termToString terms) ++ ")."
 
 
 {-| either a variable or a symbol.
@@ -37,6 +52,16 @@ type Atom
 type Term
     = Var String
     | Sym String
+
+
+termToString : Term -> String
+termToString term =
+    case term of
+        Var var ->
+            var
+
+        Sym sym ->
+            "\"" ++ sym ++ "\""
 
 
 type alias Program =
@@ -158,7 +183,38 @@ evalRule kb (Rule head body) =
     List.map (substitute head) (walk kb body)
 
 
+immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase
+immediateConsequence rules kb =
+    nub << (++) kb << List.concatMap (evalRule kb) <| rules
 
--- immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase
--- immediateConsequence rules kb =
---     nub << (++) kb << List.concatMap (evalRule kb) <| rules
+
+
+-- stuff from ported Haskell implementation
+
+
+nub : KnowledgeBase -> KnowledgeBase
+nub kb =
+    kb
+        |> List.sortBy atomToString
+        |> List.foldr
+            (\next ( current, acc ) ->
+                case current of
+                    Just set ->
+                        if set == next then
+                            ( current, acc )
+
+                        else
+                            ( Just next, set :: acc )
+
+                    Nothing ->
+                        ( Just next, acc )
+            )
+            ( Nothing, [] )
+        |> (\( final, acc ) ->
+                case final of
+                    Just set ->
+                        set :: acc
+
+                    Nothing ->
+                        acc
+           )

@@ -7,8 +7,29 @@ import Test exposing (..)
 
 smokeTest : Test
 smokeTest =
-    describe "smoke tests (with the academic ancestor program)"
-        [ test "finds intermediate steps in the recursive academicAncestor query" <|
+    describe "smoke tests"
+        [ test "finds a very simple solution" <|
+            \_ ->
+                [ -- Facts
+                  Rule (Atom "next" [ Sym "1", Sym "2" ]) []
+                , Rule (Atom "next" [ Sym "2", Sym "3" ]) []
+
+                -- Rules
+                , Rule (Atom "eventually" [ Var "X", Var "Y" ])
+                    [ Atom "next" [ Var "X", Var "Y" ] ]
+                , Rule (Atom "eventually" [ Var "X", Var "Z" ])
+                    [ Atom "eventually" [ Var "Y", Var "Z" ]
+                    , Atom "next" [ Var "X", Var "Y" ]
+                    ]
+                ]
+                    |> query
+                        [ Var "Number" ]
+                        [ Atom "eventually" [ Sym "1", Var "Number" ] ]
+                    |> Expect.equal
+                        [ [ ( Var "Number", Sym "2" ) ]
+                        , [ ( Var "Number", Sym "3" ) ]
+                        ]
+        , test "finds intermediate steps in the recursive academicAncestor query" <|
             \_ ->
                 ancestorProgram
                     |> query

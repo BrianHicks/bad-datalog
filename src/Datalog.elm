@@ -181,12 +181,17 @@ walk kb =
 
 evalRule : KnowledgeBase -> Rule -> KnowledgeBase
 evalRule kb (Rule head body) =
-    List.map (substitute head) (walk kb body)
+    body
+        |> walk kb
+        |> List.map (substitute head)
 
 
 immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase
 immediateConsequence rules kb =
-    applySetSemanticsToList << (++) kb << List.concatMap (evalRule kb) <| rules
+    rules
+        |> List.concatMap (evalRule kb)
+        |> (++) kb
+        |> applySetSemanticsToList
 
 
 solve : Program -> KnowledgeBase

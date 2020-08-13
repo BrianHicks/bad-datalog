@@ -1,6 +1,7 @@
 module Datalog exposing (..)
 
-{-| Like it says in the package name, this is a bad datalog.
+{-| Like it says in the package name, this is a bad datalog. Maybe it will
+get less bad over time. Who knows?
 
 <https://dodisturb.me/posts/2018-12-25-The-Essence-of-Datalog.html>
 

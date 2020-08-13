@@ -186,7 +186,7 @@ evalRule kb (Rule head body) =
 
 immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase
 immediateConsequence rules kb =
-    nub << (++) kb << List.concatMap (evalRule kb) <| rules
+    applySetSemanticsToList << (++) kb << List.concatMap (evalRule kb) <| rules
 
 
 solve : Program -> KnowledgeBase
@@ -245,8 +245,8 @@ query queryHead queryBody program =
 
 {-| make a list behave like a set
 -}
-nub : KnowledgeBase -> KnowledgeBase
-nub kb =
+applySetSemanticsToList : KnowledgeBase -> KnowledgeBase
+applySetSemanticsToList kb =
     kb
         |> List.sortBy atomToString
         |> List.foldr

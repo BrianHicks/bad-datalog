@@ -175,15 +175,13 @@ evalAtom kb atom substitutions =
 
 
 walk : KnowledgeBase -> List Atom -> List Substitution
-walk kb =
-    List.foldr (evalAtom kb) [ emptySubstitution ]
+walk kb ruleBody =
+    List.foldr (evalAtom kb) [ emptySubstitution ] ruleBody
 
 
 evalRule : KnowledgeBase -> Rule -> KnowledgeBase
-evalRule kb (Rule head body) =
-    body
-        |> walk kb
-        |> List.map (substitute head)
+evalRule kb ((Rule head body) as rule) =
+    List.map (substitute head) (walk kb body)
 
 
 immediateConsequence : Program -> KnowledgeBase -> KnowledgeBase

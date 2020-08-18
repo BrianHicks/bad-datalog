@@ -7,6 +7,9 @@ get less bad over time. Who knows?
 
 -}
 
+import Sort exposing (Sorter)
+import Sort.Dict as Dict exposing (Dict)
+
 
 {-| a head and body. All of these are rules:
 
@@ -55,6 +58,20 @@ type Term
     | Sym String
 
 
+termSorter : Sorter Term
+termSorter =
+    Sort.by
+        (\term ->
+            case term of
+                Var var ->
+                    "var--" ++ var
+
+                Sym sym ->
+                    "sym--" ++ sym
+        )
+        Sort.alphabetical
+
+
 termToString : Term -> String
 termToString term =
     case term of
@@ -74,26 +91,12 @@ type alias KnowledgeBase =
 
 
 type alias Substitution =
-    List ( Term, Term )
+    Dict Term Term
 
 
 emptySubstitution : Substitution
 emptySubstitution =
-    []
-
-
-lookup : Term -> Substitution -> Maybe Term
-lookup term substitution =
-    substitution
-        |> List.filterMap
-            (\( l, r ) ->
-                if term == l then
-                    Just r
-
-                else
-                    Nothing
-            )
-        |> List.head
+    Dict.empty termSorter
 
 
 {-| Cheats a lot. See the source article for how.
@@ -109,7 +112,7 @@ substitute (Atom name terms) substitution =
 
                 Var _ ->
                     substitution
-                        |> lookup term
+                        |> Dict.get term
                         |> Maybe.withDefault term
     in
     Atom name (List.map go terms)
@@ -138,16 +141,16 @@ unify (Atom predSym ts) (Atom predSym_ ts_) =
                         incompleteSubstitution =
                             go rest
                     in
-                    case Maybe.andThen (lookup v) incompleteSubstitution of
+                    case Maybe.andThen (Dict.get v) incompleteSubstitution of
                         Just term ->
                             if term /= s then
                                 Nothing
 
                             else
-                                Maybe.map ((::) ( v, s )) incompleteSubstitution
+                                Maybe.map (Dict.insert v s) incompleteSubstitution
 
                         Nothing ->
-                            Maybe.map ((::) ( v, s )) incompleteSubstitution
+                            Maybe.map (Dict.insert v s) incompleteSubstitution
 
                 ( _, Var _ ) :: _ ->
                     Debug.todo "The second atom is assumed to be ground."
@@ -169,7 +172,17 @@ evalAtom kb atom substitutions =
             in
             kb
                 |> List.filterMap (unify downToEarthAtom)
-                |> List.map (\extension -> substitution ++ extension)
+                |> List.map
+                    (\new ->
+                        Dict.merge
+                            termSorter
+                            Dict.insert
+                            (\from to _ result -> Dict.insert from to result)
+                            Dict.insert
+                            new
+                            substitution
+                            emptySubstitution
+                    )
         )
         substitutions
 
@@ -239,7 +252,9 @@ query queryHead queryBody program =
         |> List.filterMap
             (\(Atom candidatePredicate body) ->
                 if candidatePredicate == "query" then
-                    Just (List.map2 Tuple.pair queryHead body)
+                    List.map2 Tuple.pair queryHead body
+                        |> Dict.fromList termSorter
+                        |> Just
 
                 else
                     Nothing

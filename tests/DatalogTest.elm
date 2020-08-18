@@ -2,6 +2,7 @@ module DatalogTest exposing (..)
 
 import Datalog exposing (..)
 import Expect
+import Sort.Dict as Dict
 import Test exposing (..)
 
 
@@ -25,6 +26,7 @@ smokeTest =
                     |> query
                         [ Var "Number" ]
                         [ Atom "eventually" [ Sym "1", Var "Number" ] ]
+                    |> List.map Dict.toList
                     |> Expect.equal
                         [ [ ( Var "Number", Sym "2" ) ]
                         , [ ( Var "Number", Sym "3" ) ]
@@ -37,6 +39,7 @@ smokeTest =
                         [ Atom "academicAncestor" [ Sym "Robin Milner", Var "Intermediate" ]
                         , Atom "academicAncestor" [ Var "Intermediate", Sym "Mistral Contrastin" ]
                         ]
+                    |> List.map Dict.toList
                     |> Expect.equal
                         [ [ ( Var "Intermediate", Sym "Alan Mycroft" ) ]
                         , [ ( Var "Intermediate", Sym "Dominic Orchard" ) ]
@@ -52,7 +55,7 @@ smokeTest =
                 ancestorProgram
                     |> query []
                         [ Atom "academicAncestor" [ Sym "David Wheeler", Sym "Mistral Contrastin" ] ]
-                    |> Expect.equal [ [] ]
+                    |> Expect.equal [ emptySubstitution ]
         ]
 
 

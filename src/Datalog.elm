@@ -34,7 +34,14 @@ type Database
 allPairsReachability : Program
 allPairsReachability =
     Program
-        [ Rule
+        [ -- base data
+          Rule (Atom "link" [ Constant "a", Constant "b" ]) []
+        , Rule (Atom "link" [ Constant "b", Constant "c" ]) []
+        , Rule (Atom "link" [ Constant "c", Constant "c" ]) []
+        , Rule (Atom "link" [ Constant "c", Constant "d" ]) []
+
+        -- derivations
+        , Rule
             (Atom "reachable" [ Variable "X", Variable "Y" ])
             [ Atom "link" [ Variable "X", Variable "Y" ] ]
         , Rule

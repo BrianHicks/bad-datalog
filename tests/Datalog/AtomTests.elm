@@ -1,6 +1,7 @@
-module DatalogTest exposing (..)
+module Datalog.AtomTests exposing (..)
 
-import Datalog exposing (..)
+import Datalog.Atom exposing (..)
+import Datalog.Term exposing (Term(..))
 import Dict
 import Expect
 import Test exposing (..)

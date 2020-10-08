@@ -1,4 +1,4 @@
-module Datalog.Atom exposing (Atom(..), Substitutions, unify)
+module Datalog.Atom exposing (Atom(..), Substitutions, substitute, unify)
 
 import Datalog.Term exposing (Term(..))
 import Dict exposing (Dict)
@@ -10,6 +10,26 @@ type Atom
 
 type alias Substitutions =
     Dict String String
+
+
+substitute : Atom -> Substitutions -> Atom
+substitute (Atom name terms) substitutions =
+    terms
+        |> List.map
+            (\term ->
+                case term of
+                    Constant _ ->
+                        term
+
+                    Variable var ->
+                        case Dict.get var substitutions of
+                            Just const ->
+                                Constant const
+
+                            Nothing ->
+                                term
+            )
+        |> Atom name
 
 
 unify : Atom -> Atom -> Maybe Substitutions

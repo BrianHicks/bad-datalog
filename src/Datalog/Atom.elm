@@ -1,4 +1,15 @@
-module Datalog.Atom exposing (Atom(..), Substitutions, isGround, substitute, unify)
+module Datalog.Atom exposing
+    ( Atom(..), isGround
+    , Substitutions, unify, substitute
+    )
+
+{-|
+
+@docs Atom, isGround
+
+@docs Substitutions, unify, substitute
+
+-}
 
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
@@ -8,33 +19,13 @@ type Atom
     = Atom String (List Term)
 
 
-type alias Substitutions =
-    Dict String String
-
-
-substitute : Atom -> Substitutions -> Atom
-substitute (Atom name terms) substitutions =
-    terms
-        |> List.map
-            (\term ->
-                case term of
-                    Constant _ ->
-                        term
-
-                    Variable var ->
-                        case Dict.get var substitutions of
-                            Just const ->
-                                Constant const
-
-                            Nothing ->
-                                term
-            )
-        |> Atom name
-
-
 isGround : Atom -> Bool
 isGround (Atom _ terms) =
     not (List.isEmpty terms) && List.all Term.isGround terms
+
+
+type alias Substitutions =
+    Dict String String
 
 
 unify : Atom -> Atom -> Maybe Substitutions
@@ -80,3 +71,23 @@ unifyHelp termPairs substitutions =
 
         ( Variable _, Variable _ ) :: rest ->
             unifyHelp rest substitutions
+
+
+substitute : Atom -> Substitutions -> Atom
+substitute (Atom name terms) substitutions =
+    terms
+        |> List.map
+            (\term ->
+                case term of
+                    Constant _ ->
+                        term
+
+                    Variable var ->
+                        case Dict.get var substitutions of
+                            Just const ->
+                                Constant const
+
+                            Nothing ->
+                                term
+            )
+        |> Atom name

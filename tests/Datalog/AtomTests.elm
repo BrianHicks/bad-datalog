@@ -7,50 +7,6 @@ import Expect
 import Test exposing (..)
 
 
-substituteTest : Test
-substituteTest =
-    describe "substitute"
-        [ test "an empty substitutions has no effect" <|
-            \_ ->
-                let
-                    atom =
-                        Atom "a" [ Variable "X" ]
-                in
-                substitute atom Dict.empty
-                    |> Expect.equal atom
-        , test "an atom with no terms is unmodified" <|
-            \_ ->
-                let
-                    atom =
-                        Atom "a" []
-                in
-                substitute atom (Dict.singleton "X" "a")
-                    |> Expect.equal atom
-        , test "a constant term is not replaed" <|
-            \_ ->
-                let
-                    atom =
-                        Atom "a" [ Constant "a" ]
-                in
-                substitute atom (Dict.singleton "X" "a")
-                    |> Expect.equal atom
-        , test "a variable term is replaced if there is a replacement" <|
-            \_ ->
-                substitute
-                    (Atom "a" [ Variable "X" ])
-                    (Dict.singleton "X" "a")
-                    |> Expect.equal (Atom "a" [ Constant "a" ])
-        , test "a variable term is not replace if there is no replacement" <|
-            \_ ->
-                let
-                    atom =
-                        Atom "a" [ Variable "X" ]
-                in
-                substitute atom (Dict.singleton "Y" "a")
-                    |> Expect.equal atom
-        ]
-
-
 isGroundTest : Test
 isGroundTest =
     describe "isGround"
@@ -154,4 +110,48 @@ unifyTest =
                     (Atom "a" [ Variable "X", Variable "X" ])
                     (Atom "a" [ Constant "a", Constant "b" ])
                     |> Expect.equal Nothing
+        ]
+
+
+substituteTest : Test
+substituteTest =
+    describe "substitute"
+        [ test "an empty substitutions has no effect" <|
+            \_ ->
+                let
+                    atom =
+                        Atom "a" [ Variable "X" ]
+                in
+                substitute atom Dict.empty
+                    |> Expect.equal atom
+        , test "an atom with no terms is unmodified" <|
+            \_ ->
+                let
+                    atom =
+                        Atom "a" []
+                in
+                substitute atom (Dict.singleton "X" "a")
+                    |> Expect.equal atom
+        , test "a constant term is not replaed" <|
+            \_ ->
+                let
+                    atom =
+                        Atom "a" [ Constant "a" ]
+                in
+                substitute atom (Dict.singleton "X" "a")
+                    |> Expect.equal atom
+        , test "a variable term is replaced if there is a replacement" <|
+            \_ ->
+                substitute
+                    (Atom "a" [ Variable "X" ])
+                    (Dict.singleton "X" "a")
+                    |> Expect.equal (Atom "a" [ Constant "a" ])
+        , test "a variable term is not replace if there is no replacement" <|
+            \_ ->
+                let
+                    atom =
+                        Atom "a" [ Variable "X" ]
+                in
+                substitute atom (Dict.singleton "Y" "a")
+                    |> Expect.equal atom
         ]

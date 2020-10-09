@@ -1,4 +1,4 @@
-module Datalog exposing (..)
+module Datalog exposing (Program(..), Rule(..), solve)
 
 import Datalog.Atom as Atom exposing (Atom(..))
 import Datalog.Term as Term exposing (Term(..))
@@ -17,36 +17,54 @@ type Rule
 {-| This is cheating a bit. A database is only ground atoms--that is, atoms
 whose terms are all constants.
 -}
-type Database
-    = Database (List Atom)
+type alias Database =
+    Dict String (List Atom)
+
+
+insertAtom : Atom -> Database -> Database
+insertAtom ((Atom name _) as atom) database =
+    Dict.update name
+        (\maybeExisting ->
+            case maybeExisting of
+                Just existing ->
+                    if List.member atom existing then
+                        Just existing
+
+                    else
+                        Just (atom :: existing)
+
+                Nothing ->
+                    Just [ atom ]
+        )
+        database
 
 
 
 -- EVALUATION
--- EXAMPLES
 
 
-allPairsReachability : Program
-allPairsReachability =
-    Program
-        [ -- base data
-          Rule (Atom "link" [ Constant "a", Constant "b" ]) []
-        , Rule (Atom "link" [ Constant "b", Constant "c" ]) []
-        , Rule (Atom "link" [ Constant "c", Constant "c" ]) []
-        , Rule (Atom "link" [ Constant "c", Constant "d" ]) []
+solve : Program -> Database
+solve program =
+    solveHelp program Dict.empty
 
-        -- derivations
-        , Rule
-            (Atom "reachable" [ Variable "X", Variable "Y" ])
-            [ Atom "link" [ Variable "X", Variable "Y" ] ]
-        , Rule
-            (Atom "reachable" [ Variable "X", Variable "Y" ])
-            [ Atom "link" [ Variable "X", Variable "Z" ]
-            , Atom "reachable" [ Variable "Z", Variable "Y" ]
-            ]
 
-        -- query
-        , Rule
-            (Atom "query" [ Variable "X", Variable "Y" ])
-            [ Atom "reachable" [ Variable "X", Variable "Y" ] ]
-        ]
+solveHelp : Program -> Database -> Database
+solveHelp ((Program rules) as program) database =
+    let
+        expanded =
+            List.foldl evaluateRule database rules
+    in
+    if expanded == database then
+        database
+
+    else
+        solveHelp program expanded
+
+
+evaluateRule : Rule -> Database -> Database
+evaluateRule (Rule head body) database =
+    if Atom.isGround head then
+        insertAtom head database
+
+    else
+        database

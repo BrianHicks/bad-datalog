@@ -1,6 +1,6 @@
-module Datalog.Atom exposing (Atom(..), Substitutions, substitute, unify)
+module Datalog.Atom exposing (Atom(..), Substitutions, isGround, substitute, unify)
 
-import Datalog.Term exposing (Term(..))
+import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
 
 
@@ -30,6 +30,11 @@ substitute (Atom name terms) substitutions =
                                 term
             )
         |> Atom name
+
+
+isGround : Atom -> Bool
+isGround (Atom _ terms) =
+    not (List.isEmpty terms) && List.all Term.isGround terms
 
 
 unify : Atom -> Atom -> Maybe Substitutions

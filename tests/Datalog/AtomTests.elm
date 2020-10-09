@@ -51,6 +51,23 @@ substituteTest =
         ]
 
 
+isGroundTest : Test
+isGroundTest =
+    describe "isGround"
+        [ test "if there are terms, the atom is ground" <|
+            \_ -> Atom "x" [] |> isGround |> Expect.equal False
+        , test "if all terms are constant, the atom is ground" <|
+            \_ -> Atom "x" [ Constant "a" ] |> isGround |> Expect.equal True
+        , test "if all terms are variable, the atom is not ground" <|
+            \_ -> Atom "x" [ Variable "X" ] |> isGround |> Expect.equal False
+        , test "with a mix of constant and variable terms, the atom is not ground" <|
+            \_ ->
+                Atom "x" [ Variable "X", Constant "a" ]
+                    |> isGround
+                    |> Expect.equal False
+        ]
+
+
 unifyTest : Test
 unifyTest =
     describe "unify"

@@ -1,13 +1,13 @@
 module Datalog.Atom exposing
     ( Atom(..), isGround
-    , Substitutions, unify, substitute, mergeSubstitutions
+    , Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
     )
 
 {-|
 
 @docs Atom, isGround
 
-@docs Substitutions, unify, substitute, mergeSubstitutions
+@docs Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
 
 -}
 
@@ -26,6 +26,11 @@ isGround (Atom _ terms) =
 
 type alias Substitutions =
     Dict String String
+
+
+emptySubstitutions : Substitutions
+emptySubstitutions =
+    Dict.empty
 
 
 unify : Atom -> Atom -> Maybe Substitutions

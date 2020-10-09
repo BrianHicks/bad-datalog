@@ -1,6 +1,6 @@
 module Datalog exposing (Program(..), Rule(..), solve)
 
-import Datalog.Atom as Atom exposing (Atom(..))
+import Datalog.Atom as Atom exposing (Atom(..), Substitutions)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
 import Sort exposing (Sorter)
@@ -62,9 +62,49 @@ solveHelp ((Program rules) as program) database =
 
 
 evaluateRule : Rule -> Database -> Database
-evaluateRule (Rule head body) database =
+evaluateRule ((Rule head body) as rule) database =
     if Atom.isGround head then
         insertAtom head database
 
     else
-        database
+        body
+            |> List.foldl
+                (\bodyAtom substitutions ->
+                    List.concatMap
+                        (evaluateAtom database bodyAtom)
+                        substitutions
+                )
+                [ Atom.emptySubstitutions ]
+            |> List.foldl
+                (\substitution dbProgress ->
+                    let
+                        possiblyGround =
+                            Atom.substitute head substitution
+                    in
+                    if Atom.isGround possiblyGround then
+                        insertAtom possiblyGround dbProgress
+
+                    else
+                        dbProgress
+                )
+                database
+
+
+evaluateAtom : Database -> Atom -> Substitutions -> List Substitutions
+evaluateAtom database ((Atom name _) as atom) substitutions =
+    let
+        bound =
+            Atom.substitute atom substitutions
+    in
+    case Dict.get name database of
+        -- TODO: would it be possible to specify that the database values are non-empty?
+        Nothing ->
+            []
+
+        Just [] ->
+            []
+
+        Just facts ->
+            List.filterMap
+                (Atom.unify bound >> Maybe.map (Atom.mergeSubstitutions substitutions))
+                facts

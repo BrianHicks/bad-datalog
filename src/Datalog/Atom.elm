@@ -1,13 +1,13 @@
 module Datalog.Atom exposing
     ( Atom(..), isGround
-    , Substitutions, unify, substitute
+    , Substitutions, unify, substitute, mergeSubstitutions
     )
 
 {-|
 
 @docs Atom, isGround
 
-@docs Substitutions, unify, substitute
+@docs Substitutions, unify, substitute, mergeSubstitutions
 
 -}
 
@@ -91,3 +91,8 @@ substitute (Atom name terms) substitutions =
                                 term
             )
         |> Atom name
+
+
+mergeSubstitutions : Substitutions -> Substitutions -> Substitutions
+mergeSubstitutions a b =
+    Dict.union a b

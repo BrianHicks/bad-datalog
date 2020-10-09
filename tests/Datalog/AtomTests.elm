@@ -155,3 +155,39 @@ substituteTest =
                 substitute atom (Dict.singleton "Y" "a")
                     |> Expect.equal atom
         ]
+
+
+mergeSubstitutionsTest : Test
+mergeSubstitutionsTest =
+    describe "mergeSubstitutions"
+        [ test "keys in left should be preserved" <|
+            \_ ->
+                mergeSubstitutions
+                    (Dict.singleton "X" "a")
+                    Dict.empty
+                    |> Dict.get "X"
+                    |> Expect.equal (Just "a")
+        , test "keys in right should be preserved" <|
+            \_ ->
+                mergeSubstitutions
+                    Dict.empty
+                    (Dict.singleton "X" "a")
+                    |> Dict.get "X"
+                    |> Expect.equal (Just "a")
+        , test "keys in both should be preserved" <|
+            \_ ->
+                mergeSubstitutions
+                    (Dict.singleton "X" "a")
+                    (Dict.singleton "Y" "b")
+                    |> Expect.all
+                        [ Dict.get "X" >> Expect.equal (Just "a")
+                        , Dict.get "Y" >> Expect.equal (Just "b")
+                        ]
+        , test "keys in left take precedence" <|
+            \_ ->
+                mergeSubstitutions
+                    (Dict.singleton "X" "a")
+                    (Dict.singleton "X" "b")
+                    |> Dict.get "X"
+                    |> Expect.equal (Just "a")
+        ]

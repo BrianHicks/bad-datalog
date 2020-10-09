@@ -14,10 +14,13 @@ parse source =
 
 type Context
     = Rule
+    | RuleHead
+    | RuleBody
     | Atom (Maybe String)
     | AtomTerms
     | Term
     | Constant
+    | Variable
 
 
 type Problem
@@ -27,6 +30,8 @@ type Problem
     | ExpectingComma
     | ExpectingOpeningQuote
     | ExpectingClosingQuote
+    | ExpectingVariable
+    | ExpectingImplies
 
 
 parser : Parser Context Problem Program
@@ -36,8 +41,18 @@ parser =
 
 rule : Parser Context Problem Rule
 rule =
-    Parser.map (\head -> Datalog.Rule head []) atom
-        |> Parser.inContext Rule
+    Parser.inContext Rule <|
+        Parser.succeed Datalog.Rule
+            |= Parser.inContext RuleHead atom
+            |= Parser.oneOf
+                [ Parser.inContext RuleBody <|
+                    Parser.succeed List.singleton
+                        |. spaces
+                        |. Parser.token (Parser.Token ":-" ExpectingImplies)
+                        |. spaces
+                        |= atom
+                , Parser.succeed []
+                ]
 
 
 atom : Parser Context Problem Atom
@@ -74,7 +89,7 @@ atom =
 
 term : Parser Context Problem Term
 term =
-    constant
+    Parser.oneOf [ constant, variable ]
         |> Parser.inContext Term
 
 
@@ -85,6 +100,18 @@ constant =
             |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
             |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
             |. Parser.token (Parser.Token "\"" ExpectingClosingQuote)
+
+
+variable : Parser Context Problem Term
+variable =
+    Parser.variable
+        { start = Char.isAlpha
+        , inner = Char.isAlphaNum
+        , reserved = Set.empty
+        , expecting = ExpectingVariable
+        }
+        |> Parser.map Term.Variable
+        |> Parser.inContext Variable
 
 
 spaces : Parser Context Problem ()

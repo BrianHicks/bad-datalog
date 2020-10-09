@@ -25,6 +25,7 @@ parseTests =
                           , contextStack =
                                 [ { row = 1, col = 4, context = AtomTerms }
                                 , { row = 1, col = 4, context = Atom (Just "man") }
+                                , { row = 1, col = 1, context = RuleHead }
                                 , { row = 1, col = 1, context = Rule }
                                 ]
                           , problem = ExpectingOpeningParenthesis
@@ -43,6 +44,7 @@ parseTests =
                                 , { row = 1, col = 5, context = Term }
                                 , { row = 1, col = 4, context = AtomTerms }
                                 , { row = 1, col = 4, context = Atom (Just "man") }
+                                , { row = 1, col = 1, context = RuleHead }
                                 , { row = 1, col = 1, context = Rule }
                                 ]
                           , problem = ExpectingClosingQuote
@@ -59,6 +61,7 @@ parseTests =
                           , contextStack =
                                 [ { row = 1, col = 4, context = AtomTerms }
                                 , { row = 1, col = 4, context = Atom (Just "man") }
+                                , { row = 1, col = 1, context = RuleHead }
                                 , { row = 1, col = 1, context = Rule }
                                 ]
                           , problem = ExpectingComma
@@ -68,6 +71,7 @@ parseTests =
                           , contextStack =
                                 [ { row = 1, col = 4, context = AtomTerms }
                                 , { row = 1, col = 4, context = Atom (Just "man") }
+                                , { row = 1, col = 1, context = RuleHead }
                                 , { row = 1, col = 1, context = Rule }
                                 ]
                           , problem = ExpectingClosingParenthesis
@@ -86,11 +90,52 @@ parseTests =
                                 , { row = 1, col = 16, context = Term }
                                 , { row = 1, col = 4, context = AtomTerms }
                                 , { row = 1, col = 4, context = Atom (Just "man") }
+                                , { row = 1, col = 1, context = RuleHead }
                                 , { row = 1, col = 1, context = Rule }
                                 ]
                           , problem = ExpectingOpeningQuote
                           }
+                        , { row = 1
+                          , col = 16
+                          , contextStack =
+                                [ { row = 1, col = 16, context = Variable }
+                                , { row = 1, col = 16, context = Term }
+                                , { row = 1, col = 4, context = AtomTerms }
+                                , { row = 1, col = 4, context = Atom (Just "man") }
+                                , { row = 1, col = 1, context = RuleHead }
+                                , { row = 1, col = 1, context = Rule }
+                                ]
+                          , problem = ExpectingVariable
+                          }
                         ]
                     )
                     (parse "man(\"Socrates\",)")
+        , test "a rule with a variable is parseable" <|
+            \_ ->
+                Expect.equal
+                    (Ok
+                        (Program
+                            [ Datalog.Rule
+                                (Atom.Atom "mortal" [ Term.Variable "whom" ])
+                                [ Atom.Atom "man" [ Term.Variable "whom" ] ]
+                            ]
+                        )
+                    )
+                    (parse "mortal(whom) :- man(whom)")
+        , test "having an implies horn but no body is not allowed" <|
+            \_ ->
+                Expect.equal
+                    (Err
+                        [ { row = 1
+                          , col = 16
+                          , contextStack =
+                                [ { row = 1, col = 16, context = Atom Nothing }
+                                , { row = 1, col = 13, context = RuleBody }
+                                , { row = 1, col = 1, context = Rule }
+                                ]
+                          , problem = ExpectingAtomName
+                          }
+                        ]
+                    )
+                    (parse "mortal(whom) :-")
         ]

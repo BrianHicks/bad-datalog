@@ -55,6 +55,18 @@ parseTests =
                             )
                         )
                         (parse "man(\"Socrates\")\nmortal(Whom) :- man(Whom)")
+            , test "a program with whitespace between rules" <|
+                \_ ->
+                    Expect.equal
+                        (Ok
+                            (Program
+                                [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) []
+                                , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
+                                    [ Atom.Atom "man" [ Term.Variable "Whom" ] ]
+                                ]
+                            )
+                        )
+                        (parse "man(\"Socrates\")\n\nmortal(Whom) :- man(Whom)")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

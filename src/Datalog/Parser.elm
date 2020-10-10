@@ -47,7 +47,9 @@ rules soFar =
         [ Parser.succeed (\rule_ -> Parser.Loop (rule_ :: soFar))
             |= rule
             |. Parser.oneOf
-                [ Parser.token (Parser.Token "\n" ExpectingNewline)
+                [ Parser.succeed ()
+                    |. Parser.token (Parser.Token "\n" ExpectingNewline)
+                    |. Parser.chompWhile (\c -> c == '\n')
                 , Parser.end ExpectingEnd
                 ]
         , Parser.end ExpectingEnd

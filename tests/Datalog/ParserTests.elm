@@ -29,6 +29,20 @@ parseTests =
                             )
                         )
                         (parse "mortal(whom) :- man(whom)")
+            , test "a rule with multiple clauses" <|
+                \_ ->
+                    Expect.equal
+                        (Ok
+                            (Program
+                                [ Datalog.Rule
+                                    (Atom.Atom "ancestor" [ Term.Variable "Child", Term.Variable "Ancestor" ])
+                                    [ Atom.Atom "parent" [ Term.Variable "Child", Term.Variable "Parent" ]
+                                    , Atom.Atom "ancestor" [ Term.Variable "Parent", Term.Variable "Ancestor" ]
+                                    ]
+                                ]
+                            )
+                        )
+                        (parse "ancestor(Child, Ancestor) :- parent(Child, Parent), ancestor(Parent, Ancestor)")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

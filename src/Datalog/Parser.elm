@@ -32,6 +32,8 @@ type Problem
     | ExpectingClosingQuote
     | ExpectingVariable
     | ExpectingImplies
+    | ExpectingNewLine
+    | ExpectingEnd
 
 
 parser : Parser Context Problem Program
@@ -46,13 +48,30 @@ rule =
             |= Parser.inContext RuleHead atom
             |= Parser.oneOf
                 [ Parser.inContext RuleBody <|
-                    Parser.succeed List.singleton
+                    Parser.succeed (::)
                         |. spaces
                         |. Parser.token (Parser.Token ":-" ExpectingImplies)
                         |. spaces
                         |= atom
+                        |= Parser.loop [] ruleTail
                 , Parser.succeed []
                 ]
+
+
+ruleTail : List Atom -> Parser Context Problem (Parser.Step (List Atom) (List Atom))
+ruleTail soFar =
+    Parser.oneOf
+        [ Parser.succeed (\atom_ -> Parser.Loop (atom_ :: soFar))
+            |. spaces
+            |. Parser.token (Parser.Token "," ExpectingComma)
+            |. spaces
+            |= atom
+        , Parser.oneOf
+            [ Parser.token (Parser.Token "\n" ExpectingNewLine)
+            , Parser.end ExpectingEnd
+            ]
+            |> Parser.map (\() -> Parser.Done (List.reverse soFar))
+        ]
 
 
 atom : Parser Context Problem Atom

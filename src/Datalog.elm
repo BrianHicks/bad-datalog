@@ -3,7 +3,6 @@ module Datalog exposing (Program(..), Rule(..), solve)
 import Datalog.Atom as Atom exposing (Atom(..), Substitutions)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
-import Sort exposing (Sorter)
 
 
 type Program

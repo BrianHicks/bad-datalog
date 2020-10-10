@@ -67,6 +67,20 @@ parseTests =
                             )
                         )
                         (parse "man(\"Socrates\")\n\nmortal(Whom) :- man(Whom)")
+            , test "a rule with newlines in between body atoms" <|
+                \_ ->
+                    Expect.equal
+                        (Ok
+                            (Program
+                                [ Datalog.Rule
+                                    (Atom.Atom "ancestor" [ Term.Variable "Child", Term.Variable "Ancestor" ])
+                                    [ Atom.Atom "parent" [ Term.Variable "Child", Term.Variable "Parent" ]
+                                    , Atom.Atom "ancestor" [ Term.Variable "Parent", Term.Variable "Ancestor" ]
+                                    ]
+                                ]
+                            )
+                        )
+                        (parse "ancestor(Child, Ancestor) :-\n    parent(Child, Parent),\n    ancestor(Parent, Ancestor)")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

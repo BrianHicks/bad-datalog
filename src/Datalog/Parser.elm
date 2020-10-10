@@ -67,7 +67,7 @@ rule =
                     Parser.succeed (::)
                         |. spaces
                         |. Parser.token (Parser.Token ":-" ExpectingImplies)
-                        |. spaces
+                        |. spacesAndNewlines
                         |= atom
                         |= Parser.loop [] ruleTail
                 , Parser.succeed []
@@ -78,9 +78,9 @@ ruleTail : List Atom -> Parser Context Problem (Parser.Step (List Atom) (List At
 ruleTail soFar =
     Parser.oneOf
         [ Parser.succeed (\atom_ -> Parser.Loop (atom_ :: soFar))
-            |. spaces
+            |. spacesAndNewlines
             |. Parser.token (Parser.Token "," ExpectingComma)
-            |. spaces
+            |. spacesAndNewlines
             |= atom
         , Parser.oneOf
             [ Parser.token (Parser.Token "\n" ExpectingNewline)
@@ -106,7 +106,7 @@ atom =
                 { start = Parser.Token "(" ExpectingOpeningParenthesis
                 , separator = Parser.Token "," ExpectingComma
                 , end = Parser.Token ")" ExpectingClosingParenthesis
-                , spaces = spaces
+                , spaces = spacesAndNewlines
                 , item = term
                 , trailing = Parser.Forbidden
                 }
@@ -117,7 +117,7 @@ atom =
                 Parser.inContext (Atom (Just name)) <|
                     Parser.succeed Atom.Atom
                         |= Parser.succeed name
-                        |. spaces
+                        |. spacesAndNewlines
                         |= Parser.inContext AtomTerms atomTerms
             )
 
@@ -149,6 +149,16 @@ variable =
         |> Parser.inContext Variable
 
 
+isSpace : Char -> Bool
+isSpace c =
+    c == ' '
+
+
 spaces : Parser Context Problem ()
 spaces =
-    Parser.chompWhile (\c -> c == ' ')
+    Parser.chompWhile isSpace
+
+
+spacesAndNewlines : Parser Context Problem ()
+spacesAndNewlines =
+    Parser.chompWhile (\c -> isSpace c || c == '\n')

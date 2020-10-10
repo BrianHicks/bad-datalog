@@ -43,6 +43,18 @@ parseTests =
                             )
                         )
                         (parse "ancestor(Child, Ancestor) :- parent(Child, Parent), ancestor(Parent, Ancestor)")
+            , test "a program with multiple rules" <|
+                \_ ->
+                    Expect.equal
+                        (Ok
+                            (Program
+                                [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) []
+                                , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
+                                    [ Atom.Atom "man" [ Term.Variable "Whom" ] ]
+                                ]
+                            )
+                        )
+                        (parse "man(\"Socrates\")\nmortal(Whom) :- man(Whom)")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|
@@ -55,5 +67,7 @@ parseTests =
                 \_ -> Expect.err (parse "man(\"Socrates\",)")
             , test "having an implies horn but no body is not allowed" <|
                 \_ -> Expect.err (parse "mortal(whom) :-")
+            , test "having a trailing comma in a rule body is not allowed" <|
+                \_ -> Expect.err (parse "ancestor(Child, Ancestor) :- parent(Child, Parent),")
             ]
         ]

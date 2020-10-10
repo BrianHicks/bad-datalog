@@ -32,13 +32,27 @@ type Problem
     | ExpectingClosingQuote
     | ExpectingVariable
     | ExpectingImplies
-    | ExpectingNewLine
+    | ExpectingNewline
     | ExpectingEnd
 
 
 parser : Parser Context Problem Program
 parser =
-    rule |> Parser.map (Program << List.singleton)
+    Parser.map Program (Parser.loop [] rules)
+
+
+rules : List Rule -> Parser Context Problem (Parser.Step (List Rule) (List Rule))
+rules soFar =
+    Parser.oneOf
+        [ Parser.succeed (\rule_ -> Parser.Loop (rule_ :: soFar))
+            |= rule
+            |. Parser.oneOf
+                [ Parser.token (Parser.Token "\n" ExpectingNewline)
+                , Parser.end ExpectingEnd
+                ]
+        , Parser.end ExpectingEnd
+            |> Parser.map (\() -> Parser.Done (List.reverse soFar))
+        ]
 
 
 rule : Parser Context Problem Rule
@@ -67,7 +81,7 @@ ruleTail soFar =
             |. spaces
             |= atom
         , Parser.oneOf
-            [ Parser.token (Parser.Token "\n" ExpectingNewLine)
+            [ Parser.token (Parser.Token "\n" ExpectingNewline)
             , Parser.end ExpectingEnd
             ]
             |> Parser.map (\() -> Parser.Done (List.reverse soFar))

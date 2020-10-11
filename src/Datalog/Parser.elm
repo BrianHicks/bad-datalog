@@ -1,15 +1,68 @@
-module Datalog.Parser exposing (Context(..), Problem(..), parse)
+module Datalog.Parser exposing (parse)
 
 import Datalog exposing (Program(..), Rule)
 import Datalog.Atom as Atom exposing (Atom)
 import Datalog.Term as Term exposing (Term)
+import Dict
 import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
 import Set
 
 
-parse : String -> Result (List (Parser.DeadEnd Context Problem)) Datalog.Program
+parse : String -> Result (List String) Datalog.Program
 parse source =
-    Parser.run parser source
+    source
+        |> Parser.run parser
+        |> Result.mapError (niceErrors source)
+
+
+niceErrors : String -> List (Parser.DeadEnd Context Problem) -> List String
+niceErrors source deadEnds =
+    deadEnds
+        |> List.map (niceError source)
+
+
+niceError : String -> Parser.DeadEnd Context Problem -> String
+niceError source deadEnd =
+    let
+        locations =
+            ( deadEnd.row, deadEnd.col ) :: List.map (\{ row, col } -> ( row, col )) deadEnd.contextStack
+
+        context =
+            List.head deadEnd.contextStack
+                |> Maybe.map (.context >> niceContext)
+                |> Maybe.withDefault "the program"
+    in
+    case Maybe.map2 Tuple.pair (List.minimum locations) (List.maximum locations) of
+        Just ( ( startRow, _ ), ( endRow, problemCol ) ) ->
+            let
+                lines =
+                    String.lines source
+                        |> List.drop (startRow - 1)
+                        |> List.take (endRow - startRow + 1)
+                        |> String.join "\n"
+
+                pointer =
+                    List.concat
+                        [ List.repeat (problemCol - 1) ' '
+                        , [ '^' ]
+                        ]
+                        |> String.fromList
+            in
+            "I ran into a problem while parsing "
+                ++ context
+                ++ " at line "
+                ++ String.fromInt endRow
+                ++ ", column "
+                ++ String.fromInt problemCol
+                ++ ":\n\n"
+                ++ lines
+                ++ "\n"
+                ++ pointer
+                ++ "\n\n"
+                ++ niceProblem deadEnd.problem
+
+        Nothing ->
+            "Couldn't find source location, sorry. The problem was: " ++ niceProblem deadEnd.problem
 
 
 type Context
@@ -23,6 +76,37 @@ type Context
     | Variable
 
 
+niceContext : Context -> String
+niceContext context =
+    case context of
+        Rule ->
+            "a rule"
+
+        RuleHead ->
+            "the head of a rule"
+
+        RuleBody ->
+            "the body of a rule"
+
+        Atom Nothing ->
+            "an atom"
+
+        Atom (Just name) ->
+            "an atom named " ++ name
+
+        AtomTerms ->
+            "an atom's terms"
+
+        Term ->
+            "a term"
+
+        Constant ->
+            "a constant"
+
+        Variable ->
+            "a variable"
+
+
 type Problem
     = ExpectingAtomName
     | ExpectingOpeningParenthesis
@@ -34,6 +118,40 @@ type Problem
     | ExpectingImplies
     | ExpectingNewline
     | ExpectingEnd
+
+
+niceProblem : Problem -> String
+niceProblem problem =
+    case problem of
+        ExpectingAtomName ->
+            "expecting an atom name"
+
+        ExpectingOpeningParenthesis ->
+            "expecting an opening parenthesis"
+
+        ExpectingClosingParenthesis ->
+            "expecting a closing parenthesis"
+
+        ExpectingComma ->
+            "expecting a comma"
+
+        ExpectingOpeningQuote ->
+            "expecting an opening quote"
+
+        ExpectingClosingQuote ->
+            "expecting a closing quote"
+
+        ExpectingVariable ->
+            "expecting a variable"
+
+        ExpectingImplies ->
+            "expecting a `:-` followed by a rule body"
+
+        ExpectingNewline ->
+            "expecting a newline"
+
+        ExpectingEnd ->
+            "expecting the end of the program source"
 
 
 parser : Parser Context Problem Program

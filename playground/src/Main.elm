@@ -33,11 +33,12 @@ view model =
             , Attributes.cols 80
             ]
             []
-        , p []
-            [ Datalog.Parser.parse model
-                |> Debug.toString
-                |> text
-            ]
+        , case Datalog.Parser.parse model of
+            Ok program ->
+                pre [] [ text (Debug.toString program) ]
+
+            Err errors ->
+                ul [] (List.map (\err -> li [] [ pre [] [ text err ] ]) errors)
         ]
 
 

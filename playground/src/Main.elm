@@ -2,25 +2,56 @@ module Main exposing (..)
 
 import Browser
 import Css
+import Datalog
 import Datalog.Parser
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes exposing (css)
 import Html.Styled.Events as Events
 
 
+type Evaluation
+    = Blank
+    | Error (List String)
+    | Unsolved Datalog.Program
+    | Solved Datalog.Database
+
+
 type alias Model =
-    { source : String }
+    { source : String
+    , evaluation : Evaluation
+    }
 
 
 type Msg
     = NewSource String
+    | Solve
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         NewSource source ->
-            { model | source = source }
+            { model
+                | source = source
+                , evaluation =
+                    case Datalog.Parser.parse source of
+                        Err problems ->
+                            Error problems
+
+                        Ok program ->
+                            Unsolved program
+            }
+
+        Solve ->
+            { model
+                | evaluation =
+                    case model.evaluation of
+                        Unsolved program ->
+                            Solved (Datalog.solve program)
+
+                        _ ->
+                            model.evaluation
+            }
 
 
 view : Model -> Html Msg
@@ -51,27 +82,33 @@ view model =
                 ]
             ]
             []
-        , case Datalog.Parser.parse model.source of
-            Err errors ->
+        , case model.evaluation of
+            Blank ->
+                Html.p [] [ Html.text "Enter a program above!" ]
+
+            Error errors ->
                 Html.ul []
                     (List.map
                         (\err -> Html.li [] [ Html.pre [] [ Html.text err ] ])
                         errors
                     )
 
-            Ok program ->
+            Unsolved program ->
                 Html.p []
                     [ Html.text "Sweet, it parses! Now "
-                    , Html.button [] [ Html.text "solve" ]
+                    , Html.button [ Events.onClick Solve ] [ Html.text "solve" ]
                     , Html.text " this bad boy!"
                     ]
+
+            Solved program ->
+                Html.p [] [ Html.text (Debug.toString program) ]
         ]
 
 
 main : Program () Model Msg
 main =
     Browser.sandbox
-        { init = { source = "" }
+        { init = { source = "", evaluation = Blank }
         , update = update
         , view = Html.toUnstyled << view
         }

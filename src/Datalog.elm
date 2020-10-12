@@ -1,4 +1,4 @@
-module Datalog exposing (Program(..), Rule(..), solve)
+module Datalog exposing (Database, Program(..), Rule(..), solve)
 
 import Datalog.Atom as Atom exposing (Atom(..), Substitutions)
 import Datalog.Term as Term exposing (Term(..))

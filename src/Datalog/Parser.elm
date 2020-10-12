@@ -183,7 +183,9 @@ niceProblem problem =
 
 parser : Parser Context Problem Program
 parser =
-    Parser.map Program (Parser.loop [] rules)
+    Parser.succeed Program
+        |. spaces
+        |= Parser.loop [] rules
 
 
 rules : List Rule -> Parser Context Problem (Parser.Step (List Rule) (List Rule))

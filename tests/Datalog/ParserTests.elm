@@ -17,6 +17,11 @@ parseTests =
                     Expect.equal
                         (Ok (Program [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) [] ]))
                         (parse "man(\"Socrates\").")
+            , test "a fact with leading space" <|
+                \_ ->
+                    Expect.equal
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) [] ]))
+                        (parse " man(\"Socrates\").")
             , test "a rule with a variable" <|
                 \_ ->
                     Expect.equal

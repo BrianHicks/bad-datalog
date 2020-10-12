@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Css
+import Css.Global
 import Datalog
 import Datalog.Atom as Atom
 import Datalog.Parser
@@ -67,9 +68,11 @@ view model =
             , Css.boxSizing Css.borderBox
             , Css.boxShadow5 Css.zero Css.zero (Css.px 10) (Css.px 1) (Css.rgba 0 0 0 0.25)
             , Css.fontFamily Css.sansSerif
+            , Css.backgroundColor (Css.hex "FFF")
             ]
         ]
-        [ Html.h1 [] [ Html.text "Datalog Time!" ]
+        [ Css.Global.global [ Css.Global.html [ Css.backgroundColor (Css.hex "B0E0E6") ] ]
+        , Html.h1 [] [ Html.text "Datalog Time!" ]
         , Html.textarea
             [ Events.onInput NewSource
             , Attributes.value model.source

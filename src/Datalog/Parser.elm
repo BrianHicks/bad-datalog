@@ -67,13 +67,9 @@ niceError source deadEnd =
 
 type Context
     = Rule
-    | RuleHead
-    | RuleBody
     | Atom (Maybe String)
-    | AtomTerms
-    | Term
-    | Constant
-    | Variable
+    | ConstantTerm
+    | VariableTerm
 
 
 niceContext : Context -> String
@@ -82,29 +78,17 @@ niceContext context =
         Rule ->
             "a rule"
 
-        RuleHead ->
-            "the head of a rule"
-
-        RuleBody ->
-            "the body of a rule"
-
         Atom Nothing ->
             "an atom"
 
         Atom (Just name) ->
             "an atom named " ++ name
 
-        AtomTerms ->
-            "an atom's terms"
+        ConstantTerm ->
+            "a constant term"
 
-        Term ->
-            "a term"
-
-        Constant ->
-            "a constant"
-
-        Variable ->
-            "a variable"
+        VariableTerm ->
+            "a variable term"
 
 
 type Problem
@@ -179,15 +163,14 @@ rule : Parser Context Problem Rule
 rule =
     Parser.inContext Rule <|
         Parser.succeed Datalog.Rule
-            |= Parser.inContext RuleHead atom
+            |= atom
             |= Parser.oneOf
-                [ Parser.inContext RuleBody <|
-                    Parser.succeed (::)
-                        |. spaces
-                        |. Parser.token (Parser.Token ":-" ExpectingImplies)
-                        |. spacesAndNewlines
-                        |= atom
-                        |= Parser.loop [] ruleTail
+                [ Parser.succeed (::)
+                    |. spaces
+                    |. Parser.token (Parser.Token ":-" ExpectingImplies)
+                    |. spacesAndNewlines
+                    |= atom
+                    |= Parser.loop [] ruleTail
                 , Parser.succeed []
                 ]
 
@@ -236,19 +219,18 @@ atom =
                     Parser.succeed Atom.Atom
                         |= Parser.succeed name
                         |. spacesAndNewlines
-                        |= Parser.inContext AtomTerms atomTerms
+                        |= atomTerms
             )
 
 
 term : Parser Context Problem Term
 term =
     Parser.oneOf [ constant, variable ]
-        |> Parser.inContext Term
 
 
 constant : Parser Context Problem Term
 constant =
-    Parser.inContext Constant <|
+    Parser.inContext ConstantTerm <|
         Parser.succeed Term.Constant
             |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
             |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
@@ -264,7 +246,7 @@ variable =
         , expecting = ExpectingVariable
         }
         |> Parser.map Term.Variable
-        |> Parser.inContext Variable
+        |> Parser.inContext VariableTerm
 
 
 isSpace : Char -> Bool

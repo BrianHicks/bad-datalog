@@ -2,13 +2,13 @@ module Main exposing (..)
 
 import Browser
 import Datalog.Parser
-import Html exposing (..)
-import Html.Attributes as Attributes
-import Html.Events as Events
+import Html.Styled as Html exposing (Html)
+import Html.Styled.Attributes as Attributes
+import Html.Styled.Events as Events
 
 
 type alias Model =
-    String
+    { source : String }
 
 
 type Msg
@@ -19,33 +19,33 @@ update : Msg -> Model -> Model
 update msg model =
     case msg of
         NewSource source ->
-            source
+            { model | source = source }
 
 
 view : Model -> Html Msg
 view model =
-    main_
+    Html.main_
         []
-        [ textarea
+        [ Html.textarea
             [ Events.onInput NewSource
-            , Attributes.value model
+            , Attributes.value model.source
             , Attributes.rows 25
             , Attributes.cols 80
             ]
             []
-        , case Datalog.Parser.parse model of
+        , case Datalog.Parser.parse model.source of
             Ok program ->
-                pre [] [ text (Debug.toString program) ]
+                Html.pre [] [ Html.text (Debug.toString program) ]
 
             Err errors ->
-                ul [] (List.map (\err -> li [] [ pre [] [ text err ] ]) errors)
+                Html.ul [] (List.map (\err -> Html.li [] [ Html.pre [] [ Html.text err ] ]) errors)
         ]
 
 
 main : Program () Model Msg
 main =
     Browser.sandbox
-        { init = ""
+        { init = { source = "" }
         , update = update
-        , view = view
+        , view = Html.toUnstyled << view
         }

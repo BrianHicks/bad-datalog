@@ -17,7 +17,7 @@ stdenv.mkDerivation {
 
   doCheck = true;
   checkPhase = ''
-    env ELM_HOME=.elm elm-test
+    elm-test
   '';
 
   installPhase = ''

@@ -18,58 +18,104 @@ parse source =
 niceErrors : String -> List (Parser.DeadEnd Context Problem) -> List String
 niceErrors source deadEnds =
     deadEnds
+        |> List.foldr
+            (\deadEnd groups ->
+                Dict.update
+                    ( deadEndSpan deadEnd, niceContextStack deadEnd.contextStack )
+                    (\maybeExisting ->
+                        case maybeExisting of
+                            Just ( first, rest ) ->
+                                Just ( deadEnd, first.problem :: rest )
+
+                            Nothing ->
+                                Just ( deadEnd, [] )
+                    )
+                    groups
+            )
+            Dict.empty
+        |> Debug.log "hey"
+        |> Dict.values
         |> List.map (niceError source)
 
 
-niceError : String -> Parser.DeadEnd Context Problem -> String
-niceError source deadEnd =
+deadEndSpan : Parser.DeadEnd Context Problem -> ( ( Int, Int ), ( Int, Int ) )
+deadEndSpan deadEnd =
     let
         locations =
-            ( deadEnd.row, deadEnd.col ) :: List.map (\{ row, col } -> ( row, col )) deadEnd.contextStack
-
-        context =
-            List.head deadEnd.contextStack
-                |> Maybe.map (.context >> niceContext)
-                |> Maybe.withDefault "the program"
+            ( deadEnd.row, deadEnd.col )
+                :: List.map (\{ row, col } -> ( row, col )) deadEnd.contextStack
     in
-    case Maybe.map2 Tuple.pair (List.minimum locations) (List.maximum locations) of
-        Just ( ( startRow, _ ), ( endRow, problemCol ) ) ->
-            let
-                lines =
-                    String.lines source
-                        |> List.drop (startRow - 1)
-                        |> List.take (endRow - startRow + 1)
+    Maybe.map2 Tuple.pair
+        (List.minimum locations)
+        (List.maximum locations)
+        |> Maybe.withDefault ( ( 0, 0 ), ( 0, 0 ) )
+
+
+niceContextStack : List { otherStuff | context : Context } -> String
+niceContextStack =
+    List.foldr
+        (\before after ->
+            niceContext before.context
+                ++ (if after == "" then
+                        after
+
+                    else
+                        " inside " ++ after
+                   )
+        )
+        ""
+
+
+niceError : String -> ( Parser.DeadEnd Context Problem, List Problem ) -> String
+niceError source ( deadEnd, moreProblems ) =
+    let
+        ( ( startRow, _ ), ( endRow, problemCol ) ) =
+            deadEndSpan deadEnd
+
+        lines =
+            String.lines source
+                |> List.drop (startRow - 1)
+                |> List.take (endRow - startRow + 1)
+                |> String.join "\n"
+
+        pointer =
+            List.concat
+                [ List.repeat (problemCol - 1) ' '
+                , [ '^' ]
+                ]
+                |> String.fromList
+
+        problems =
+            case deadEnd.problem :: moreProblems of
+                [] ->
+                    "This shouldn't be possible, and indicates a bug. Ask for help!"
+
+                [ only ] ->
+                    "I was expecting " ++ niceProblem only
+
+                many ->
+                    many
+                        |> List.map (\problem -> " - " ++ niceProblem problem)
                         |> String.join "\n"
-
-                pointer =
-                    List.concat
-                        [ List.repeat (problemCol - 1) ' '
-                        , [ '^' ]
-                        ]
-                        |> String.fromList
-            in
-            "I ran into a problem while parsing "
-                ++ context
-                ++ " at line "
-                ++ String.fromInt endRow
-                ++ ", column "
-                ++ String.fromInt problemCol
-                ++ ":\n\n"
-                ++ lines
-                ++ "\n"
-                ++ pointer
-                ++ "\n\n"
-                ++ niceProblem deadEnd.problem
-
-        Nothing ->
-            "Couldn't find source location, sorry. The problem was: " ++ niceProblem deadEnd.problem
+                        |> (++) "I was expecting one of these things:\n\n"
+    in
+    "I ran into a problem while parsing "
+        ++ niceContextStack deadEnd.contextStack
+        ++ " at line "
+        ++ String.fromInt endRow
+        ++ ", column "
+        ++ String.fromInt problemCol
+        ++ ":\n\n"
+        ++ lines
+        ++ "\n"
+        ++ pointer
+        ++ "\n\n"
+        ++ problems
 
 
 type Context
     = Rule
     | Atom (Maybe String)
-    | ConstantTerm
-    | VariableTerm
 
 
 niceContext : Context -> String
@@ -83,12 +129,6 @@ niceContext context =
 
         Atom (Just name) ->
             "an atom named " ++ name
-
-        ConstantTerm ->
-            "a constant term"
-
-        VariableTerm ->
-            "a variable term"
 
 
 type Problem
@@ -109,37 +149,37 @@ niceProblem : Problem -> String
 niceProblem problem =
     case problem of
         ExpectingAtomName ->
-            "expecting an atom name"
+            "an atom name"
 
         ExpectingStartOfTerms ->
-            "expecting an opening parenthesis to start the list of terms in the atom"
+            "an opening parenthesis to start the list of terms in the atom"
 
         ExpectingEndOfTerms ->
-            "expecting a closing parenthesis to end the list of terms in the atom"
+            "a closing parenthesis to end the list of terms in the atom"
 
         ExpectingComma ->
-            "expecting a comma"
+            "a comma"
 
         ExpectingOpeningQuote ->
-            "expecting a quote (`\"`) to start a constant term"
+            "a quote (`\"`) to start a constant term"
 
         ExpectingClosingQuote ->
-            "expecting a closing quote (`\"`) to end this constant term"
+            "a closing quote (`\"`) to end this constant term"
 
         ExpectingVariable ->
-            "expecting a variable (a name starting with a letter and continuing on with alphanumeric characters)"
+            "a variable (a name starting with a letter and continuing on with alphanumeric characters)"
 
         ExpectingImplies ->
-            "expecting a `:-` followed by a rule body"
+            "a `:-` followed by a rule body"
 
         ExpectingNewline ->
-            "expecting a newline"
+            "a newline"
 
         ExpectingEnd ->
-            "expecting the end of the program"
+            "the end of the program"
 
         ExpectingPeriod ->
-            "expecting a period to end a rule"
+            "a period to end a rule"
 
 
 parser : Parser Context Problem Program
@@ -227,11 +267,10 @@ term =
 
 constant : Parser Context Problem Term
 constant =
-    Parser.inContext ConstantTerm <|
-        Parser.succeed Term.Constant
-            |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
-            |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
-            |. Parser.token (Parser.Token "\"" ExpectingClosingQuote)
+    Parser.succeed Term.Constant
+        |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
+        |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
+        |. Parser.token (Parser.Token "\"" ExpectingClosingQuote)
 
 
 variable : Parser Context Problem Term
@@ -243,7 +282,6 @@ variable =
         , expecting = ExpectingVariable
         }
         |> Parser.map Term.Variable
-        |> Parser.inContext VariableTerm
 
 
 spaces : Parser Context Problem ()

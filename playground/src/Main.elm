@@ -44,6 +44,8 @@ view model =
             , css
                 [ Css.width (Css.pct 100)
                 , Css.height (Css.px 300)
+                , Css.padding (Css.px 20)
+                , Css.boxSizing Css.borderBox
                 , Css.border3 (Css.px 1) Css.solid (Css.hex "AAA")
                 , Css.borderRadius (Css.px 10)
                 ]

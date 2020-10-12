@@ -1,5 +1,10 @@
 {
 
+      "rtfeldman/elm-sorter-experiment" = {
+        sha256 = "1vvvsg2axss25f7ilwk2pyhznv026bq3kj2fr8h2107g1lbgyabq";
+        version = "2.1.1";
+      };
+
       "elm/html" = {
         sha256 = "1n3gpzmpqqdsldys4ipgyl1zacn0kbpc3g4v3hdpiyfjlgh8bf3k";
         version = "1.0.0";

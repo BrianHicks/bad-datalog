@@ -89,11 +89,15 @@ parseTests =
                 \_ -> Expect.err (parse "man(\"Socrates")
             , test "leaving the closing parenthesis off a term list is not allowed" <|
                 \_ -> Expect.err (parse "man(\"Socrates\"")
+            , test "leaving a period off a fact is not allowed" <|
+                \_ -> Expect.err (parse "man(\"Socrates\")")
             , test "adding a trailing comma in a term list is not allowed" <|
                 \_ -> Expect.err (parse "man(\"Socrates\",)")
             , test "having an implies horn but no body is not allowed" <|
                 \_ -> Expect.err (parse "mortal(whom) :-")
             , test "having a trailing comma in a rule body is not allowed" <|
                 \_ -> Expect.err (parse "ancestor(Child, Ancestor) :- parent(Child, Parent),")
+            , test "leaving a period off a rule is not allowed" <|
+                \_ -> Expect.err (parse "mortal(Whom) :- man(Whom)")
             ]
         ]

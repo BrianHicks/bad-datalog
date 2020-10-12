@@ -3,7 +3,9 @@ module Main exposing (..)
 import Browser
 import Css
 import Datalog
+import Datalog.Atom as Atom
 import Datalog.Parser
+import Dict
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes exposing (css)
 import Html.Styled.Events as Events
@@ -100,8 +102,19 @@ view model =
                     , Html.text " this bad boy!"
                     ]
 
-            Solved program ->
-                Html.p [] [ Html.text (Debug.toString program) ]
+            Solved database ->
+                Html.dl []
+                    (Dict.foldr
+                        (\name atoms soFar ->
+                            Html.dt [] [ Html.pre [] [ Html.text name ] ]
+                                :: List.map
+                                    (\atom -> Html.dd [] [ Html.pre [] [ Html.text (Atom.toString atom) ] ])
+                                    atoms
+                                ++ soFar
+                        )
+                        []
+                        database
+                    )
         ]
 
 

@@ -17,7 +17,7 @@ type Rule
 whose terms are all constants.
 -}
 type alias Database =
-    Dict String (List Atom)
+    Dict String ( Atom, List Atom )
 
 
 insertAtom : Atom -> Database -> Database
@@ -25,15 +25,15 @@ insertAtom ((Atom name _) as atom) database =
     Dict.update name
         (\maybeExisting ->
             case maybeExisting of
-                Just existing ->
-                    if List.member atom existing then
-                        Just existing
+                Just ( first, rest ) ->
+                    if atom == first || List.member atom rest then
+                        Just ( first, rest )
 
                     else
-                        Just (atom :: existing)
+                        Just ( atom, first :: rest )
 
                 Nothing ->
-                    Just [ atom ]
+                    Just ( atom, [] )
         )
         database
 
@@ -100,10 +100,7 @@ evaluateAtom database ((Atom name _) as atom) substitutions =
         Nothing ->
             []
 
-        Just [] ->
-            []
-
-        Just facts ->
+        Just ( first, rest ) ->
             List.filterMap
                 (Atom.unify bound >> Maybe.map (Atom.mergeSubstitutions substitutions))
-                facts
+                (first :: rest)

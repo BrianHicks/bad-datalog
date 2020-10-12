@@ -138,11 +138,11 @@ view model =
             Solved database ->
                 Html.dl []
                     (Dict.foldr
-                        (\name atoms soFar ->
+                        (\name ( first, rest ) soFar ->
                             Html.dt [] [ Html.pre [] [ Html.text name ] ]
                                 :: List.map
                                     (\atom -> Html.dd [] [ Html.pre [] [ Html.text (Atom.toString atom) ] ])
-                                    atoms
+                                    (first :: rest)
                                 ++ soFar
                         )
                         []

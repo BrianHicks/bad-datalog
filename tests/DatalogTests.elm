@@ -3,7 +3,7 @@ module DatalogTests exposing (..)
 import Datalog exposing (..)
 import Datalog.Atom as Atom exposing (Atom(..))
 import Datalog.Term as Term exposing (string, variable)
-import Dict
+import Dict exposing (Dict)
 import Expect
 import Test exposing (..)
 
@@ -16,8 +16,8 @@ solveTest =
                 Program
                     [ Rule (Atom "greek" [ string "Socrates" ]) [] ]
                     |> solve
-                    |> Dict.get "greek"
-                    |> Expect.equal (Just [ Atom "greek" [ string "Socrates" ] ])
+                    |> get "greek"
+                    |> Expect.equal [ Atom "greek" [ string "Socrates" ] ]
         , test "non-ground rules are solved" <|
             \_ ->
                 Program
@@ -25,8 +25,8 @@ solveTest =
                     , Rule (Atom "mortal" [ variable "Whom" ]) [ Atom "greek" [ variable "Whom" ] ]
                     ]
                     |> solve
-                    |> Dict.get "mortal"
-                    |> Expect.equal (Just [ Atom "mortal" [ string "Socrates" ] ])
+                    |> get "mortal"
+                    |> Expect.equal [ Atom "mortal" [ string "Socrates" ] ]
         , test "recursive rules are solved" <|
             \_ ->
                 Program
@@ -44,25 +44,21 @@ solveTest =
                         ]
                     ]
                     |> solve
-                    |> Dict.get "reachable"
+                    |> get "reachable"
                     |> Expect.equal
-                        (Just
-                            [ Atom "reachable" [ string "a", string "c" ]
-                            , Atom "reachable" [ string "a", string "b" ]
-                            , Atom "reachable" [ string "b", string "c" ]
-                            ]
-                        )
+                        [ Atom "reachable" [ string "a", string "c" ]
+                        , Atom "reachable" [ string "a", string "b" ]
+                        , Atom "reachable" [ string "b", string "c" ]
+                        ]
         , test "can solve all-pairs reachability" <|
             \_ ->
                 solve allPairsReachability
-                    |> Dict.get "query"
+                    |> get "query"
                     |> Expect.equal
-                        (Just
-                            [ Atom "query" [ string "b" ]
-                            , Atom "query" [ string "d" ]
-                            , Atom "query" [ string "c" ]
-                            ]
-                        )
+                        [ Atom "query" [ string "b" ]
+                        , Atom "query" [ string "d" ]
+                        , Atom "query" [ string "c" ]
+                        ]
         ]
 
 
@@ -93,3 +89,10 @@ allPairsReachability =
             (Atom "query" [ variable "X" ])
             [ Atom "reachable" [ variable "a", variable "X" ] ]
         ]
+
+
+get : String -> Dict String ( a, List a ) -> List a
+get key dict =
+    Dict.get key dict
+        |> Maybe.map (\( first, rest ) -> first :: rest)
+        |> Maybe.withDefault []

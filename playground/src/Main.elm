@@ -1,9 +1,10 @@
 module Main exposing (..)
 
 import Browser
+import Css
 import Datalog.Parser
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes as Attributes
+import Html.Styled.Attributes as Attributes exposing (css)
 import Html.Styled.Events as Events
 
 
@@ -25,12 +26,27 @@ update msg model =
 view : Model -> Html Msg
 view model =
     Html.main_
-        []
-        [ Html.textarea
+        [ css
+            [ Css.maxWidth (Css.px 800)
+            , Css.minHeight (Css.vh 100)
+            , Css.margin2 Css.zero Css.auto
+            , Css.padding (Css.px 20)
+            , Css.boxSizing Css.borderBox
+            , Css.boxShadow5 Css.zero Css.zero (Css.px 10) (Css.px 1) (Css.rgba 0 0 0 0.25)
+            ]
+        ]
+        [ Html.h1
+            [ css [ Css.fontFamily Css.sansSerif ] ]
+            [ Html.text "Datalog Time!" ]
+        , Html.textarea
             [ Events.onInput NewSource
             , Attributes.value model.source
-            , Attributes.rows 25
-            , Attributes.cols 80
+            , css
+                [ Css.width (Css.pct 100)
+                , Css.height (Css.px 300)
+                , Css.border3 (Css.px 1) Css.solid (Css.hex "AAA")
+                , Css.borderRadius (Css.px 10)
+                ]
             ]
             []
         , case Datalog.Parser.parse model.source of

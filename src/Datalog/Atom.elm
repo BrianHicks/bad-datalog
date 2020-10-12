@@ -1,6 +1,7 @@
 module Datalog.Atom exposing
     ( Atom(..), isGround
     , Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
+    , toString
     )
 
 {-|
@@ -8,6 +9,8 @@ module Datalog.Atom exposing
 @docs Atom, isGround
 
 @docs Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
+
+@docs toString
 
 -}
 
@@ -101,3 +104,8 @@ substitute (Atom name terms) substitutions =
 mergeSubstitutions : Substitutions -> Substitutions -> Substitutions
 mergeSubstitutions a b =
     Dict.union a b
+
+
+toString : Atom -> String
+toString (Atom name terms) =
+    name ++ "(" ++ String.join ", " (List.map Term.toString terms) ++ ")"

@@ -1,4 +1,4 @@
-module Datalog.Term exposing (Term(..), isGround)
+module Datalog.Term exposing (Term(..), isGround, toString)
 
 
 type Term
@@ -14,3 +14,13 @@ isGround term =
 
         Variable _ ->
             False
+
+
+toString : Term -> String
+toString term =
+    case term of
+        Constant constant ->
+            "\"" ++ constant ++ "\""
+
+        Variable variable ->
+            variable

@@ -22,11 +22,13 @@ type Evaluation
 type alias Model =
     { source : String
     , evaluation : Evaluation
+    , autoSolve : Bool
     }
 
 
 type Msg
     = NewSource String
+    | SetAutoSolve Bool
     | Solve
 
 
@@ -42,8 +44,27 @@ update msg model =
                             Error problems
 
                         Ok program ->
-                            Unsolved program
+                            if model.autoSolve then
+                                Solved (Datalog.solve program)
+
+                            else
+                                Unsolved program
             }
+
+        SetAutoSolve True ->
+            { model
+                | autoSolve = True
+                , evaluation =
+                    case model.evaluation of
+                        Unsolved program ->
+                            Solved (Datalog.solve program)
+
+                        _ ->
+                            model.evaluation
+            }
+
+        SetAutoSolve False ->
+            { model | autoSolve = False }
 
         Solve ->
             { model
@@ -73,6 +94,15 @@ view model =
         ]
         [ Css.Global.global [ Css.Global.html [ Css.backgroundColor (Css.hex "B0E0E6") ] ]
         , Html.h1 [] [ Html.text "Datalog Time!" ]
+        , Html.label []
+            [ Html.input
+                [ Attributes.type_ "checkbox"
+                , Attributes.checked model.autoSolve
+                , Events.onCheck SetAutoSolve
+                ]
+                []
+            , Html.text "automatically solve"
+            ]
         , Html.textarea
             [ Events.onInput NewSource
             , Attributes.value model.source
@@ -124,7 +154,11 @@ view model =
 main : Program () Model Msg
 main =
     Browser.sandbox
-        { init = { source = "", evaluation = Blank }
+        { init =
+            { source = ""
+            , evaluation = Blank
+            , autoSolve = True
+            }
         , update = update
         , view = Html.toUnstyled << view
         }

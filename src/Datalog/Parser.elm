@@ -33,7 +33,6 @@ niceErrors source deadEnds =
                     groups
             )
             Dict.empty
-        |> Debug.log "hey"
         |> Dict.values
         |> List.map (niceError source)
 

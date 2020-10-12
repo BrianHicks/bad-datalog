@@ -15,17 +15,17 @@ parseTests =
             [ test "a fact" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) [] ]))
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.string "Socrates" ]) [] ]))
                         (parse "greek(\"Socrates\").")
             , test "a fact with leading space" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) [] ]))
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.string "Socrates" ]) [] ]))
                         (parse " greek(\"Socrates\").")
             , test "a fact with a number" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "theAnswer" [ Term.Int 42 ]) [] ]))
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "theAnswer" [ Term.int 42 ]) [] ]))
                         (parse "theAnswer(42).")
             , test "a rule with a variable" <|
                 \_ ->
@@ -58,7 +58,7 @@ parseTests =
                     Expect.equal
                         (Ok
                             (Program
-                                [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) []
+                                [ Datalog.Rule (Atom.Atom "greek" [ Term.string "Socrates" ]) []
                                 , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
                                     [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
                                 ]
@@ -70,7 +70,7 @@ parseTests =
                     Expect.equal
                         (Ok
                             (Program
-                                [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) []
+                                [ Datalog.Rule (Atom.Atom "greek" [ Term.string "Socrates" ]) []
                                 , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
                                     [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
                                 ]

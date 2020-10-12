@@ -8,8 +8,10 @@ import Test exposing (..)
 isGroundTest : Test
 isGroundTest =
     describe "isGround"
-        [ test "a constant is ground" <|
-            \_ -> String "a" |> isGround |> Expect.equal True
+        [ test "a string is ground" <|
+            \_ -> string "a" |> isGround |> Expect.equal True
+        , test "an integer is ground" <|
+            \_ -> int 1 |> isGround |> Expect.equal True
         , test "a variable is not ground" <|
-            \_ -> Variable "X" |> isGround |> Expect.equal False
+            \_ -> variable "X" |> isGround |> Expect.equal False
         ]

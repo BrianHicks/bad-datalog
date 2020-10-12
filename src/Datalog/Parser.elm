@@ -276,7 +276,7 @@ term =
 
 string : Parser Context Problem Term
 string =
-    Parser.succeed Term.String
+    Parser.succeed (Term.Constant << Term.String)
         |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
         |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
         |. Parser.token (Parser.Token "\"" ExpectingClosingQuote)
@@ -285,7 +285,7 @@ string =
 int : Parser Context Problem Term
 int =
     Parser.int ExpectingNumber InvalidNumber
-        |> Parser.map Term.Int
+        |> Parser.map (Term.Constant << Term.Int)
 
 
 variable : Parser Context Problem Term

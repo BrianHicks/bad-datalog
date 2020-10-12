@@ -2,7 +2,7 @@ module DatalogTests exposing (..)
 
 import Datalog exposing (..)
 import Datalog.Atom as Atom exposing (Atom(..))
-import Datalog.Term exposing (Term(..))
+import Datalog.Term as Term exposing (string, variable)
 import Dict
 import Expect
 import Test exposing (..)
@@ -14,42 +14,42 @@ solveTest =
         [ test "ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "greek" [ String "Socrates" ]) [] ]
+                    [ Rule (Atom "greek" [ string "Socrates" ]) [] ]
                     |> solve
                     |> Dict.get "greek"
-                    |> Expect.equal (Just [ Atom "greek" [ String "Socrates" ] ])
+                    |> Expect.equal (Just [ Atom "greek" [ string "Socrates" ] ])
         , test "non-ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "greek" [ String "Socrates" ]) []
-                    , Rule (Atom "mortal" [ Variable "Whom" ]) [ Atom "greek" [ Variable "Whom" ] ]
+                    [ Rule (Atom "greek" [ string "Socrates" ]) []
+                    , Rule (Atom "mortal" [ variable "Whom" ]) [ Atom "greek" [ variable "Whom" ] ]
                     ]
                     |> solve
                     |> Dict.get "mortal"
-                    |> Expect.equal (Just [ Atom "mortal" [ String "Socrates" ] ])
+                    |> Expect.equal (Just [ Atom "mortal" [ string "Socrates" ] ])
         , test "recursive rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "link" [ String "a", String "b" ]) []
-                    , Rule (Atom "link" [ String "b", String "c" ]) []
+                    [ Rule (Atom "link" [ string "a", string "b" ]) []
+                    , Rule (Atom "link" [ string "b", string "c" ]) []
 
                     -- the rule
                     , Rule
-                        (Atom "reachable" [ Variable "X", Variable "Y" ])
-                        [ Atom "link" [ Variable "X", Variable "Y" ] ]
+                        (Atom "reachable" [ variable "X", variable "Y" ])
+                        [ Atom "link" [ variable "X", variable "Y" ] ]
                     , Rule
-                        (Atom "reachable" [ Variable "X", Variable "Z" ])
-                        [ Atom "link" [ Variable "X", Variable "Y" ]
-                        , Atom "reachable" [ Variable "Y", Variable "Z" ]
+                        (Atom "reachable" [ variable "X", variable "Z" ])
+                        [ Atom "link" [ variable "X", variable "Y" ]
+                        , Atom "reachable" [ variable "Y", variable "Z" ]
                         ]
                     ]
                     |> solve
                     |> Dict.get "reachable"
                     |> Expect.equal
                         (Just
-                            [ Atom "reachable" [ String "a", String "c" ]
-                            , Atom "reachable" [ String "a", String "b" ]
-                            , Atom "reachable" [ String "b", String "c" ]
+                            [ Atom "reachable" [ string "a", string "c" ]
+                            , Atom "reachable" [ string "a", string "b" ]
+                            , Atom "reachable" [ string "b", string "c" ]
                             ]
                         )
         , test "can solve all-pairs reachability" <|
@@ -58,9 +58,9 @@ solveTest =
                     |> Dict.get "query"
                     |> Expect.equal
                         (Just
-                            [ Atom "query" [ String "b" ]
-                            , Atom "query" [ String "d" ]
-                            , Atom "query" [ String "c" ]
+                            [ Atom "query" [ string "b" ]
+                            , Atom "query" [ string "d" ]
+                            , Atom "query" [ string "c" ]
                             ]
                         )
         ]
@@ -73,23 +73,23 @@ allPairsReachability : Datalog.Program
 allPairsReachability =
     Program
         [ -- base data
-          Rule (Atom "link" [ String "a", String "b" ]) []
-        , Rule (Atom "link" [ String "b", String "c" ]) []
-        , Rule (Atom "link" [ String "c", String "c" ]) []
-        , Rule (Atom "link" [ String "c", String "d" ]) []
+          Rule (Atom "link" [ string "a", string "b" ]) []
+        , Rule (Atom "link" [ string "b", string "c" ]) []
+        , Rule (Atom "link" [ string "c", string "c" ]) []
+        , Rule (Atom "link" [ string "c", string "d" ]) []
 
         -- recursive rule
         , Rule
-            (Atom "reachable" [ Variable "X", Variable "Y" ])
-            [ Atom "link" [ Variable "X", Variable "Y" ] ]
+            (Atom "reachable" [ variable "X", variable "Y" ])
+            [ Atom "link" [ variable "X", variable "Y" ] ]
         , Rule
-            (Atom "reachable" [ Variable "X", Variable "Y" ])
-            [ Atom "link" [ Variable "X", Variable "Z" ]
-            , Atom "reachable" [ Variable "Z", Variable "Y" ]
+            (Atom "reachable" [ variable "X", variable "Y" ])
+            [ Atom "link" [ variable "X", variable "Z" ]
+            , Atom "reachable" [ variable "Z", variable "Y" ]
             ]
 
         -- query
         , Rule
-            (Atom "query" [ Variable "X" ])
-            [ Atom "reachable" [ Variable "a", Variable "X" ] ]
+            (Atom "query" [ variable "X" ])
+            [ Atom "reachable" [ variable "a", variable "X" ] ]
         ]

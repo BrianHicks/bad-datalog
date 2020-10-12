@@ -28,7 +28,7 @@ isGround (Atom _ terms) =
 
 
 type alias Substitutions =
-    Dict String Term
+    Dict String Term.Constant
 
 
 emptySubstitutions : Substitutions
@@ -48,14 +48,14 @@ unify (Atom aName aTerms) (Atom bName bTerms) =
 unifyHelp : List ( Term, Term ) -> Substitutions -> Maybe Substitutions
 unifyHelp termPairs substitutions =
     let
-        variableToConstant : String -> Term -> List ( Term, Term ) -> Maybe Substitutions
-        variableToConstant var term rest =
+        variableToConstant : String -> Term.Constant -> List ( Term, Term ) -> Maybe Substitutions
+        variableToConstant var constant rest =
             case Dict.get var substitutions of
                 Nothing ->
-                    unifyHelp rest (Dict.insert var term substitutions)
+                    unifyHelp rest (Dict.insert var constant substitutions)
 
                 Just alreadyBound ->
-                    if alreadyBound == term then
+                    if alreadyBound == constant then
                         unifyHelp rest substitutions
 
                     else
@@ -65,14 +65,7 @@ unifyHelp termPairs substitutions =
         [] ->
             Just substitutions
 
-        ( String a, String b ) :: rest ->
-            if a == b then
-                unifyHelp rest substitutions
-
-            else
-                Nothing
-
-        ( Int a, Int b ) :: rest ->
+        ( Constant a, Constant b ) :: rest ->
             if a == b then
                 unifyHelp rest substitutions
 
@@ -82,17 +75,11 @@ unifyHelp termPairs substitutions =
         ( Variable _, Variable _ ) :: rest ->
             unifyHelp rest substitutions
 
-        ( String _, Int _ ) :: rest ->
-            Nothing
+        ( Variable var, Constant constant ) :: rest ->
+            variableToConstant var constant rest
 
-        ( Int _, String _ ) :: rest ->
-            Nothing
-
-        ( Variable var, otherTerm ) :: rest ->
-            variableToConstant var otherTerm rest
-
-        ( otherTerm, Variable var ) :: rest ->
-            variableToConstant var otherTerm rest
+        ( Constant constant, Variable var ) :: rest ->
+            variableToConstant var constant rest
 
 
 substitute : Atom -> Substitutions -> Atom
@@ -101,16 +88,13 @@ substitute (Atom name terms) substitutions =
         |> List.map
             (\term ->
                 case term of
-                    String _ ->
-                        term
-
-                    Int _ ->
+                    Constant _ ->
                         term
 
                     Variable var ->
                         case Dict.get var substitutions of
                             Just boundTerm ->
-                                boundTerm
+                                Constant boundTerm
 
                             Nothing ->
                                 term

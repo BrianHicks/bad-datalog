@@ -52,11 +52,20 @@ view model =
             ]
             []
         , case Datalog.Parser.parse model.source of
-            Ok program ->
-                Html.pre [] [ Html.text (Debug.toString program) ]
-
             Err errors ->
-                Html.ul [] (List.map (\err -> Html.li [] [ Html.pre [] [ Html.text err ] ]) errors)
+                Html.ul []
+                    (List.map
+                        (\err -> Html.li [] [ Html.pre [] [ Html.text err ] ])
+                        errors
+                    )
+
+            Ok program ->
+                Html.p
+                    [ css [ Css.fontFamily Css.sansSerif ] ]
+                    [ Html.text "Sweet, it parses! Now "
+                    , Html.button [] [ Html.text "solve" ]
+                    , Html.text " this bad boy!"
+                    ]
         ]
 
 

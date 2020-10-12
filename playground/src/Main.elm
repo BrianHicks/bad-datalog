@@ -33,11 +33,10 @@ view model =
             , Css.padding (Css.px 20)
             , Css.boxSizing Css.borderBox
             , Css.boxShadow5 Css.zero Css.zero (Css.px 10) (Css.px 1) (Css.rgba 0 0 0 0.25)
+            , Css.fontFamily Css.sansSerif
             ]
         ]
-        [ Html.h1
-            [ css [ Css.fontFamily Css.sansSerif ] ]
-            [ Html.text "Datalog Time!" ]
+        [ Html.h1 [] [ Html.text "Datalog Time!" ]
         , Html.textarea
             [ Events.onInput NewSource
             , Attributes.value model.source
@@ -48,6 +47,7 @@ view model =
                 , Css.boxSizing Css.borderBox
                 , Css.border3 (Css.px 1) Css.solid (Css.hex "AAA")
                 , Css.borderRadius (Css.px 10)
+                , Css.fontFamily Css.monospace
                 ]
             ]
             []
@@ -60,8 +60,7 @@ view model =
                     )
 
             Ok program ->
-                Html.p
-                    [ css [ Css.fontFamily Css.sansSerif ] ]
+                Html.p []
                     [ Html.text "Sweet, it parses! Now "
                     , Html.button [] [ Html.text "solve" ]
                     , Html.text " this bad boy!"

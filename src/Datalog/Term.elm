@@ -2,14 +2,14 @@ module Datalog.Term exposing (Term(..), isGround, toString)
 
 
 type Term
-    = Constant String
+    = String String
     | Variable String
 
 
 isGround : Term -> Bool
 isGround term =
     case term of
-        Constant _ ->
+        String _ ->
             True
 
         Variable _ ->
@@ -19,7 +19,7 @@ isGround term =
 toString : Term -> String
 toString term =
     case term of
-        Constant constant ->
+        String constant ->
             "\"" ++ constant ++ "\""
 
         Variable variable ->

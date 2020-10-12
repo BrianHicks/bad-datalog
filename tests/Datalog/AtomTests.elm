@@ -13,12 +13,12 @@ isGroundTest =
         [ test "if there are terms, the atom is ground" <|
             \_ -> Atom "x" [] |> isGround |> Expect.equal False
         , test "if all terms are constant, the atom is ground" <|
-            \_ -> Atom "x" [ Constant "a" ] |> isGround |> Expect.equal True
+            \_ -> Atom "x" [ String "a" ] |> isGround |> Expect.equal True
         , test "if all terms are variable, the atom is not ground" <|
             \_ -> Atom "x" [ Variable "X" ] |> isGround |> Expect.equal False
         , test "with a mix of constant and variable terms, the atom is not ground" <|
             \_ ->
-                Atom "x" [ Variable "X", Constant "a" ]
+                Atom "x" [ Variable "X", String "a" ]
                     |> isGround
                     |> Expect.equal False
         ]
@@ -40,49 +40,49 @@ unifyTest =
         , test "conflicting constants do not unify" <|
             \_ ->
                 unify
-                    (Atom "a" [ Constant "x" ])
-                    (Atom "a" [ Constant "y" ])
+                    (Atom "a" [ String "x" ])
+                    (Atom "a" [ String "y" ])
                     |> Expect.equal Nothing
         , test "compatible constants unify" <|
             \_ ->
                 unify
-                    (Atom "a" [ Constant "x" ])
-                    (Atom "a" [ Constant "x" ])
+                    (Atom "a" [ String "x" ])
+                    (Atom "a" [ String "x" ])
                     |> Expect.equal (Just Dict.empty)
         , test "a unbound var/constant pair unifies" <|
             \_ ->
                 unify
                     (Atom "a" [ Variable "X" ])
-                    (Atom "a" [ Constant "a" ])
+                    (Atom "a" [ String "a" ])
                     |> Expect.equal (Just (Dict.singleton "X" "a"))
         , test "a bound var/constant pair unifies if it does not conflict" <|
             \_ ->
                 unify
                     (Atom "a" [ Variable "X", Variable "X" ])
-                    (Atom "a" [ Constant "a", Constant "a" ])
+                    (Atom "a" [ String "a", String "a" ])
                     |> Expect.equal (Just (Dict.singleton "X" "a"))
         , test "a constant/bound var pair does not unify if it conflicts" <|
             \_ ->
                 unify
                     (Atom "a" [ Variable "X", Variable "X" ])
-                    (Atom "a" [ Constant "a", Constant "b" ])
+                    (Atom "a" [ String "a", String "b" ])
                     |> Expect.equal Nothing
         , test "a constant/unbound var pair unifies" <|
             \_ ->
                 unify
-                    (Atom "a" [ Constant "a" ])
+                    (Atom "a" [ String "a" ])
                     (Atom "a" [ Variable "X" ])
                     |> Expect.equal (Just (Dict.singleton "X" "a"))
         , test "a constant/bound var pair unifies if it does not conflict" <|
             \_ ->
                 unify
-                    (Atom "a" [ Constant "a", Constant "a" ])
+                    (Atom "a" [ String "a", String "a" ])
                     (Atom "a" [ Variable "X", Variable "X" ])
                     |> Expect.equal (Just (Dict.singleton "X" "a"))
         , test "a bound var/constant pair does not unify if it conflicts" <|
             \_ ->
                 unify
-                    (Atom "a" [ Constant "a", Constant "b" ])
+                    (Atom "a" [ String "a", String "b" ])
                     (Atom "a" [ Variable "X", Variable "X" ])
                     |> Expect.equal Nothing
         , test "variables unify with each other but don't generate any bindings" <|
@@ -95,7 +95,7 @@ unifyTest =
             \_ ->
                 unify
                     (Atom "a" [ Variable "X", Variable "Y" ])
-                    (Atom "a" [ Constant "a", Constant "b" ])
+                    (Atom "a" [ String "a", String "b" ])
                     |> Expect.equal
                         (Just
                             (Dict.fromList
@@ -108,7 +108,7 @@ unifyTest =
             \_ ->
                 unify
                     (Atom "a" [ Variable "X", Variable "X" ])
-                    (Atom "a" [ Constant "a", Constant "b" ])
+                    (Atom "a" [ String "a", String "b" ])
                     |> Expect.equal Nothing
         ]
 
@@ -136,7 +136,7 @@ substituteTest =
             \_ ->
                 let
                     atom =
-                        Atom "a" [ Constant "a" ]
+                        Atom "a" [ String "a" ]
                 in
                 substitute atom (Dict.singleton "X" "a")
                     |> Expect.equal atom
@@ -145,7 +145,7 @@ substituteTest =
                 substitute
                     (Atom "a" [ Variable "X" ])
                     (Dict.singleton "X" "a")
-                    |> Expect.equal (Atom "a" [ Constant "a" ])
+                    |> Expect.equal (Atom "a" [ String "a" ])
         , test "a variable term is not replace if there is no replacement" <|
             \_ ->
                 let

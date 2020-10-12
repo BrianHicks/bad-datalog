@@ -263,12 +263,12 @@ atom =
 
 term : Parser Context Problem Term
 term =
-    Parser.oneOf [ constant, variable ]
+    Parser.oneOf [ string, variable ]
 
 
-constant : Parser Context Problem Term
-constant =
-    Parser.succeed Term.Constant
+string : Parser Context Problem Term
+string =
+    Parser.succeed Term.String
         |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
         |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
         |. Parser.token (Parser.Token "\"" ExpectingClosingQuote)

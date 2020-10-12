@@ -14,24 +14,24 @@ solveTest =
         [ test "ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "greek" [ Constant "Socrates" ]) [] ]
+                    [ Rule (Atom "greek" [ String "Socrates" ]) [] ]
                     |> solve
                     |> Dict.get "greek"
-                    |> Expect.equal (Just [ Atom "greek" [ Constant "Socrates" ] ])
+                    |> Expect.equal (Just [ Atom "greek" [ String "Socrates" ] ])
         , test "non-ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "greek" [ Constant "Socrates" ]) []
+                    [ Rule (Atom "greek" [ String "Socrates" ]) []
                     , Rule (Atom "mortal" [ Variable "Whom" ]) [ Atom "greek" [ Variable "Whom" ] ]
                     ]
                     |> solve
                     |> Dict.get "mortal"
-                    |> Expect.equal (Just [ Atom "mortal" [ Constant "Socrates" ] ])
+                    |> Expect.equal (Just [ Atom "mortal" [ String "Socrates" ] ])
         , test "recursive rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "link" [ Constant "a", Constant "b" ]) []
-                    , Rule (Atom "link" [ Constant "b", Constant "c" ]) []
+                    [ Rule (Atom "link" [ String "a", String "b" ]) []
+                    , Rule (Atom "link" [ String "b", String "c" ]) []
 
                     -- the rule
                     , Rule
@@ -47,9 +47,9 @@ solveTest =
                     |> Dict.get "reachable"
                     |> Expect.equal
                         (Just
-                            [ Atom "reachable" [ Constant "a", Constant "c" ]
-                            , Atom "reachable" [ Constant "a", Constant "b" ]
-                            , Atom "reachable" [ Constant "b", Constant "c" ]
+                            [ Atom "reachable" [ String "a", String "c" ]
+                            , Atom "reachable" [ String "a", String "b" ]
+                            , Atom "reachable" [ String "b", String "c" ]
                             ]
                         )
         , test "can solve all-pairs reachability" <|
@@ -58,9 +58,9 @@ solveTest =
                     |> Dict.get "query"
                     |> Expect.equal
                         (Just
-                            [ Atom "query" [ Constant "b" ]
-                            , Atom "query" [ Constant "d" ]
-                            , Atom "query" [ Constant "c" ]
+                            [ Atom "query" [ String "b" ]
+                            , Atom "query" [ String "d" ]
+                            , Atom "query" [ String "c" ]
                             ]
                         )
         ]
@@ -73,10 +73,10 @@ allPairsReachability : Datalog.Program
 allPairsReachability =
     Program
         [ -- base data
-          Rule (Atom "link" [ Constant "a", Constant "b" ]) []
-        , Rule (Atom "link" [ Constant "b", Constant "c" ]) []
-        , Rule (Atom "link" [ Constant "c", Constant "c" ]) []
-        , Rule (Atom "link" [ Constant "c", Constant "d" ]) []
+          Rule (Atom "link" [ String "a", String "b" ]) []
+        , Rule (Atom "link" [ String "b", String "c" ]) []
+        , Rule (Atom "link" [ String "c", String "c" ]) []
+        , Rule (Atom "link" [ String "c", String "d" ]) []
 
         -- recursive rule
         , Rule

@@ -15,12 +15,12 @@ parseTests =
             [ test "a fact" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) [] ]))
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) [] ]))
                         (parse "greek(\"Socrates\").")
             , test "a fact with leading space" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) [] ]))
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) [] ]))
                         (parse " greek(\"Socrates\").")
             , test "a rule with a variable" <|
                 \_ ->
@@ -53,7 +53,7 @@ parseTests =
                     Expect.equal
                         (Ok
                             (Program
-                                [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) []
+                                [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) []
                                 , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
                                     [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
                                 ]
@@ -65,7 +65,7 @@ parseTests =
                     Expect.equal
                         (Ok
                             (Program
-                                [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) []
+                                [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) []
                                 , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
                                     [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
                                 ]

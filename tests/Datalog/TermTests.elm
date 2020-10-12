@@ -9,7 +9,7 @@ isGroundTest : Test
 isGroundTest =
     describe "isGround"
         [ test "a constant is ground" <|
-            \_ -> Constant "a" |> isGround |> Expect.equal True
+            \_ -> String "a" |> isGround |> Expect.equal True
         , test "a variable is not ground" <|
             \_ -> Variable "X" |> isGround |> Expect.equal False
         ]

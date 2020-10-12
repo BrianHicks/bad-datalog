@@ -64,17 +64,17 @@ unifyHelp termPairs substitutions =
         [] ->
             Just substitutions
 
-        ( Constant a, Constant b ) :: rest ->
+        ( String a, String b ) :: rest ->
             if a == b then
                 unifyHelp rest substitutions
 
             else
                 Nothing
 
-        ( Variable var, Constant const ) :: rest ->
+        ( Variable var, String const ) :: rest ->
             variableToConstant var const rest
 
-        ( Constant const, Variable var ) :: rest ->
+        ( String const, Variable var ) :: rest ->
             variableToConstant var const rest
 
         ( Variable _, Variable _ ) :: rest ->
@@ -87,13 +87,13 @@ substitute (Atom name terms) substitutions =
         |> List.map
             (\term ->
                 case term of
-                    Constant _ ->
+                    String _ ->
                         term
 
                     Variable var ->
                         case Dict.get var substitutions of
                             Just const ->
-                                Constant const
+                                String const
 
                             Nothing ->
                                 term

@@ -16,7 +16,7 @@ parseTests =
                 \_ ->
                     Expect.equal
                         (Ok (Program [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) [] ]))
-                        (parse "man(\"Socrates\")")
+                        (parse "man(\"Socrates\").")
             , test "a rule with a variable" <|
                 \_ ->
                     Expect.equal
@@ -28,7 +28,7 @@ parseTests =
                                 ]
                             )
                         )
-                        (parse "mortal(whom) :- man(whom)")
+                        (parse "mortal(whom) :- man(whom).")
             , test "a rule with multiple clauses" <|
                 \_ ->
                     Expect.equal
@@ -42,7 +42,7 @@ parseTests =
                                 ]
                             )
                         )
-                        (parse "ancestor(Child, Ancestor) :- parent(Child, Parent), ancestor(Parent, Ancestor)")
+                        (parse "ancestor(Child, Ancestor) :- parent(Child, Parent), ancestor(Parent, Ancestor).")
             , test "a program with multiple rules" <|
                 \_ ->
                     Expect.equal
@@ -54,7 +54,7 @@ parseTests =
                                 ]
                             )
                         )
-                        (parse "man(\"Socrates\")\nmortal(Whom) :- man(Whom)")
+                        (parse "man(\"Socrates\").\nmortal(Whom) :- man(Whom).")
             , test "a program with whitespace between rules" <|
                 \_ ->
                     Expect.equal
@@ -66,7 +66,7 @@ parseTests =
                                 ]
                             )
                         )
-                        (parse "man(\"Socrates\")\n\nmortal(Whom) :- man(Whom)")
+                        (parse "man(\"Socrates\").\n\nmortal(Whom) :- man(Whom).")
             , test "a rule with newlines in between body atoms" <|
                 \_ ->
                     Expect.equal
@@ -80,7 +80,7 @@ parseTests =
                                 ]
                             )
                         )
-                        (parse "ancestor(Child, Ancestor) :-\n    parent(Child, Parent),\n    ancestor(Parent, Ancestor)")
+                        (parse "ancestor(Child, Ancestor) :-\n    parent(Child, Parent),\n    ancestor(Parent, Ancestor).")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

@@ -102,6 +102,7 @@ type Problem
     | ExpectingImplies
     | ExpectingNewline
     | ExpectingEnd
+    | ExpectingPeriod
 
 
 niceProblem : Problem -> String
@@ -136,6 +137,9 @@ niceProblem problem =
 
         ExpectingEnd ->
             "expecting the end of the program source"
+
+        ExpectingPeriod ->
+            "expecting a period"
 
 
 parser : Parser Context Problem Program
@@ -172,6 +176,7 @@ rule =
                     |= atom
                     |= Parser.loop [] ruleTail
                 , Parser.succeed []
+                    |. Parser.token (Parser.Token "." ExpectingPeriod)
                 ]
 
 
@@ -183,11 +188,8 @@ ruleTail soFar =
             |. Parser.token (Parser.Token "," ExpectingComma)
             |. spacesAndNewlines
             |= atom
-        , Parser.oneOf
-            [ Parser.token (Parser.Token "\n" ExpectingNewline)
-            , Parser.end ExpectingEnd
-            ]
-            |> Parser.map (\() -> Parser.Done (List.reverse soFar))
+        , Parser.map (\() -> Parser.Done (List.reverse soFar))
+            (Parser.token (Parser.Token "." ExpectingPeriod))
         ]
 
 

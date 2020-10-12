@@ -11,10 +11,12 @@ stdenv.mkDerivation {
   buildInputs = [
     niv.niv
     git
+    gnumake
 
     # elm
     elmPackages.elm
     elmPackages.elm-format
     elmPackages.elm-test
+    elm2nix
   ];
 }

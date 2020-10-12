@@ -28,7 +28,7 @@ isGround (Atom _ terms) =
 
 
 type alias Substitutions =
-    Dict String String
+    Dict String Term
 
 
 emptySubstitutions : Substitutions
@@ -48,13 +48,14 @@ unify (Atom aName aTerms) (Atom bName bTerms) =
 unifyHelp : List ( Term, Term ) -> Substitutions -> Maybe Substitutions
 unifyHelp termPairs substitutions =
     let
-        variableToConstant var const rest =
+        variableToConstant : String -> Term -> List ( Term, Term ) -> Maybe Substitutions
+        variableToConstant var term rest =
             case Dict.get var substitutions of
                 Nothing ->
-                    unifyHelp rest (Dict.insert var const substitutions)
+                    unifyHelp rest (Dict.insert var term substitutions)
 
                 Just alreadyBound ->
-                    if alreadyBound == const then
+                    if alreadyBound == term then
                         unifyHelp rest substitutions
 
                     else
@@ -71,14 +72,27 @@ unifyHelp termPairs substitutions =
             else
                 Nothing
 
-        ( Variable var, String const ) :: rest ->
-            variableToConstant var const rest
+        ( Int a, Int b ) :: rest ->
+            if a == b then
+                unifyHelp rest substitutions
 
-        ( String const, Variable var ) :: rest ->
-            variableToConstant var const rest
+            else
+                Nothing
 
         ( Variable _, Variable _ ) :: rest ->
             unifyHelp rest substitutions
+
+        ( String _, Int _ ) :: rest ->
+            Nothing
+
+        ( Int _, String _ ) :: rest ->
+            Nothing
+
+        ( Variable var, otherTerm ) :: rest ->
+            variableToConstant var otherTerm rest
+
+        ( otherTerm, Variable var ) :: rest ->
+            variableToConstant var otherTerm rest
 
 
 substitute : Atom -> Substitutions -> Atom
@@ -90,10 +104,13 @@ substitute (Atom name terms) substitutions =
                     String _ ->
                         term
 
+                    Int _ ->
+                        term
+
                     Variable var ->
                         case Dict.get var substitutions of
-                            Just const ->
-                                String const
+                            Just boundTerm ->
+                                boundTerm
 
                             Nothing ->
                                 term

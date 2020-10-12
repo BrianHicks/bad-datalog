@@ -54,13 +54,13 @@ unifyTest =
                 unify
                     (Atom "a" [ Variable "X" ])
                     (Atom "a" [ String "a" ])
-                    |> Expect.equal (Just (Dict.singleton "X" "a"))
+                    |> Expect.equal (Just (Dict.singleton "X" (String "a")))
         , test "a bound var/constant pair unifies if it does not conflict" <|
             \_ ->
                 unify
                     (Atom "a" [ Variable "X", Variable "X" ])
                     (Atom "a" [ String "a", String "a" ])
-                    |> Expect.equal (Just (Dict.singleton "X" "a"))
+                    |> Expect.equal (Just (Dict.singleton "X" (String "a")))
         , test "a constant/bound var pair does not unify if it conflicts" <|
             \_ ->
                 unify
@@ -72,13 +72,13 @@ unifyTest =
                 unify
                     (Atom "a" [ String "a" ])
                     (Atom "a" [ Variable "X" ])
-                    |> Expect.equal (Just (Dict.singleton "X" "a"))
+                    |> Expect.equal (Just (Dict.singleton "X" (String "a")))
         , test "a constant/bound var pair unifies if it does not conflict" <|
             \_ ->
                 unify
                     (Atom "a" [ String "a", String "a" ])
                     (Atom "a" [ Variable "X", Variable "X" ])
-                    |> Expect.equal (Just (Dict.singleton "X" "a"))
+                    |> Expect.equal (Just (Dict.singleton "X" (String "a")))
         , test "a bound var/constant pair does not unify if it conflicts" <|
             \_ ->
                 unify
@@ -99,8 +99,8 @@ unifyTest =
                     |> Expect.equal
                         (Just
                             (Dict.fromList
-                                [ ( "X", "a" )
-                                , ( "Y", "b" )
+                                [ ( "X", String "a" )
+                                , ( "Y", String "b" )
                                 ]
                             )
                         )
@@ -130,7 +130,7 @@ substituteTest =
                     atom =
                         Atom "a" []
                 in
-                substitute atom (Dict.singleton "X" "a")
+                substitute atom (Dict.singleton "X" (String "a"))
                     |> Expect.equal atom
         , test "a constant term is not replaed" <|
             \_ ->
@@ -138,13 +138,13 @@ substituteTest =
                     atom =
                         Atom "a" [ String "a" ]
                 in
-                substitute atom (Dict.singleton "X" "a")
+                substitute atom (Dict.singleton "X" (String "a"))
                     |> Expect.equal atom
         , test "a variable term is replaced if there is a replacement" <|
             \_ ->
                 substitute
                     (Atom "a" [ Variable "X" ])
-                    (Dict.singleton "X" "a")
+                    (Dict.singleton "X" (String "a"))
                     |> Expect.equal (Atom "a" [ String "a" ])
         , test "a variable term is not replace if there is no replacement" <|
             \_ ->
@@ -152,7 +152,7 @@ substituteTest =
                     atom =
                         Atom "a" [ Variable "X" ]
                 in
-                substitute atom (Dict.singleton "Y" "a")
+                substitute atom (Dict.singleton "Y" (String "a"))
                     |> Expect.equal atom
         ]
 
@@ -163,31 +163,31 @@ mergeSubstitutionsTest =
         [ test "keys in left should be preserved" <|
             \_ ->
                 mergeSubstitutions
-                    (Dict.singleton "X" "a")
+                    (Dict.singleton "X" (String "a"))
                     Dict.empty
                     |> Dict.get "X"
-                    |> Expect.equal (Just "a")
+                    |> Expect.equal (Just (String "a"))
         , test "keys in right should be preserved" <|
             \_ ->
                 mergeSubstitutions
                     Dict.empty
-                    (Dict.singleton "X" "a")
+                    (Dict.singleton "X" (String "a"))
                     |> Dict.get "X"
-                    |> Expect.equal (Just "a")
+                    |> Expect.equal (Just (String "a"))
         , test "keys in both should be preserved" <|
             \_ ->
                 mergeSubstitutions
-                    (Dict.singleton "X" "a")
-                    (Dict.singleton "Y" "b")
+                    (Dict.singleton "X" (String "a"))
+                    (Dict.singleton "Y" (String "b"))
                     |> Expect.all
-                        [ Dict.get "X" >> Expect.equal (Just "a")
-                        , Dict.get "Y" >> Expect.equal (Just "b")
+                        [ Dict.get "X" >> Expect.equal (Just (String "a"))
+                        , Dict.get "Y" >> Expect.equal (Just (String "b"))
                         ]
         , test "keys in left take precedence" <|
             \_ ->
                 mergeSubstitutions
-                    (Dict.singleton "X" "a")
-                    (Dict.singleton "X" "b")
+                    (Dict.singleton "X" (String "a"))
+                    (Dict.singleton "X" (String "b"))
                     |> Dict.get "X"
-                    |> Expect.equal (Just "a")
+                    |> Expect.equal (Just (String "a"))
         ]

@@ -22,6 +22,11 @@ parseTests =
                     Expect.equal
                         (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.String "Socrates" ]) [] ]))
                         (parse " greek(\"Socrates\").")
+            , test "a fact with a number" <|
+                \_ ->
+                    Expect.equal
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "theAnswer" [ Term.Int 42 ]) [] ]))
+                        (parse "theAnswer(42).")
             , test "a rule with a variable" <|
                 \_ ->
                     Expect.equal

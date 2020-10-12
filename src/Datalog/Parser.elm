@@ -137,6 +137,8 @@ type Problem
     | ExpectingComma
     | ExpectingOpeningQuote
     | ExpectingClosingQuote
+    | ExpectingNumber
+    | InvalidNumber
     | ExpectingVariable
     | ExpectingImplies
     | ExpectingNewline
@@ -164,6 +166,12 @@ niceProblem problem =
 
         ExpectingClosingQuote ->
             "a closing quote (`\"`) to end this constant term"
+
+        ExpectingNumber ->
+            "a number for an integer term"
+
+        InvalidNumber ->
+            "an integer like 1234 (no floats, hex, octal, etc.)"
 
         ExpectingVariable ->
             "a variable (a name starting with a letter and continuing on with alphanumeric characters)"
@@ -263,7 +271,7 @@ atom =
 
 term : Parser Context Problem Term
 term =
-    Parser.oneOf [ string, variable ]
+    Parser.oneOf [ variable, string, int ]
 
 
 string : Parser Context Problem Term
@@ -272,6 +280,12 @@ string =
         |. Parser.token (Parser.Token "\"" ExpectingOpeningQuote)
         |= Parser.getChompedString (Parser.chompWhile (\c -> c /= '"'))
         |. Parser.token (Parser.Token "\"" ExpectingClosingQuote)
+
+
+int : Parser Context Problem Term
+int =
+    Parser.int ExpectingNumber InvalidNumber
+        |> Parser.map Term.Int
 
 
 variable : Parser Context Problem Term

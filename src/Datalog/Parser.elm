@@ -93,8 +93,8 @@ niceContext context =
 
 type Problem
     = ExpectingAtomName
-    | ExpectingOpeningParenthesis
-    | ExpectingClosingParenthesis
+    | ExpectingStartOfTerms
+    | ExpectingEndOfTerms
     | ExpectingComma
     | ExpectingOpeningQuote
     | ExpectingClosingQuote
@@ -111,23 +111,23 @@ niceProblem problem =
         ExpectingAtomName ->
             "expecting an atom name"
 
-        ExpectingOpeningParenthesis ->
-            "expecting an opening parenthesis"
+        ExpectingStartOfTerms ->
+            "expecting an opening parenthesis to start the list of terms in the atom"
 
-        ExpectingClosingParenthesis ->
-            "expecting a closing parenthesis"
+        ExpectingEndOfTerms ->
+            "expecting a closing parenthesis to end the list of terms in the atom"
 
         ExpectingComma ->
             "expecting a comma"
 
         ExpectingOpeningQuote ->
-            "expecting an opening quote"
+            "expecting a quote (`\"`) to start a constant term"
 
         ExpectingClosingQuote ->
-            "expecting a closing quote"
+            "expecting a closing quote (`\"`) to end this constant term"
 
         ExpectingVariable ->
-            "expecting a variable"
+            "expecting a variable (a name starting with a letter and continuing on with alphanumeric characters)"
 
         ExpectingImplies ->
             "expecting a `:-` followed by a rule body"
@@ -136,10 +136,10 @@ niceProblem problem =
             "expecting a newline"
 
         ExpectingEnd ->
-            "expecting the end of the program source"
+            "expecting the end of the program"
 
         ExpectingPeriod ->
-            "expecting a period"
+            "expecting a period to end a rule"
 
 
 parser : Parser Context Problem Program
@@ -152,12 +152,7 @@ rules soFar =
     Parser.oneOf
         [ Parser.succeed (\rule_ -> Parser.Loop (rule_ :: soFar))
             |= rule
-            |. Parser.oneOf
-                [ Parser.succeed ()
-                    |. Parser.token (Parser.Token "\n" ExpectingNewline)
-                    |. Parser.chompWhile (\c -> c == '\n')
-                , Parser.end ExpectingEnd
-                ]
+            |. spaces
         , Parser.end ExpectingEnd
             |> Parser.map (\() -> Parser.Done (List.reverse soFar))
         ]
@@ -172,7 +167,7 @@ rule =
                 [ Parser.succeed (::)
                     |. spaces
                     |. Parser.token (Parser.Token ":-" ExpectingImplies)
-                    |. spacesAndNewlines
+                    |. spaces
                     |= atom
                     |= Parser.loop [] ruleTail
                 , Parser.succeed []
@@ -184,9 +179,9 @@ ruleTail : List Atom -> Parser Context Problem (Parser.Step (List Atom) (List At
 ruleTail soFar =
     Parser.oneOf
         [ Parser.succeed (\atom_ -> Parser.Loop (atom_ :: soFar))
-            |. spacesAndNewlines
+            |. spaces
             |. Parser.token (Parser.Token "," ExpectingComma)
-            |. spacesAndNewlines
+            |. spaces
             |= atom
         , Parser.map (\() -> Parser.Done (List.reverse soFar))
             (Parser.token (Parser.Token "." ExpectingPeriod))
@@ -206,10 +201,10 @@ atom =
 
         atomTerms =
             Parser.sequence
-                { start = Parser.Token "(" ExpectingOpeningParenthesis
+                { start = Parser.Token "(" ExpectingStartOfTerms
                 , separator = Parser.Token "," ExpectingComma
-                , end = Parser.Token ")" ExpectingClosingParenthesis
-                , spaces = spacesAndNewlines
+                , end = Parser.Token ")" ExpectingEndOfTerms
+                , spaces = spaces
                 , item = term
                 , trailing = Parser.Forbidden
                 }
@@ -220,7 +215,7 @@ atom =
                 Parser.inContext (Atom (Just name)) <|
                     Parser.succeed Atom.Atom
                         |= Parser.succeed name
-                        |. spacesAndNewlines
+                        |. spaces
                         |= atomTerms
             )
 
@@ -251,16 +246,6 @@ variable =
         |> Parser.inContext VariableTerm
 
 
-isSpace : Char -> Bool
-isSpace c =
-    c == ' '
-
-
 spaces : Parser Context Problem ()
 spaces =
-    Parser.chompWhile isSpace
-
-
-spacesAndNewlines : Parser Context Problem ()
-spacesAndNewlines =
-    Parser.chompWhile (\c -> isSpace c || c == '\n')
+    Parser.chompWhile (\c -> c == ' ' || c == '\n')

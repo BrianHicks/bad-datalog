@@ -14,15 +14,15 @@ solveTest =
         [ test "ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "man" [ Constant "Socrates" ]) [] ]
+                    [ Rule (Atom "greek" [ Constant "Socrates" ]) [] ]
                     |> solve
-                    |> Dict.get "man"
-                    |> Expect.equal (Just [ Atom "man" [ Constant "Socrates" ] ])
+                    |> Dict.get "greek"
+                    |> Expect.equal (Just [ Atom "greek" [ Constant "Socrates" ] ])
         , test "non-ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (Atom "man" [ Constant "Socrates" ]) []
-                    , Rule (Atom "mortal" [ Variable "Whom" ]) [ Atom "man" [ Variable "Whom" ] ]
+                    [ Rule (Atom "greek" [ Constant "Socrates" ]) []
+                    , Rule (Atom "mortal" [ Variable "Whom" ]) [ Atom "greek" [ Variable "Whom" ] ]
                     ]
                     |> solve
                     |> Dict.get "mortal"

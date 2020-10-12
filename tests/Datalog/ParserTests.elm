@@ -15,13 +15,13 @@ parseTests =
             [ test "a fact" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) [] ]))
-                        (parse "man(\"Socrates\").")
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) [] ]))
+                        (parse "greek(\"Socrates\").")
             , test "a fact with leading space" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) [] ]))
-                        (parse " man(\"Socrates\").")
+                        (Ok (Program [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) [] ]))
+                        (parse " greek(\"Socrates\").")
             , test "a rule with a variable" <|
                 \_ ->
                     Expect.equal
@@ -29,11 +29,11 @@ parseTests =
                             (Program
                                 [ Datalog.Rule
                                     (Atom.Atom "mortal" [ Term.Variable "whom" ])
-                                    [ Atom.Atom "man" [ Term.Variable "whom" ] ]
+                                    [ Atom.Atom "greek" [ Term.Variable "whom" ] ]
                                 ]
                             )
                         )
-                        (parse "mortal(whom) :- man(whom).")
+                        (parse "mortal(whom) :- greek(whom).")
             , test "a rule with multiple clauses" <|
                 \_ ->
                     Expect.equal
@@ -53,25 +53,25 @@ parseTests =
                     Expect.equal
                         (Ok
                             (Program
-                                [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) []
+                                [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) []
                                 , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
-                                    [ Atom.Atom "man" [ Term.Variable "Whom" ] ]
+                                    [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
                                 ]
                             )
                         )
-                        (parse "man(\"Socrates\").\nmortal(Whom) :- man(Whom).")
+                        (parse "greek(\"Socrates\").\nmortal(Whom) :- greek(Whom).")
             , test "a program with whitespace between rules" <|
                 \_ ->
                     Expect.equal
                         (Ok
                             (Program
-                                [ Datalog.Rule (Atom.Atom "man" [ Term.Constant "Socrates" ]) []
+                                [ Datalog.Rule (Atom.Atom "greek" [ Term.Constant "Socrates" ]) []
                                 , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
-                                    [ Atom.Atom "man" [ Term.Variable "Whom" ] ]
+                                    [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
                                 ]
                             )
                         )
-                        (parse "man(\"Socrates\").\n\nmortal(Whom) :- man(Whom).")
+                        (parse "greek(\"Socrates\").\n\nmortal(Whom) :- greek(Whom).")
             , test "a rule with newlines in between body atoms" <|
                 \_ ->
                     Expect.equal
@@ -89,20 +89,20 @@ parseTests =
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|
-                \_ -> Expect.err (parse "man")
+                \_ -> Expect.err (parse "greek")
             , test "leaving the closing quote off a constant is not allowed" <|
-                \_ -> Expect.err (parse "man(\"Socrates")
+                \_ -> Expect.err (parse "greek(\"Socrates")
             , test "leaving the closing parenthesis off a term list is not allowed" <|
-                \_ -> Expect.err (parse "man(\"Socrates\"")
+                \_ -> Expect.err (parse "greek(\"Socrates\"")
             , test "leaving a period off a fact is not allowed" <|
-                \_ -> Expect.err (parse "man(\"Socrates\")")
+                \_ -> Expect.err (parse "greek(\"Socrates\")")
             , test "adding a trailing comma in a term list is not allowed" <|
-                \_ -> Expect.err (parse "man(\"Socrates\",)")
+                \_ -> Expect.err (parse "greek(\"Socrates\",)")
             , test "having an implies horn but no body is not allowed" <|
                 \_ -> Expect.err (parse "mortal(whom) :-")
             , test "having a trailing comma in a rule body is not allowed" <|
                 \_ -> Expect.err (parse "ancestor(Child, Ancestor) :- parent(Child, Parent),")
             , test "leaving a period off a rule is not allowed" <|
-                \_ -> Expect.err (parse "mortal(Whom) :- man(Whom)")
+                \_ -> Expect.err (parse "mortal(Whom) :- greek(Whom)")
             ]
         ]

@@ -296,7 +296,7 @@ variable =
         , reserved = Set.empty
         , expecting = ExpectingVariable
         }
-        |> Parser.map Term.Variable
+        |> Parser.map (Term.Variable << Term.Named)
 
 
 spaces : Parser Context Problem ()

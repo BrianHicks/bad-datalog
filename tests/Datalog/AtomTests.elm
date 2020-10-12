@@ -2,8 +2,8 @@ module Datalog.AtomTests exposing (..)
 
 import Datalog.Atom exposing (..)
 import Datalog.Term as Term exposing (string, variable)
-import Dict
 import Expect
+import Sort.Dict as Dict
 import Test exposing (..)
 
 
@@ -48,19 +48,19 @@ unifyTest =
                 unify
                     (Atom "a" [ string "x" ])
                     (Atom "a" [ string "x" ])
-                    |> Expect.equal (Just Dict.empty)
+                    |> Expect.equal (Just emptySubstitutions)
         , test "a unbound var/constant pair unifies" <|
             \_ ->
                 unify
                     (Atom "a" [ variable "X" ])
                     (Atom "a" [ string "a" ])
-                    |> Expect.equal (Just (Dict.singleton "X" (Term.String "a")))
+                    |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a bound var/constant pair unifies if it does not conflict" <|
             \_ ->
                 unify
                     (Atom "a" [ variable "X", variable "X" ])
                     (Atom "a" [ string "a", string "a" ])
-                    |> Expect.equal (Just (Dict.singleton "X" (Term.String "a")))
+                    |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a constant/bound var pair does not unify if it conflicts" <|
             \_ ->
                 unify
@@ -72,13 +72,13 @@ unifyTest =
                 unify
                     (Atom "a" [ string "a" ])
                     (Atom "a" [ variable "X" ])
-                    |> Expect.equal (Just (Dict.singleton "X" (Term.String "a")))
+                    |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a constant/bound var pair unifies if it does not conflict" <|
             \_ ->
                 unify
                     (Atom "a" [ string "a", string "a" ])
                     (Atom "a" [ variable "X", variable "X" ])
-                    |> Expect.equal (Just (Dict.singleton "X" (Term.String "a")))
+                    |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a bound var/constant pair does not unify if it conflicts" <|
             \_ ->
                 unify
@@ -90,7 +90,7 @@ unifyTest =
                 unify
                     (Atom "a" [ variable "X" ])
                     (Atom "a" [ variable "Y" ])
-                    |> Expect.equal (Just Dict.empty)
+                    |> Expect.equal (Just emptySubstitutions)
         , test "more than one variable can be bound in an atom" <|
             \_ ->
                 unify
@@ -98,9 +98,9 @@ unifyTest =
                     (Atom "a" [ string "a", string "b" ])
                     |> Expect.equal
                         (Just
-                            (Dict.fromList
-                                [ ( "X", Term.String "a" )
-                                , ( "Y", Term.String "b" )
+                            (Dict.fromList Term.variableSorter
+                                [ ( Term.Named "X", Term.String "a" )
+                                , ( Term.Named "Y", Term.String "b" )
                                 ]
                             )
                         )
@@ -122,7 +122,7 @@ substituteTest =
                     atom =
                         Atom "a" [ variable "X" ]
                 in
-                substitute atom Dict.empty
+                substitute atom emptySubstitutions
                     |> Expect.equal atom
         , test "an atom with no terms is unmodified" <|
             \_ ->
@@ -130,7 +130,7 @@ substituteTest =
                     atom =
                         Atom "a" []
                 in
-                substitute atom (Dict.singleton "X" (Term.String "a"))
+                substitute atom (singleton (Term.Named "X") (Term.String "a"))
                     |> Expect.equal atom
         , test "a constant term is not replaed" <|
             \_ ->
@@ -138,13 +138,13 @@ substituteTest =
                     atom =
                         Atom "a" [ string "a" ]
                 in
-                substitute atom (Dict.singleton "X" (Term.String "a"))
+                substitute atom (singleton (Term.Named "X") (Term.String "a"))
                     |> Expect.equal atom
         , test "a variable term is replaced if there is a replacement" <|
             \_ ->
                 substitute
                     (Atom "a" [ variable "X" ])
-                    (Dict.singleton "X" (Term.String "a"))
+                    (singleton (Term.Named "X") (Term.String "a"))
                     |> Expect.equal (Atom "a" [ string "a" ])
         , test "a variable term is not replace if there is no replacement" <|
             \_ ->
@@ -152,7 +152,7 @@ substituteTest =
                     atom =
                         Atom "a" [ variable "X" ]
                 in
-                substitute atom (Dict.singleton "Y" (Term.String "a"))
+                substitute atom (singleton (Term.Named "Y") (Term.String "a"))
                     |> Expect.equal atom
         ]
 
@@ -163,31 +163,35 @@ mergeSubstitutionsTest =
         [ test "keys in left should be preserved" <|
             \_ ->
                 mergeSubstitutions
-                    (Dict.singleton "X" (Term.String "a"))
-                    Dict.empty
-                    |> Dict.get "X"
+                    (singleton (Term.Named "X") (Term.String "a"))
+                    emptySubstitutions
+                    |> Dict.get (Term.Named "X")
                     |> Expect.equal (Just (Term.String "a"))
         , test "keys in right should be preserved" <|
             \_ ->
                 mergeSubstitutions
-                    Dict.empty
-                    (Dict.singleton "X" (Term.String "a"))
-                    |> Dict.get "X"
+                    emptySubstitutions
+                    (singleton (Term.Named "X") (Term.String "a"))
+                    |> Dict.get (Term.Named "X")
                     |> Expect.equal (Just (Term.String "a"))
         , test "keys in both should be preserved" <|
             \_ ->
                 mergeSubstitutions
-                    (Dict.singleton "X" (Term.String "a"))
-                    (Dict.singleton "Y" (Term.String "b"))
+                    (singleton (Term.Named "X") (Term.String "a"))
+                    (singleton (Term.Named "Y") (Term.String "b"))
                     |> Expect.all
-                        [ Dict.get "X" >> Expect.equal (Just (Term.String "a"))
-                        , Dict.get "Y" >> Expect.equal (Just (Term.String "b"))
+                        [ Dict.get (Term.Named "X") >> Expect.equal (Just (Term.String "a"))
+                        , Dict.get (Term.Named "Y") >> Expect.equal (Just (Term.String "b"))
                         ]
         , test "keys in left take precedence" <|
             \_ ->
                 mergeSubstitutions
-                    (Dict.singleton "X" (Term.String "a"))
-                    (Dict.singleton "X" (Term.String "b"))
-                    |> Dict.get "X"
+                    (singleton (Term.Named "X") (Term.String "a"))
+                    (singleton (Term.Named "X") (Term.String "b"))
+                    |> Dict.get (Term.Named "X")
                     |> Expect.equal (Just (Term.String "a"))
         ]
+
+
+singleton =
+    Dict.singleton Term.variableSorter

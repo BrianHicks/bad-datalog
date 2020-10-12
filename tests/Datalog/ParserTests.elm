@@ -33,8 +33,8 @@ parseTests =
                         (Ok
                             (Program
                                 [ Datalog.Rule
-                                    (Atom.Atom "mortal" [ Term.Variable "whom" ])
-                                    [ Atom.Atom "greek" [ Term.Variable "whom" ] ]
+                                    (Atom.Atom "mortal" [ Term.variable "whom" ])
+                                    [ Atom.Atom "greek" [ Term.variable "whom" ] ]
                                 ]
                             )
                         )
@@ -45,9 +45,9 @@ parseTests =
                         (Ok
                             (Program
                                 [ Datalog.Rule
-                                    (Atom.Atom "ancestor" [ Term.Variable "Child", Term.Variable "Ancestor" ])
-                                    [ Atom.Atom "parent" [ Term.Variable "Child", Term.Variable "Parent" ]
-                                    , Atom.Atom "ancestor" [ Term.Variable "Parent", Term.Variable "Ancestor" ]
+                                    (Atom.Atom "ancestor" [ Term.variable "Child", Term.variable "Ancestor" ])
+                                    [ Atom.Atom "parent" [ Term.variable "Child", Term.variable "Parent" ]
+                                    , Atom.Atom "ancestor" [ Term.variable "Parent", Term.variable "Ancestor" ]
                                     ]
                                 ]
                             )
@@ -59,8 +59,8 @@ parseTests =
                         (Ok
                             (Program
                                 [ Datalog.Rule (Atom.Atom "greek" [ Term.string "Socrates" ]) []
-                                , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
-                                    [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
+                                , Datalog.Rule (Atom.Atom "mortal" [ Term.variable "Whom" ])
+                                    [ Atom.Atom "greek" [ Term.variable "Whom" ] ]
                                 ]
                             )
                         )
@@ -71,8 +71,8 @@ parseTests =
                         (Ok
                             (Program
                                 [ Datalog.Rule (Atom.Atom "greek" [ Term.string "Socrates" ]) []
-                                , Datalog.Rule (Atom.Atom "mortal" [ Term.Variable "Whom" ])
-                                    [ Atom.Atom "greek" [ Term.Variable "Whom" ] ]
+                                , Datalog.Rule (Atom.Atom "mortal" [ Term.variable "Whom" ])
+                                    [ Atom.Atom "greek" [ Term.variable "Whom" ] ]
                                 ]
                             )
                         )
@@ -83,9 +83,9 @@ parseTests =
                         (Ok
                             (Program
                                 [ Datalog.Rule
-                                    (Atom.Atom "ancestor" [ Term.Variable "Child", Term.Variable "Ancestor" ])
-                                    [ Atom.Atom "parent" [ Term.Variable "Child", Term.Variable "Parent" ]
-                                    , Atom.Atom "ancestor" [ Term.Variable "Parent", Term.Variable "Ancestor" ]
+                                    (Atom.Atom "ancestor" [ Term.variable "Child", Term.variable "Ancestor" ])
+                                    [ Atom.Atom "parent" [ Term.variable "Child", Term.variable "Parent" ]
+                                    , Atom.Atom "ancestor" [ Term.variable "Parent", Term.variable "Ancestor" ]
                                     ]
                                 ]
                             )

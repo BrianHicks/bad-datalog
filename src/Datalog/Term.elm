@@ -1,14 +1,25 @@
-module Datalog.Term exposing (Constant(..), Term(..), int, isGround, string, toString, variable)
+module Datalog.Term exposing (Constant(..), Term(..), Variable(..), int, isGround, string, toString, variable, variableSorter)
+
+import Sort exposing (Sorter)
 
 
 type Term
     = Constant Constant
-    | Variable String
+    | Variable Variable
 
 
 type Constant
     = String String
     | Int Int
+
+
+type Variable
+    = Named String
+
+
+variableSorter : Sorter Variable
+variableSorter =
+    Sort.by (\(Named name) -> name) Sort.alphabetical
 
 
 string : String -> Term
@@ -23,7 +34,7 @@ int =
 
 variable : String -> Term
 variable =
-    Variable
+    Variable << Named
 
 
 isGround : Term -> Bool
@@ -45,5 +56,5 @@ toString term =
         Constant (Int int_) ->
             String.fromInt int_
 
-        Variable variable_ ->
+        Variable (Named variable_) ->
             variable_

@@ -15,7 +15,7 @@ module Datalog.Atom exposing
 -}
 
 import Datalog.Term as Term exposing (Term(..))
-import Dict exposing (Dict)
+import Sort.Dict as Dict exposing (Dict)
 
 
 type Atom
@@ -28,18 +28,18 @@ isGround (Atom _ terms) =
 
 
 type alias Substitutions =
-    Dict String Term.Constant
+    Dict Term.Variable Term.Constant
 
 
 emptySubstitutions : Substitutions
 emptySubstitutions =
-    Dict.empty
+    Dict.empty Term.variableSorter
 
 
 unify : Atom -> Atom -> Maybe Substitutions
 unify (Atom aName aTerms) (Atom bName bTerms) =
     if aName == bName && List.length aTerms == List.length bTerms then
-        unifyHelp (List.map2 Tuple.pair aTerms bTerms) Dict.empty
+        unifyHelp (List.map2 Tuple.pair aTerms bTerms) emptySubstitutions
 
     else
         Nothing
@@ -48,7 +48,7 @@ unify (Atom aName aTerms) (Atom bName bTerms) =
 unifyHelp : List ( Term, Term ) -> Substitutions -> Maybe Substitutions
 unifyHelp termPairs substitutions =
     let
-        variableToConstant : String -> Term.Constant -> List ( Term, Term ) -> Maybe Substitutions
+        variableToConstant : Term.Variable -> Term.Constant -> List ( Term, Term ) -> Maybe Substitutions
         variableToConstant var constant rest =
             case Dict.get var substitutions of
                 Nothing ->
@@ -104,7 +104,7 @@ substitute (Atom name terms) substitutions =
 
 mergeSubstitutions : Substitutions -> Substitutions -> Substitutions
 mergeSubstitutions a b =
-    Dict.union a b
+    Dict.insertAll a b
 
 
 toString : Atom -> String

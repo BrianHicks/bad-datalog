@@ -19,21 +19,21 @@ import Sort.Dict as Dict exposing (Dict)
 
 
 type Atom
-    = Atom String (List Term)
+    = Atom String Int (List Term)
 
 
 atom : String -> List Term -> Atom
-atom name_ terms =
-    Atom name_ terms
+atom name terms =
+    Atom name (List.length terms) terms
 
 
 key : Atom -> ( String, Int )
-key (Atom name_ terms) =
-    ( name_, List.length terms )
+key (Atom name arity _) =
+    ( name, arity )
 
 
 isGround : Atom -> Bool
-isGround (Atom _ terms) =
+isGround (Atom _ _ terms) =
     not (List.isEmpty terms) && List.all Term.isGround terms
 
 
@@ -47,8 +47,8 @@ emptySubstitutions =
 
 
 unify : Atom -> Atom -> Maybe Substitutions
-unify (Atom aName aTerms) (Atom bName bTerms) =
-    if aName == bName && List.length aTerms == List.length bTerms then
+unify (Atom aName aArity aTerms) (Atom bName bArity bTerms) =
+    if aName == bName && aArity == bArity then
         unifyHelp (List.map2 Tuple.pair aTerms bTerms) emptySubstitutions
 
     else
@@ -93,7 +93,7 @@ unifyHelp termPairs substitutions =
 
 
 substitute : Atom -> Substitutions -> Atom
-substitute (Atom name_ terms) substitutions =
+substitute (Atom name arity terms) substitutions =
     terms
         |> List.map
             (\term ->
@@ -109,7 +109,7 @@ substitute (Atom name_ terms) substitutions =
                             Nothing ->
                                 term
             )
-        |> Atom name_
+        |> Atom name arity
 
 
 mergeSubstitutions : Substitutions -> Substitutions -> Substitutions
@@ -118,5 +118,5 @@ mergeSubstitutions a b =
 
 
 toString : Atom -> String
-toString (Atom name_ terms) =
-    name_ ++ "(" ++ String.join ", " (List.map Term.toString terms) ++ ")"
+toString (Atom name _ terms) =
+    name ++ "(" ++ String.join ", " (List.map Term.toString terms) ++ ")"

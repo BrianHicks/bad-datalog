@@ -93,7 +93,11 @@ view model =
             ]
         ]
         [ Css.Global.global [ Css.Global.html [ Css.backgroundColor (Css.hex "B0E0E6") ] ]
-        , Html.h1 [] [ Html.text "Datalog Time!" ]
+        , Html.h1 []
+            [ Html.text "Datalog Time! ("
+            , Html.a [ Attributes.href "https://git.bytes.zone/brian/bad-datalog" ] [ Html.text "source" ]
+            , Html.text ")"
+            ]
         , Html.label []
             [ Html.input
                 [ Attributes.type_ "checkbox"

@@ -16,7 +16,7 @@ solveTest =
                 Program
                     [ Rule (atom "greek" [ string "Socrates" ]) [] ]
                     |> solve
-                    |> get "greek"
+                    |> get ( "greek", 1 )
                     |> Expect.equal [ atom "greek" [ string "Socrates" ] ]
         , test "non-ground rules are solved" <|
             \_ ->
@@ -25,7 +25,7 @@ solveTest =
                     , Rule (atom "mortal" [ variable "Whom" ]) [ atom "greek" [ variable "Whom" ] ]
                     ]
                     |> solve
-                    |> get "mortal"
+                    |> get ( "mortal", 1 )
                     |> Expect.equal [ atom "mortal" [ string "Socrates" ] ]
         , test "recursive rules are solved" <|
             \_ ->
@@ -44,7 +44,7 @@ solveTest =
                         ]
                     ]
                     |> solve
-                    |> get "reachable"
+                    |> get ( "reachable", 2 )
                     |> Expect.equal
                         [ atom "reachable" [ string "a", string "c" ]
                         , atom "reachable" [ string "a", string "b" ]
@@ -53,7 +53,7 @@ solveTest =
         , test "can solve all-pairs reachability" <|
             \_ ->
                 solve allPairsReachability
-                    |> get "query"
+                    |> get ( "query", 1 )
                     |> Expect.equal
                         [ atom "query" [ string "b" ]
                         , atom "query" [ string "d" ]
@@ -91,7 +91,7 @@ allPairsReachability =
         ]
 
 
-get : String -> Dict String ( a, List a ) -> List a
+get : ( String, Int ) -> Dict ( String, Int ) ( a, List a ) -> List a
 get key dict =
     Dict.get key dict
         |> Maybe.map (\( first, rest ) -> first :: rest)

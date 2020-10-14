@@ -1,12 +1,12 @@
 module Datalog.Atom exposing
-    ( Atom, atom, name, isGround
+    ( Atom, atom, key, isGround
     , Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
     , toString
     )
 
 {-|
 
-@docs Atom, atom, name, isGround
+@docs Atom, atom, key, isGround
 
 @docs Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
 
@@ -27,9 +27,9 @@ atom name_ terms =
     Atom name_ terms
 
 
-name : Atom -> String
-name (Atom name_ _) =
-    name_
+key : Atom -> ( String, Int )
+key (Atom name_ terms) =
+    ( name_, List.length terms )
 
 
 isGround : Atom -> Bool

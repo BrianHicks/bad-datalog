@@ -17,12 +17,12 @@ type Rule
 whose terms are all constants.
 -}
 type alias Database =
-    Dict String ( Atom, List Atom )
+    Dict ( String, Int ) ( Atom, List Atom )
 
 
 insertAtom : Atom -> Database -> Database
 insertAtom atom database =
-    Dict.update (Atom.name atom)
+    Dict.update (Atom.key atom)
         (\maybeExisting ->
             case maybeExisting of
                 Just ( first, rest ) ->
@@ -95,7 +95,7 @@ evaluateAtom database atom substitutions =
         bound =
             Atom.substitute atom substitutions
     in
-    case Dict.get (Atom.name atom) database of
+    case Dict.get (Atom.key atom) database of
         -- TODO: would it be possible to specify that the database values are non-empty?
         Nothing ->
             []

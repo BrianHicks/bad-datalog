@@ -1,12 +1,12 @@
 module Datalog.Atom exposing
-    ( Atom(..), isGround
+    ( Atom, atom, name, isGround
     , Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
     , toString
     )
 
 {-|
 
-@docs Atom, isGround
+@docs Atom, atom, name, isGround
 
 @docs Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
 
@@ -20,6 +20,16 @@ import Sort.Dict as Dict exposing (Dict)
 
 type Atom
     = Atom String (List Term)
+
+
+atom : String -> List Term -> Atom
+atom name_ terms =
+    Atom name_ terms
+
+
+name : Atom -> String
+name (Atom name_ _) =
+    name_
 
 
 isGround : Atom -> Bool
@@ -83,7 +93,7 @@ unifyHelp termPairs substitutions =
 
 
 substitute : Atom -> Substitutions -> Atom
-substitute (Atom name terms) substitutions =
+substitute (Atom name_ terms) substitutions =
     terms
         |> List.map
             (\term ->
@@ -99,7 +109,7 @@ substitute (Atom name terms) substitutions =
                             Nothing ->
                                 term
             )
-        |> Atom name
+        |> Atom name_
 
 
 mergeSubstitutions : Substitutions -> Substitutions -> Substitutions
@@ -108,5 +118,5 @@ mergeSubstitutions a b =
 
 
 toString : Atom -> String
-toString (Atom name terms) =
-    name ++ "(" ++ String.join ", " (List.map Term.toString terms) ++ ")"
+toString (Atom name_ terms) =
+    name_ ++ "(" ++ String.join ", " (List.map Term.toString terms) ++ ")"

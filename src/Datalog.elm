@@ -21,8 +21,8 @@ type alias Database =
 
 
 insertAtom : Atom -> Database -> Database
-insertAtom ((Atom name _) as atom) database =
-    Dict.update name
+insertAtom atom database =
+    Dict.update (Atom.name atom)
         (\maybeExisting ->
             case maybeExisting of
                 Just ( first, rest ) ->
@@ -90,12 +90,12 @@ evaluateRule ((Rule head body) as rule) database =
 
 
 evaluateAtom : Database -> Atom -> Substitutions -> List Substitutions
-evaluateAtom database ((Atom name _) as atom) substitutions =
+evaluateAtom database atom substitutions =
     let
         bound =
             Atom.substitute atom substitutions
     in
-    case Dict.get name database of
+    case Dict.get (Atom.name atom) database of
         -- TODO: would it be possible to specify that the database values are non-empty?
         Nothing ->
             []

@@ -262,7 +262,7 @@ atom =
         |> Parser.andThen
             (\name ->
                 Parser.inContext (Atom (Just name)) <|
-                    Parser.succeed Atom.Atom
+                    Parser.succeed Atom.atom
                         |= Parser.succeed name
                         |. spaces
                         |= atomTerms

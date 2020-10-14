@@ -11,14 +11,14 @@ isGroundTest : Test
 isGroundTest =
     describe "isGround"
         [ test "if there are terms, the atom is ground" <|
-            \_ -> Atom "x" [] |> isGround |> Expect.equal False
+            \_ -> atom "x" [] |> isGround |> Expect.equal False
         , test "if all terms are constant, the atom is ground" <|
-            \_ -> Atom "x" [ string "a" ] |> isGround |> Expect.equal True
+            \_ -> atom "x" [ string "a" ] |> isGround |> Expect.equal True
         , test "if all terms are variable, the atom is not ground" <|
-            \_ -> Atom "x" [ variable "X" ] |> isGround |> Expect.equal False
+            \_ -> atom "x" [ variable "X" ] |> isGround |> Expect.equal False
         , test "with a mix of constant and variable terms, the atom is not ground" <|
             \_ ->
-                Atom "x" [ variable "X", string "a" ]
+                atom "x" [ variable "X", string "a" ]
                     |> isGround
                     |> Expect.equal False
         ]
@@ -29,73 +29,73 @@ unifyTest =
     describe "unify"
         [ test "atoms with different names do not unify" <|
             \_ ->
-                unify (Atom "a" []) (Atom "b" [])
+                unify (atom "a" []) (atom "b" [])
                     |> Expect.equal Nothing
         , test "atoms with different arities do not unify" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "A" ])
-                    (Atom "a" [ variable "A", variable "B" ])
+                    (atom "a" [ variable "A" ])
+                    (atom "a" [ variable "A", variable "B" ])
                     |> Expect.equal Nothing
         , test "conflicting constants do not unify" <|
             \_ ->
                 unify
-                    (Atom "a" [ string "x" ])
-                    (Atom "a" [ string "y" ])
+                    (atom "a" [ string "x" ])
+                    (atom "a" [ string "y" ])
                     |> Expect.equal Nothing
         , test "compatible constants unify" <|
             \_ ->
                 unify
-                    (Atom "a" [ string "x" ])
-                    (Atom "a" [ string "x" ])
+                    (atom "a" [ string "x" ])
+                    (atom "a" [ string "x" ])
                     |> Expect.equal (Just emptySubstitutions)
         , test "a unbound var/constant pair unifies" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "X" ])
-                    (Atom "a" [ string "a" ])
+                    (atom "a" [ variable "X" ])
+                    (atom "a" [ string "a" ])
                     |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a bound var/constant pair unifies if it does not conflict" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "X", variable "X" ])
-                    (Atom "a" [ string "a", string "a" ])
+                    (atom "a" [ variable "X", variable "X" ])
+                    (atom "a" [ string "a", string "a" ])
                     |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a constant/bound var pair does not unify if it conflicts" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "X", variable "X" ])
-                    (Atom "a" [ string "a", string "b" ])
+                    (atom "a" [ variable "X", variable "X" ])
+                    (atom "a" [ string "a", string "b" ])
                     |> Expect.equal Nothing
         , test "a constant/unbound var pair unifies" <|
             \_ ->
                 unify
-                    (Atom "a" [ string "a" ])
-                    (Atom "a" [ variable "X" ])
+                    (atom "a" [ string "a" ])
+                    (atom "a" [ variable "X" ])
                     |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a constant/bound var pair unifies if it does not conflict" <|
             \_ ->
                 unify
-                    (Atom "a" [ string "a", string "a" ])
-                    (Atom "a" [ variable "X", variable "X" ])
+                    (atom "a" [ string "a", string "a" ])
+                    (atom "a" [ variable "X", variable "X" ])
                     |> Expect.equal (Just (singleton (Term.Named "X") (Term.String "a")))
         , test "a bound var/constant pair does not unify if it conflicts" <|
             \_ ->
                 unify
-                    (Atom "a" [ string "a", string "b" ])
-                    (Atom "a" [ variable "X", variable "X" ])
+                    (atom "a" [ string "a", string "b" ])
+                    (atom "a" [ variable "X", variable "X" ])
                     |> Expect.equal Nothing
         , test "variables unify with each other but don't generate any bindings" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "X" ])
-                    (Atom "a" [ variable "Y" ])
+                    (atom "a" [ variable "X" ])
+                    (atom "a" [ variable "Y" ])
                     |> Expect.equal (Just emptySubstitutions)
         , test "more than one variable can be bound in an atom" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "X", variable "Y" ])
-                    (Atom "a" [ string "a", string "b" ])
+                    (atom "a" [ variable "X", variable "Y" ])
+                    (atom "a" [ string "a", string "b" ])
                     |> Expect.equal
                         (Just
                             (Dict.fromList Term.variableSorter
@@ -107,8 +107,8 @@ unifyTest =
         , test "multiple variables can cause conflicts which fail to unify" <|
             \_ ->
                 unify
-                    (Atom "a" [ variable "X", variable "X" ])
-                    (Atom "a" [ string "a", string "b" ])
+                    (atom "a" [ variable "X", variable "X" ])
+                    (atom "a" [ string "a", string "b" ])
                     |> Expect.equal Nothing
         ]
 
@@ -119,41 +119,41 @@ substituteTest =
         [ test "an empty substitutions has no effect" <|
             \_ ->
                 let
-                    atom =
-                        Atom "a" [ variable "X" ]
+                    subject =
+                        atom "a" [ variable "X" ]
                 in
-                substitute atom emptySubstitutions
-                    |> Expect.equal atom
+                substitute subject emptySubstitutions
+                    |> Expect.equal subject
         , test "an atom with no terms is unmodified" <|
             \_ ->
                 let
-                    atom =
-                        Atom "a" []
+                    subject =
+                        atom "a" []
                 in
-                substitute atom (singleton (Term.Named "X") (Term.String "a"))
-                    |> Expect.equal atom
+                substitute subject (singleton (Term.Named "X") (Term.String "a"))
+                    |> Expect.equal subject
         , test "a constant term is not replaed" <|
             \_ ->
                 let
-                    atom =
-                        Atom "a" [ string "a" ]
+                    subject =
+                        atom "a" [ string "a" ]
                 in
-                substitute atom (singleton (Term.Named "X") (Term.String "a"))
-                    |> Expect.equal atom
+                substitute subject (singleton (Term.Named "X") (Term.String "a"))
+                    |> Expect.equal subject
         , test "a variable term is replaced if there is a replacement" <|
             \_ ->
                 substitute
-                    (Atom "a" [ variable "X" ])
+                    (atom "a" [ variable "X" ])
                     (singleton (Term.Named "X") (Term.String "a"))
-                    |> Expect.equal (Atom "a" [ string "a" ])
+                    |> Expect.equal (atom "a" [ string "a" ])
         , test "a variable term is not replace if there is no replacement" <|
             \_ ->
                 let
-                    atom =
-                        Atom "a" [ variable "X" ]
+                    subject =
+                        atom "a" [ variable "X" ]
                 in
-                substitute atom (singleton (Term.Named "Y") (Term.String "a"))
-                    |> Expect.equal atom
+                substitute subject (singleton (Term.Named "Y") (Term.String "a"))
+                    |> Expect.equal subject
         ]
 
 

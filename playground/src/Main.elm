@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Browser.Navigation exposing (Key)
+import Browser.Navigation as Navigation exposing (Key)
 import Css
 import Css.Global
 import Datalog
@@ -12,6 +12,7 @@ import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes exposing (css)
 import Html.Styled.Events as Events
 import Url exposing (Url)
+import Url.Builder
 import Url.Parser
 import Url.Parser.Query
 
@@ -30,7 +31,7 @@ type alias Model =
 
     -- routing stuff
     , key : Key
-    , originalPath : String
+    , originalPath : List String
     }
 
 
@@ -58,7 +59,10 @@ init _ url key =
                     Error errs
       , autoSolve = True
       , key = key
-      , originalPath = url.path
+      , originalPath =
+            url.path
+                |> String.split "/"
+                |> List.filter ((/=) "")
       }
     , Cmd.none
     )
@@ -91,7 +95,8 @@ update msg model =
                             else
                                 Unsolved program
               }
-            , Cmd.none
+            , Navigation.replaceUrl model.key
+                (Url.Builder.absolute model.originalPath [ Url.Builder.string "program" source ])
             )
 
         SetAutoSolve True ->

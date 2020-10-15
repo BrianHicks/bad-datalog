@@ -39,6 +39,7 @@ type Msg
     = NewSource String
     | SetAutoSolve Bool
     | Solve
+    | Save
     | OnUrlChange Url
     | OnUrlRequest Browser.UrlRequest
 
@@ -95,8 +96,16 @@ update msg model =
                             else
                                 Unsolved program
               }
-            , Navigation.replaceUrl model.key
-                (Url.Builder.absolute model.originalPath [ Url.Builder.string "program" source ])
+            , Cmd.none
+            )
+
+        Save ->
+            ( model
+            , Navigation.pushUrl model.key
+                (Url.Builder.absolute
+                    model.originalPath
+                    [ Url.Builder.string "program" model.source ]
+                )
             )
 
         SetAutoSolve True ->
@@ -130,7 +139,14 @@ update msg model =
             )
 
         OnUrlChange url ->
-            ( model, Cmd.none )
+            update
+                (NewSource (sourceFromUrl url))
+                { model
+                    | originalPath =
+                        url.path
+                            |> String.split "/"
+                            |> List.filter ((/=) "")
+                }
 
         OnUrlRequest requst ->
             ( model, Cmd.none )
@@ -168,6 +184,9 @@ view model =
                     []
                 , Html.text "automatically solve"
                 ]
+            , Html.button
+                [ Events.onClick Save ]
+                [ Html.text "Save" ]
             , Html.textarea
                 [ Events.onInput NewSource
                 , Attributes.value model.source

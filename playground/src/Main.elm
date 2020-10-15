@@ -12,6 +12,8 @@ import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes exposing (css)
 import Html.Styled.Events as Events
 import Url exposing (Url)
+import Url.Parser
+import Url.Parser.Query
 
 
 type Evaluation
@@ -25,7 +27,10 @@ type alias Model =
     { source : String
     , evaluation : Evaluation
     , autoSolve : Bool
+
+    -- routing stuff
     , key : Key
+    , originalPath : String
     }
 
 
@@ -39,13 +44,33 @@ type Msg
 
 init : () -> Url -> Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( { source = ""
-      , evaluation = Blank
+    let
+        initialSource =
+            sourceFromUrl url
+    in
+    ( { source = initialSource
+      , evaluation =
+            case Datalog.Parser.parse initialSource of
+                Ok program ->
+                    Solved (Datalog.solve program)
+
+                Err errs ->
+                    Error errs
       , autoSolve = True
       , key = key
+      , originalPath = url.path
       }
     , Cmd.none
     )
+
+
+sourceFromUrl : Url -> String
+sourceFromUrl url =
+    -- https://github.com/elm/url/issues/17
+    { url | path = "" }
+        |> Url.Parser.parse (Url.Parser.query (Url.Parser.Query.string "program"))
+        |> Maybe.andThen identity
+        |> Maybe.withDefault ""
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

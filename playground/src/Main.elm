@@ -148,8 +148,11 @@ update msg model =
                             |> List.filter ((/=) "")
                 }
 
-        OnUrlRequest requst ->
-            ( model, Cmd.none )
+        OnUrlRequest (Browser.External url) ->
+            ( model, Navigation.load url )
+
+        OnUrlRequest (Browser.Internal _) ->
+            ( { model | source = "I got an internal URL request but I'm not set up to handle those." }, Cmd.none )
 
 
 view : Model -> Browser.Document Msg

@@ -1,16 +1,13 @@
-module Datalog exposing (Database, Program(..), Rule(..), solve)
+module Datalog exposing (Database, Program(..), solve)
 
-import Datalog.Atom as Atom exposing (Atom(..), Substitutions)
+import Datalog.Atom as Atom exposing (Atom, Substitutions)
+import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
 
 
 type Program
     = Program (List Rule)
-
-
-type Rule
-    = Rule Atom (List Atom)
 
 
 {-| This is cheating a bit. A database is only ground atoms--that is, atoms
@@ -61,12 +58,12 @@ solveHelp ((Program rules) as program) database =
 
 
 evaluateRule : Rule -> Database -> Database
-evaluateRule ((Rule head body) as rule) database =
-    if Atom.isGround head then
-        insertAtom head database
+evaluateRule rule database =
+    if Rule.isFact rule then
+        insertAtom (Rule.head rule) database
 
     else
-        body
+        Rule.body rule
             |> List.foldl
                 (\bodyAtom substitutions ->
                     List.concatMap
@@ -78,7 +75,7 @@ evaluateRule ((Rule head body) as rule) database =
                 (\substitution dbProgress ->
                     let
                         possiblyGround =
-                            Atom.substitute head substitution
+                            Atom.substitute (Rule.head rule) substitution
                     in
                     if Atom.isGround possiblyGround then
                         insertAtom possiblyGround dbProgress

@@ -2,6 +2,7 @@ module DatalogTests exposing (..)
 
 import Datalog exposing (..)
 import Datalog.Atom as Atom exposing (Atom, atom)
+import Datalog.Rule as Rule
 import Datalog.Term as Term exposing (string, variable)
 import Dict exposing (Dict)
 import Expect
@@ -14,15 +15,15 @@ solveTest =
         [ test "ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (atom "greek" [ string "Socrates" ]) [] ]
+                    [ Rule.fact (atom "greek" [ string "Socrates" ]) ]
                     |> solve
                     |> get ( "greek", 1 )
                     |> Expect.equal [ atom "greek" [ string "Socrates" ] ]
         , test "non-ground rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (atom "greek" [ string "Socrates" ]) []
-                    , Rule (atom "mortal" [ variable "Whom" ]) [ atom "greek" [ variable "Whom" ] ]
+                    [ Rule.fact (atom "greek" [ string "Socrates" ])
+                    , Rule.rule (atom "mortal" [ variable "Whom" ]) [ atom "greek" [ variable "Whom" ] ]
                     ]
                     |> solve
                     |> get ( "mortal", 1 )
@@ -30,14 +31,14 @@ solveTest =
         , test "recursive rules are solved" <|
             \_ ->
                 Program
-                    [ Rule (atom "link" [ string "a", string "b" ]) []
-                    , Rule (atom "link" [ string "b", string "c" ]) []
+                    [ Rule.fact (atom "link" [ string "a", string "b" ])
+                    , Rule.fact (atom "link" [ string "b", string "c" ])
 
                     -- the rule
-                    , Rule
+                    , Rule.rule
                         (atom "reachable" [ variable "X", variable "Y" ])
                         [ atom "link" [ variable "X", variable "Y" ] ]
-                    , Rule
+                    , Rule.rule
                         (atom "reachable" [ variable "X", variable "Z" ])
                         [ atom "link" [ variable "X", variable "Y" ]
                         , atom "reachable" [ variable "Y", variable "Z" ]
@@ -69,23 +70,23 @@ allPairsReachability : Datalog.Program
 allPairsReachability =
     Program
         [ -- base data
-          Rule (atom "link" [ string "a", string "b" ]) []
-        , Rule (atom "link" [ string "b", string "c" ]) []
-        , Rule (atom "link" [ string "c", string "c" ]) []
-        , Rule (atom "link" [ string "c", string "d" ]) []
+          Rule.fact (atom "link" [ string "a", string "b" ])
+        , Rule.fact (atom "link" [ string "b", string "c" ])
+        , Rule.fact (atom "link" [ string "c", string "c" ])
+        , Rule.fact (atom "link" [ string "c", string "d" ])
 
         -- recursive rule
-        , Rule
+        , Rule.rule
             (atom "reachable" [ variable "X", variable "Y" ])
             [ atom "link" [ variable "X", variable "Y" ] ]
-        , Rule
+        , Rule.rule
             (atom "reachable" [ variable "X", variable "Y" ])
             [ atom "link" [ variable "X", variable "Z" ]
             , atom "reachable" [ variable "Z", variable "Y" ]
             ]
 
         -- query
-        , Rule
+        , Rule.rule
             (atom "query" [ variable "X" ])
             [ atom "reachable" [ variable "a", variable "X" ] ]
         ]

@@ -1,7 +1,8 @@
 module Datalog.Parser exposing (parse)
 
-import Datalog exposing (Program(..), Rule)
+import Datalog exposing (Program(..))
 import Datalog.Atom as Atom exposing (Atom)
+import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term)
 import Dict
 import Parser.Advanced as Parser exposing ((|.), (|=), Parser)
@@ -210,7 +211,7 @@ rules soFar =
 rule : Parser Context Problem Rule
 rule =
     Parser.inContext Rule <|
-        Parser.succeed Datalog.Rule
+        Parser.succeed Rule.rule
             |= atom
             |= Parser.oneOf
                 [ Parser.succeed (::)

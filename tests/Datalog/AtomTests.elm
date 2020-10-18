@@ -1,7 +1,7 @@
 module Datalog.AtomTests exposing (..)
 
 import Datalog.Atom exposing (..)
-import Datalog.Term as Term exposing (string, variable)
+import Datalog.Term as Term exposing (int, string, variable)
 import Expect
 import Sort.Dict as Dict
 import Test exposing (..)
@@ -21,6 +21,22 @@ isGroundTest =
                 atom "x" [ variable "X", string "a" ]
                     |> isGround
                     |> Expect.equal False
+        ]
+
+
+variablesTest : Test
+variablesTest =
+    describe "variables"
+        [ test "a variables shows up" <|
+            \_ ->
+                atom "x" [ variable "x" ]
+                    |> variables
+                    |> Expect.equal [ Term.Named "x" ]
+        , test "concrete terms does not show up" <|
+            \_ ->
+                atom "x" [ string "a", int 1 ]
+                    |> variables
+                    |> Expect.equal []
         ]
 
 

@@ -1,12 +1,12 @@
 module Datalog.Atom exposing
-    ( Atom, atom, key, isGround
+    ( Atom, atom, key, isGround, variables
     , Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
     , toString
     )
 
 {-|
 
-@docs Atom, atom, key, isGround
+@docs Atom, atom, key, isGround, variables
 
 @docs Substitutions, emptySubstitutions, unify, substitute, mergeSubstitutions
 
@@ -35,6 +35,20 @@ key (Atom name arity _) =
 isGround : Atom -> Bool
 isGround (Atom _ _ terms) =
     not (List.isEmpty terms) && List.all Term.isGround terms
+
+
+variables : Atom -> List Term.Variable
+variables (Atom _ _ terms) =
+    List.filterMap
+        (\term ->
+            case term of
+                Term.Constant _ ->
+                    Nothing
+
+                Term.Variable var ->
+                    Just var
+        )
+        terms
 
 
 type alias Substitutions =

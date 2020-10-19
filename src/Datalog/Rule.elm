@@ -13,7 +13,15 @@ type Problem
 
 rule : Atom -> List Atom -> Result Problem Rule
 rule head_ body_ =
-    Ok <| Rule head_ body_
+    let
+        candidate =
+            Rule head_ body_
+    in
+    if isRangeRestricted candidate then
+        Ok candidate
+
+    else
+        Err NotRangeRestricted
 
 
 fact : Atom -> Result Problem Rule
@@ -30,7 +38,13 @@ isFact (Rule head_ body_) =
 -}
 isRangeRestricted : Rule -> Bool
 isRangeRestricted (Rule head_ body_) =
-    False
+    let
+        bodyVars =
+            List.concatMap Atom.variables body_
+    in
+    List.all
+        (\headVar -> List.member headVar bodyVars)
+        (Atom.variables head_)
 
 
 head : Rule -> Atom

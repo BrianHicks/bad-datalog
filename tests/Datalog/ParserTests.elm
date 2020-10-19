@@ -112,6 +112,8 @@ parseTests =
                 \_ -> Expect.err (parse "ancestor(Child, Ancestor) :- parent(Child, Parent),")
             , test "leaving a period off a rule is not allowed" <|
                 \_ -> Expect.err (parse "mortal(Whom) :- greek(Whom)")
+            , test "entering a non-range-restricted rules is not allowed" <|
+                \_ -> Expect.err (parse "mortal(unused) :- greek(\"Socrates\").")
             ]
         ]
 

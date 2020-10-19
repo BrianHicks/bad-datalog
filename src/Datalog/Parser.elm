@@ -191,7 +191,7 @@ niceProblem problem =
             "a period to end a rule"
 
         InvalidRule Rule.NotRangeRestricted ->
-            "a rule, but it must use all the variables from the head in the body"
+            "a rule, which must use all the variables from the head in the body"
 
 
 parser : Parser Context Problem Program

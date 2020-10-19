@@ -1,6 +1,7 @@
 module Datalog.Rule exposing (Problem(..), Rule, body, fact, head, isFact, rule)
 
 import Datalog.Atom as Atom exposing (Atom)
+import Datalog.Term as Term
 
 
 type Rule
@@ -39,12 +40,21 @@ isFact (Rule head_ body_) =
 isRangeRestricted : Rule -> Bool
 isRangeRestricted (Rule head_ body_) =
     let
+        headVars =
+            Atom.variables head_
+
         bodyVars =
             List.concatMap Atom.variables body_
+
+        noAnonymousHead =
+            not (List.any Term.isAnonymous headVars)
+
+        rangeRestrictedBody =
+            List.all
+                (\headVar -> List.member headVar bodyVars)
+                headVars
     in
-    List.all
-        (\headVar -> List.member headVar bodyVars)
-        (Atom.variables head_)
+    noAnonymousHead && rangeRestrictedBody
 
 
 head : Rule -> Atom

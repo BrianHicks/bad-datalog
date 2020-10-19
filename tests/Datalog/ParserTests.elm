@@ -94,6 +94,18 @@ parseTests =
                             )
                         )
                         (parse "ancestor(Child, Ancestor) :-\n    parent(Child, Parent),\n    ancestor(Parent, Ancestor).")
+            , test "a rule using anonymous variables" <|
+                \_ ->
+                    Expect.equal
+                        (Ok
+                            (program
+                                [ Rule.rule
+                                    (Atom.atom "iceCream" [ Term.variable "favoriteFlavor" ])
+                                    [ Atom.atom "person" [ Term.anonymous, Term.variable "favoriteFlavor" ] ]
+                                ]
+                            )
+                        )
+                        (parse "iceCream(favoriteFlavor) :- person(_, favoriteFlavor).")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

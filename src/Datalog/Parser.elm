@@ -145,6 +145,7 @@ type Problem
     | ExpectingNewline
     | ExpectingEnd
     | ExpectingPeriod
+    | ExpectingUnderscore
     | InvalidRule Rule.Problem
 
 
@@ -189,6 +190,9 @@ niceProblem problem =
 
         ExpectingPeriod ->
             "a period to end a rule"
+
+        ExpectingUnderscore ->
+            "an underscore for an anonymous variable"
 
         InvalidRule Rule.NotRangeRestricted ->
             "a rule, which must use all the variables from the head in the body"
@@ -286,7 +290,7 @@ atom =
 
 term : Parser Context Problem Term
 term =
-    Parser.oneOf [ variable, string, int ]
+    Parser.oneOf [ variable, string, int, anonymous ]
 
 
 string : Parser Context Problem Term
@@ -312,6 +316,12 @@ variable =
         , expecting = ExpectingVariable
         }
         |> Parser.map (Term.Variable << Term.Named)
+
+
+anonymous : Parser Context Problem Term
+anonymous =
+    Parser.succeed Term.anonymous
+        |. Parser.token (Parser.Token "_" ExpectingUnderscore)
 
 
 spaces : Parser Context Problem ()

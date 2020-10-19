@@ -1,7 +1,7 @@
 module Datalog.AtomTests exposing (..)
 
 import Datalog.Atom exposing (..)
-import Datalog.Term as Term exposing (int, string, variable)
+import Datalog.Term as Term exposing (anonymous, int, string, variable)
 import Expect
 import Sort.Dict as Dict
 import Test exposing (..)
@@ -126,6 +126,12 @@ unifyTest =
                     (atom "a" [ variable "X", variable "X" ])
                     (atom "a" [ string "a", string "b" ])
                     |> Expect.equal Nothing
+        , test "anonymous variables don't bind and cause conflicts" <|
+            \_ ->
+                unify
+                    (atom "a" [ anonymous, anonymous ])
+                    (atom "a" [ string "a", string "b" ])
+                    |> Expect.equal (Just (Dict.empty Term.variableSorter))
         ]
 
 

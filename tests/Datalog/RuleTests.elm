@@ -2,7 +2,7 @@ module Datalog.RuleTests exposing (..)
 
 import Datalog.Atom exposing (atom)
 import Datalog.Rule exposing (..)
-import Datalog.Term exposing (int, string, variable)
+import Datalog.Term exposing (anonymous, int, string, variable)
 import Expect
 import Test exposing (..)
 
@@ -22,6 +22,12 @@ ruleTest =
                     (atom "mortal" [ variable "whom" ])
                     []
                     |> Expect.equal (Err NotRangeRestricted)
+        , test "anonymous terms are not allowed in the head" <|
+            \_ ->
+                rule
+                    (atom "mortal" [ anonymous ])
+                    [ atom "greek" [ anonymous ] ]
+                    |> Expect.equal (Err NotRangeRestricted)
         ]
 
 
@@ -32,8 +38,12 @@ factTest =
             \_ ->
                 fact (atom "age" [ string "Socrates", int 2490 ])
                     |> Expect.ok
-        , test "a fact with a variable is not allowed" <|
+        , test "a fact with a named variable is not allowed" <|
             \_ ->
                 fact (atom "notGreat" [ variable "unbound" ])
+                    |> Expect.equal (Err NotRangeRestricted)
+        , test "a fact with an anonymous variable is not allowed" <|
+            \_ ->
+                fact (atom "notGreat" [ anonymous ])
                     |> Expect.equal (Err NotRangeRestricted)
         ]

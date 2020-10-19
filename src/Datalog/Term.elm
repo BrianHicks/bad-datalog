@@ -1,4 +1,4 @@
-module Datalog.Term exposing (Constant(..), Term(..), Variable(..), int, isGround, string, toString, variable, variableSorter)
+module Datalog.Term exposing (Constant(..), Term(..), Variable(..), anonymous, int, isAnonymous, isGround, string, toString, variable, variableSorter)
 
 import Sort exposing (Sorter)
 
@@ -15,11 +15,21 @@ type Constant
 
 type Variable
     = Named String
+    | Anonymous
 
 
 variableSorter : Sorter Variable
 variableSorter =
-    Sort.by (\(Named name) -> name) Sort.alphabetical
+    Sort.by
+        (\var ->
+            case var of
+                Named name ->
+                    name
+
+                Anonymous ->
+                    "_"
+        )
+        Sort.alphabetical
 
 
 string : String -> Term
@@ -35,6 +45,16 @@ int =
 variable : String -> Term
 variable =
     Variable << Named
+
+
+anonymous : Term
+anonymous =
+    Variable Anonymous
+
+
+isAnonymous : Variable -> Bool
+isAnonymous var =
+    var == Anonymous
 
 
 isGround : Term -> Bool
@@ -58,3 +78,6 @@ toString term =
 
         Variable (Named variable_) ->
             variable_
+
+        Variable Anonymous ->
+            "_"

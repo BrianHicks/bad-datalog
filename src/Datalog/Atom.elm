@@ -74,16 +74,20 @@ unifyHelp termPairs substitutions =
     let
         variableToConstant : Term.Variable -> Term.Constant -> List ( Term, Term ) -> Maybe Substitutions
         variableToConstant var constant rest =
-            case Dict.get var substitutions of
-                Nothing ->
-                    unifyHelp rest (Dict.insert var constant substitutions)
+            if Term.isAnonymous var then
+                unifyHelp rest substitutions
 
-                Just alreadyBound ->
-                    if alreadyBound == constant then
-                        unifyHelp rest substitutions
+            else
+                case Dict.get var substitutions of
+                    Nothing ->
+                        unifyHelp rest (Dict.insert var constant substitutions)
 
-                    else
-                        Nothing
+                    Just alreadyBound ->
+                        if alreadyBound == constant then
+                            unifyHelp rest substitutions
+
+                        else
+                            Nothing
     in
     case termPairs of
         [] ->

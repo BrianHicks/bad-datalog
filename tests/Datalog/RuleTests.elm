@@ -27,7 +27,7 @@ ruleTest =
                 rule
                     (atom "mortal" [ anonymous ])
                     [ atom "greek" [ anonymous ] ]
-                    |> Expect.equal (Err NotRangeRestricted)
+                    |> Expect.equal (Err UnnamedHeadVariable)
         ]
 
 
@@ -45,5 +45,5 @@ factTest =
         , test "a fact with an anonymous variable is not allowed" <|
             \_ ->
                 fact (atom "notGreat" [ anonymous ])
-                    |> Expect.equal (Err NotRangeRestricted)
+                    |> Expect.equal (Err UnnamedHeadVariable)
         ]

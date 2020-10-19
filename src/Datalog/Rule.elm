@@ -10,6 +10,7 @@ type Rule
 
 type Problem
     = NotRangeRestricted
+    | UnnamedHeadVariable
 
 
 rule : Atom -> List Atom -> Result Problem Rule
@@ -18,11 +19,14 @@ rule head_ body_ =
         candidate =
             Rule head_ body_
     in
-    if isRangeRestricted candidate then
-        Ok candidate
+    if hasUnnamedHeadVariable candidate then
+        Err UnnamedHeadVariable
+
+    else if not (isRangeRestricted candidate) then
+        Err NotRangeRestricted
 
     else
-        Err NotRangeRestricted
+        Ok candidate
 
 
 fact : Atom -> Result Problem Rule
@@ -35,26 +39,22 @@ isFact (Rule head_ body_) =
     Atom.isGround head_ && List.isEmpty body_
 
 
+hasUnnamedHeadVariable : Rule -> Bool
+hasUnnamedHeadVariable (Rule head_ _) =
+    List.any Term.isAnonymous (Atom.variables head_)
+
+
 {-| Do all the variables in the head occur in the body?
 -}
 isRangeRestricted : Rule -> Bool
 isRangeRestricted (Rule head_ body_) =
     let
-        headVars =
-            Atom.variables head_
-
         bodyVars =
             List.concatMap Atom.variables body_
-
-        noAnonymousHead =
-            not (List.any Term.isAnonymous headVars)
-
-        rangeRestrictedBody =
-            List.all
-                (\headVar -> List.member headVar bodyVars)
-                headVars
     in
-    noAnonymousHead && rangeRestrictedBody
+    List.all
+        (\headVar -> List.member headVar bodyVars)
+        (Atom.variables head_)
 
 
 head : Rule -> Atom

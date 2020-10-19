@@ -197,6 +197,9 @@ niceProblem problem =
         InvalidRule Rule.NotRangeRestricted ->
             "a rule, which must use all the variables from the head in the body"
 
+        InvalidRule Rule.UnnamedHeadVariable ->
+            "a rule, which may not use anonymous variables in the head"
+
 
 parser : Parser Context Problem Program
 parser =

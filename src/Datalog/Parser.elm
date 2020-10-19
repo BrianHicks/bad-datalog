@@ -145,6 +145,7 @@ type Problem
     | ExpectingNewline
     | ExpectingEnd
     | ExpectingPeriod
+    | InvalidRule Rule.Problem
 
 
 niceProblem : Problem -> String
@@ -189,6 +190,9 @@ niceProblem problem =
         ExpectingPeriod ->
             "a period to end a rule"
 
+        InvalidRule Rule.NotRangeRestricted ->
+            "a rule, but it must use all the variables from the head in the body"
+
 
 parser : Parser Context Problem Program
 parser =
@@ -210,19 +214,29 @@ rules soFar =
 
 rule : Parser Context Problem Rule
 rule =
-    Parser.inContext Rule <|
-        Parser.succeed Rule.rule
-            |= atom
-            |= Parser.oneOf
-                [ Parser.succeed (::)
-                    |. spaces
-                    |. Parser.token (Parser.Token ":-" ExpectingImplies)
-                    |. spaces
-                    |= atom
-                    |= Parser.loop [] ruleTail
-                , Parser.succeed []
-                    |. Parser.token (Parser.Token "." ExpectingPeriod)
-                ]
+    (Parser.succeed Rule.rule
+        |= atom
+        |= Parser.oneOf
+            [ Parser.succeed (::)
+                |. spaces
+                |. Parser.token (Parser.Token ":-" ExpectingImplies)
+                |. spaces
+                |= atom
+                |= Parser.loop [] ruleTail
+            , Parser.succeed []
+                |. Parser.token (Parser.Token "." ExpectingPeriod)
+            ]
+    )
+        |> Parser.andThen
+            (\ruleResult ->
+                case ruleResult of
+                    Ok validRule ->
+                        Parser.succeed validRule
+
+                    Err err ->
+                        Parser.problem (InvalidRule err)
+            )
+        |> Parser.inContext Rule
 
 
 ruleTail : List Atom -> Parser Context Problem (Parser.Step (List Atom) (List Atom))

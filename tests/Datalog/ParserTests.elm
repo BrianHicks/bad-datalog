@@ -3,7 +3,7 @@ module Datalog.ParserTests exposing (..)
 import Datalog exposing (Program(..))
 import Datalog.Atom as Atom
 import Datalog.Parser exposing (..)
-import Datalog.Rule as Rule
+import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term
 import Expect
 import Test exposing (..)
@@ -16,23 +16,23 @@ parseTests =
             [ test "a fact" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ]) ]))
+                        (Ok (program [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ]) ]))
                         (parse "greek(\"Socrates\").")
             , test "a fact with leading space" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ]) ]))
+                        (Ok (program [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ]) ]))
                         (parse " greek(\"Socrates\").")
             , test "a fact with a number" <|
                 \_ ->
                     Expect.equal
-                        (Ok (Program [ Rule.fact (Atom.atom "theAnswer" [ Term.int 42 ]) ]))
+                        (Ok (program [ Rule.fact (Atom.atom "theAnswer" [ Term.int 42 ]) ]))
                         (parse "theAnswer(42).")
             , test "a rule with a variable" <|
                 \_ ->
                     Expect.equal
                         (Ok
-                            (Program
+                            (program
                                 [ Rule.rule
                                     (Atom.atom "mortal" [ Term.variable "whom" ])
                                     [ Atom.atom "greek" [ Term.variable "whom" ] ]
@@ -44,7 +44,7 @@ parseTests =
                 \_ ->
                     Expect.equal
                         (Ok
-                            (Program
+                            (program
                                 [ Rule.rule
                                     (Atom.atom "ancestor" [ Term.variable "Child", Term.variable "Ancestor" ])
                                     [ Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ]
@@ -58,7 +58,7 @@ parseTests =
                 \_ ->
                     Expect.equal
                         (Ok
-                            (Program
+                            (program
                                 [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ])
                                 , Rule.rule
                                     (Atom.atom "mortal" [ Term.variable "Whom" ])
@@ -71,7 +71,7 @@ parseTests =
                 \_ ->
                     Expect.equal
                         (Ok
-                            (Program
+                            (program
                                 [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ])
                                 , Rule.rule
                                     (Atom.atom "mortal" [ Term.variable "Whom" ])
@@ -84,7 +84,7 @@ parseTests =
                 \_ ->
                     Expect.equal
                         (Ok
-                            (Program
+                            (program
                                 [ Rule.rule
                                     (Atom.atom "ancestor" [ Term.variable "Child", Term.variable "Ancestor" ])
                                     [ Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ]
@@ -114,3 +114,17 @@ parseTests =
                 \_ -> Expect.err (parse "mortal(Whom) :- greek(Whom)")
             ]
         ]
+
+
+program : List (Result x Rule) -> Datalog.Program
+program =
+    List.filterMap
+        (\res ->
+            case res of
+                Ok cool ->
+                    Just cool
+
+                Err err ->
+                    Debug.todo (Debug.toString err)
+        )
+        >> Program

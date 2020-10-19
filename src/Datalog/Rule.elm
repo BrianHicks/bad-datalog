@@ -18,7 +18,7 @@ rule head_ body_ =
 
 fact : Atom -> Result Problem Rule
 fact fact_ =
-    Ok <| Rule fact_ []
+    rule fact_ []
 
 
 isFact : Rule -> Bool

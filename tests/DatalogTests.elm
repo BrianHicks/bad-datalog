@@ -4,7 +4,7 @@ import Datalog exposing (..)
 import Datalog.Atom as Atom exposing (Atom, atom)
 import Datalog.Negatable as Negatable exposing (Negatable, negative, positive)
 import Datalog.Rule as Rule exposing (Rule)
-import Datalog.Term as Term exposing (string, variable)
+import Datalog.Term as Term exposing (anonymous, string, variable)
 import Dict exposing (Dict)
 import Expect
 import Test exposing (..)
@@ -62,6 +62,36 @@ solveTest =
                         [ atom "query" [ string "b" ]
                         , atom "query" [ string "d" ]
                         , atom "query" [ string "c" ]
+                        ]
+        , test "negation works" <|
+            \_ ->
+                program
+                    [ Rule.fact (atom "parent" [ string "Child A", string "Parent" ])
+                    , Rule.fact (atom "parent" [ string "Child B", string "Parent" ])
+
+                    -- sibling
+                    , Rule.rule
+                        (atom "sibling" [ variable "person1", variable "person2" ])
+                        [ positive (atom "parent" [ variable "person1", variable "parent" ])
+                        , positive (atom "parent" [ variable "person2", variable "parent" ])
+                        , negative (atom "samePerson" [ variable "person1", variable "person2" ])
+                        ]
+
+                    -- helper: same person just has duplicate names for
+                    -- everyone. This is to negate on. Some day this datalog
+                    -- will grow != and this can be refactored out.
+                    , Rule.rule
+                        (atom "samePerson" [ variable "person", variable "person" ])
+                        [ positive (atom "parent" [ variable "person", anonymous ]) ]
+                    , Rule.rule
+                        (atom "samePerson" [ variable "person", variable "person" ])
+                        [ positive (atom "parent" [ anonymous, variable "person" ]) ]
+                    ]
+                    |> solve
+                    |> get ( "sibling", 2 )
+                    |> Expect.equal
+                        [ atom "sibling" [ string "Child A", string "Child B" ]
+                        , atom "sibling" [ string "Child B", string "Child A" ]
                         ]
         ]
 

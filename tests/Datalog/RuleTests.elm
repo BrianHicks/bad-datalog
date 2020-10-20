@@ -1,6 +1,7 @@
 module Datalog.RuleTests exposing (..)
 
 import Datalog.Atom exposing (atom)
+import Datalog.Negatable as Negatable exposing (negative, positive)
 import Datalog.Rule exposing (..)
 import Datalog.Term exposing (anonymous, int, string, variable)
 import Expect
@@ -14,7 +15,7 @@ ruleTest =
             \_ ->
                 rule
                     (atom "mortal" [ variable "whom" ])
-                    [ atom "greek" [ variable "whom" ] ]
+                    [ positive (atom "greek" [ variable "whom" ]) ]
                     |> Expect.ok
         , test "a non-range-restricted rule is not allowed" <|
             \_ ->
@@ -26,7 +27,7 @@ ruleTest =
             \_ ->
                 rule
                     (atom "mortal" [ anonymous ])
-                    [ atom "greek" [ anonymous ] ]
+                    [ positive (atom "greek" [ anonymous ]) ]
                     |> Expect.equal (Err UnnamedHeadVariable)
         ]
 

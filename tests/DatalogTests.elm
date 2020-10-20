@@ -2,6 +2,7 @@ module DatalogTests exposing (..)
 
 import Datalog exposing (..)
 import Datalog.Atom as Atom exposing (Atom, atom)
+import Datalog.Negatable as Negatable exposing (Negatable, negative, positive)
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (string, variable)
 import Dict exposing (Dict)
@@ -23,7 +24,9 @@ solveTest =
             \_ ->
                 program
                     [ Rule.fact (atom "greek" [ string "Socrates" ])
-                    , Rule.rule (atom "mortal" [ variable "Whom" ]) [ atom "greek" [ variable "Whom" ] ]
+                    , Rule.rule
+                        (atom "mortal" [ variable "Whom" ])
+                        [ negative (atom "greek" [ variable "Whom" ]) ]
                     ]
                     |> solve
                     |> get ( "mortal", 1 )
@@ -37,11 +40,11 @@ solveTest =
                     -- the rule
                     , Rule.rule
                         (atom "reachable" [ variable "X", variable "Y" ])
-                        [ atom "link" [ variable "X", variable "Y" ] ]
+                        [ positive (atom "link" [ variable "X", variable "Y" ]) ]
                     , Rule.rule
                         (atom "reachable" [ variable "X", variable "Z" ])
-                        [ atom "link" [ variable "X", variable "Y" ]
-                        , atom "reachable" [ variable "Y", variable "Z" ]
+                        [ positive (atom "link" [ variable "X", variable "Y" ])
+                        , positive (atom "reachable" [ variable "Y", variable "Z" ])
                         ]
                     ]
                     |> solve
@@ -78,17 +81,17 @@ allPairsReachability =
         -- recursive rule
         , Rule.rule
             (atom "reachable" [ variable "X", variable "Y" ])
-            [ atom "link" [ variable "X", variable "Y" ] ]
+            [ positive (atom "link" [ variable "X", variable "Y" ]) ]
         , Rule.rule
             (atom "reachable" [ variable "X", variable "Y" ])
-            [ atom "link" [ variable "X", variable "Z" ]
-            , atom "reachable" [ variable "Z", variable "Y" ]
+            [ positive (atom "link" [ variable "X", variable "Z" ])
+            , positive (atom "reachable" [ variable "Z", variable "Y" ])
             ]
 
         -- query
         , Rule.rule
             (atom "query" [ variable "X" ])
-            [ atom "reachable" [ variable "a", variable "X" ] ]
+            [ positive (atom "reachable" [ variable "a", variable "X" ]) ]
         ]
 
 

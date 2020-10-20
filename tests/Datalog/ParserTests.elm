@@ -2,6 +2,7 @@ module Datalog.ParserTests exposing (..)
 
 import Datalog exposing (Program(..))
 import Datalog.Atom as Atom
+import Datalog.Negatable exposing (negative, positive)
 import Datalog.Parser exposing (..)
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term
@@ -35,7 +36,7 @@ parseTests =
                             (program
                                 [ Rule.rule
                                     (Atom.atom "mortal" [ Term.variable "whom" ])
-                                    [ Atom.atom "greek" [ Term.variable "whom" ] ]
+                                    [ positive (Atom.atom "greek" [ Term.variable "whom" ]) ]
                                 ]
                             )
                         )
@@ -47,8 +48,8 @@ parseTests =
                             (program
                                 [ Rule.rule
                                     (Atom.atom "ancestor" [ Term.variable "Child", Term.variable "Ancestor" ])
-                                    [ Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ]
-                                    , Atom.atom "ancestor" [ Term.variable "Parent", Term.variable "Ancestor" ]
+                                    [ positive (Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ])
+                                    , positive (Atom.atom "ancestor" [ Term.variable "Parent", Term.variable "Ancestor" ])
                                     ]
                                 ]
                             )
@@ -62,7 +63,7 @@ parseTests =
                                 [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ])
                                 , Rule.rule
                                     (Atom.atom "mortal" [ Term.variable "Whom" ])
-                                    [ Atom.atom "greek" [ Term.variable "Whom" ] ]
+                                    [ positive (Atom.atom "greek" [ Term.variable "Whom" ]) ]
                                 ]
                             )
                         )
@@ -75,7 +76,7 @@ parseTests =
                                 [ Rule.fact (Atom.atom "greek" [ Term.string "Socrates" ])
                                 , Rule.rule
                                     (Atom.atom "mortal" [ Term.variable "Whom" ])
-                                    [ Atom.atom "greek" [ Term.variable "Whom" ] ]
+                                    [ positive (Atom.atom "greek" [ Term.variable "Whom" ]) ]
                                 ]
                             )
                         )
@@ -87,8 +88,8 @@ parseTests =
                             (program
                                 [ Rule.rule
                                     (Atom.atom "ancestor" [ Term.variable "Child", Term.variable "Ancestor" ])
-                                    [ Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ]
-                                    , Atom.atom "ancestor" [ Term.variable "Parent", Term.variable "Ancestor" ]
+                                    [ positive (Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ])
+                                    , positive (Atom.atom "ancestor" [ Term.variable "Parent", Term.variable "Ancestor" ])
                                     ]
                                 ]
                             )
@@ -101,7 +102,7 @@ parseTests =
                             (program
                                 [ Rule.rule
                                     (Atom.atom "iceCream" [ Term.variable "favoriteFlavor" ])
-                                    [ Atom.atom "person" [ Term.anonymous, Term.variable "favoriteFlavor" ] ]
+                                    [ positive (Atom.atom "person" [ Term.anonymous, Term.variable "favoriteFlavor" ]) ]
                                 ]
                             )
                         )

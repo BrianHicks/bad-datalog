@@ -2,6 +2,7 @@ module Datalog.Parser exposing (parse)
 
 import Datalog exposing (Program(..))
 import Datalog.Atom as Atom exposing (Atom)
+import Datalog.Negatable as Negatable exposing (Negatable)
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term)
 import Dict
@@ -228,7 +229,7 @@ rule =
                 |. spaces
                 |. Parser.token (Parser.Token ":-" ExpectingImplies)
                 |. spaces
-                |= atom
+                |= Parser.map Negatable.positive atom
                 |= Parser.loop [] ruleTail
             , Parser.succeed []
                 |. Parser.token (Parser.Token "." ExpectingPeriod)
@@ -246,14 +247,14 @@ rule =
         |> Parser.inContext Rule
 
 
-ruleTail : List Atom -> Parser Context Problem (Parser.Step (List Atom) (List Atom))
+ruleTail : List (Negatable Atom) -> Parser Context Problem (Parser.Step (List (Negatable Atom)) (List (Negatable Atom)))
 ruleTail soFar =
     Parser.oneOf
         [ Parser.succeed (\atom_ -> Parser.Loop (atom_ :: soFar))
             |. spaces
             |. Parser.token (Parser.Token "," ExpectingComma)
             |. spaces
-            |= atom
+            |= Parser.map Negatable.positive atom
         , Parser.map (\() -> Parser.Done (List.reverse soFar))
             (Parser.token (Parser.Token "." ExpectingPeriod))
         ]

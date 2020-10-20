@@ -1,11 +1,12 @@
 module Datalog.Rule exposing (Problem(..), Rule, body, fact, head, isFact, rule)
 
 import Datalog.Atom as Atom exposing (Atom)
+import Datalog.Negatable as Negatable exposing (Negatable)
 import Datalog.Term as Term
 
 
 type Rule
-    = Rule Atom (List Atom)
+    = Rule Atom (List (Negatable Atom))
 
 
 type Problem
@@ -13,7 +14,7 @@ type Problem
     | UnnamedHeadVariable
 
 
-rule : Atom -> List Atom -> Result Problem Rule
+rule : Atom -> List (Negatable Atom) -> Result Problem Rule
 rule head_ body_ =
     let
         candidate =
@@ -50,7 +51,7 @@ isRangeRestricted : Rule -> Bool
 isRangeRestricted (Rule head_ body_) =
     let
         bodyVars =
-            List.concatMap Atom.variables body_
+            List.concatMap (Negatable.unwrap >> Atom.variables) body_
     in
     List.all
         (\headVar -> List.member headVar bodyVars)
@@ -62,6 +63,6 @@ head (Rule head_ _) =
     head_
 
 
-body : Rule -> List Atom
+body : Rule -> List (Negatable Atom)
 body (Rule _ body_) =
     body_

@@ -1,6 +1,7 @@
 module Datalog exposing (Database, Program(..), solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
+import Datalog.Negatable as Negatable
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
@@ -67,7 +68,7 @@ evaluateRule rule database =
             |> List.foldl
                 (\bodyAtom substitutions ->
                     List.concatMap
-                        (evaluateAtom database bodyAtom)
+                        (evaluateAtom database (Negatable.unwrap bodyAtom))
                         substitutions
                 )
                 [ Atom.emptySubstitutions ]

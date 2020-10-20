@@ -26,7 +26,7 @@ solveTest =
                     [ Rule.fact (atom "greek" [ string "Socrates" ])
                     , Rule.rule
                         (atom "mortal" [ variable "Whom" ])
-                        [ negative (atom "greek" [ variable "Whom" ]) ]
+                        [ positive (atom "greek" [ variable "Whom" ]) ]
                     ]
                     |> solve
                     |> get ( "mortal", 1 )

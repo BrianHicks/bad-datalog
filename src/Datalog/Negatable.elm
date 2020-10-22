@@ -1,47 +1,53 @@
 module Datalog.Negatable exposing
-    ( Negatable, positive, negative
-    , unwrap, isPositive
-    , not, map
+    ( Negatable(..), Direction(..), positive, negative
+    , value, not, map
     )
 
 {-|
 
-@docs Negatable, positive, negative
-@docs unwrap, isPositive
-@docs not, map
+@docs Negatable, Direction, positive, negative
+@docs value, not, map
 
 -}
 
 
 type Negatable a
-    = Negatable Bool a
+    = Negatable Direction a
+
+
+type Direction
+    = Positive
+    | Negative
 
 
 positive : a -> Negatable a
 positive =
-    Negatable True
+    Negatable Positive
 
 
 negative : a -> Negatable a
 negative =
-    Negatable False
+    Negatable Negative
 
 
-unwrap : Negatable a -> a
-unwrap (Negatable _ a) =
+value : Negatable a -> a
+value (Negatable _ a) =
     a
 
 
-isPositive : Negatable a -> Bool
-isPositive (Negatable pos _) =
-    pos
-
-
 map : (a -> b) -> Negatable a -> Negatable b
-map fn (Negatable pos a) =
-    Negatable pos (fn a)
+map fn (Negatable direction_ a) =
+    Negatable direction_ (fn a)
 
 
 not : Negatable a -> Negatable a
-not (Negatable pos a) =
-    Negatable (Basics.not pos) a
+not (Negatable direction_ a) =
+    Negatable
+        (case direction_ of
+            Positive ->
+                Negative
+
+            Negative ->
+                Positive
+        )
+        a

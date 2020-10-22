@@ -1,7 +1,7 @@
 module Datalog exposing (Database, Program(..), solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
-import Datalog.Negatable as Negatable exposing (Negatable)
+import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
@@ -93,7 +93,7 @@ evaluateAtom database negatableAtom substitutions =
         bound =
             Negatable.map (\atom -> Atom.substitute atom substitutions) negatableAtom
     in
-    case Dict.get (Atom.key (Negatable.unwrap bound)) database of
+    case Dict.get (Atom.key (Negatable.value bound)) database of
         -- TODO: would it be possible to specify that the database values are non-empty?
         Nothing ->
             []
@@ -103,34 +103,31 @@ evaluateAtom database negatableAtom substitutions =
 
 
 evaluateAtomHelp : Negatable Atom -> Substitutions -> List Atom -> List Substitutions -> List Substitutions
-evaluateAtomHelp negatableAtom substitutions facts soFar =
-    let
-        bound =
-            Negatable.unwrap negatableAtom
-    in
+evaluateAtomHelp bound substitutions facts soFar =
     case facts of
         [] ->
             soFar
 
         fact :: rest ->
-            case ( Negatable.isPositive negatableAtom, Atom.unify bound fact ) of
-                ( True, Just outcome ) ->
+            case Negatable.map (Atom.unify fact) bound of
+                Negatable Positive (Just outcome) ->
                     evaluateAtomHelp
-                        negatableAtom
+                        bound
                         substitutions
                         rest
                         (Atom.mergeSubstitutions substitutions outcome :: soFar)
 
-                ( True, Nothing ) ->
-                    evaluateAtomHelp negatableAtom substitutions rest soFar
+                Negatable Positive Nothing ->
+                    evaluateAtomHelp bound substitutions rest soFar
 
-                -- negative: we just flip the result of unification around!
-                ( False, Just outcome ) ->
+                -- bail early on negative--we've totally ruled out this
+                -- substitution so there's no point continuing.
+                Negatable Negative (Just _) ->
                     []
 
-                ( False, Nothing ) ->
+                Negatable Negative Nothing ->
                     evaluateAtomHelp
-                        negatableAtom
+                        bound
                         substitutions
                         rest
                         (substitutions :: soFar)

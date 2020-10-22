@@ -1,7 +1,7 @@
 module Datalog.Rule exposing (Problem(..), Rule, body, fact, head, isFact, rule, toString)
 
 import Datalog.Atom as Atom exposing (Atom)
-import Datalog.Negatable as Negatable exposing (Negatable)
+import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
 import Datalog.Term as Term
 
 
@@ -51,7 +51,7 @@ isRangeRestricted : Rule -> Bool
 isRangeRestricted (Rule head_ body_) =
     let
         bodyVars =
-            List.concatMap (Negatable.unwrap >> Atom.variables) body_
+            List.concatMap (Negatable.value >> Atom.variables) body_
     in
     List.all
         (\headVar -> List.member headVar bodyVars)
@@ -80,11 +80,12 @@ toString (Rule head_ body_) =
                 ++ String.join ", "
                     (List.map
                         (\negatableAtom ->
-                            if Negatable.isPositive negatableAtom then
-                                Atom.toString (Negatable.unwrap negatableAtom)
+                            case negatableAtom of
+                                Negatable Positive atom ->
+                                    Atom.toString atom
 
-                            else
-                                "not " ++ Atom.toString (Negatable.unwrap negatableAtom)
+                                Negatable Negative atom ->
+                                    "not " ++ Atom.toString atom
                         )
                         body_
                     )

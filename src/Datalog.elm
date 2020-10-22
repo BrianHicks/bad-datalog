@@ -1,7 +1,7 @@
 module Datalog exposing (Database, Program(..), solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
-import Datalog.Negatable as Negatable
+import Datalog.Negatable as Negatable exposing (Negatable)
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
@@ -68,7 +68,7 @@ evaluateRule rule database =
             |> List.foldl
                 (\bodyAtom substitutions ->
                     List.concatMap
-                        (evaluateAtom database (Negatable.unwrap bodyAtom))
+                        (evaluateAtom database bodyAtom)
                         substitutions
                 )
                 [ Atom.emptySubstitutions ]
@@ -87,18 +87,50 @@ evaluateRule rule database =
                 database
 
 
-evaluateAtom : Database -> Atom -> Substitutions -> List Substitutions
-evaluateAtom database atom substitutions =
+evaluateAtom : Database -> Negatable Atom -> Substitutions -> List Substitutions
+evaluateAtom database negatableAtom substitutions =
     let
         bound =
-            Atom.substitute atom substitutions
+            Negatable.map (\atom -> Atom.substitute atom substitutions) negatableAtom
     in
-    case Dict.get (Atom.key atom) database of
+    case Dict.get (Atom.key (Negatable.unwrap bound)) database of
         -- TODO: would it be possible to specify that the database values are non-empty?
         Nothing ->
             []
 
         Just ( first, rest ) ->
-            List.filterMap
-                (Atom.unify bound >> Maybe.map (Atom.mergeSubstitutions substitutions))
-                (first :: rest)
+            evaluateAtomHelp bound substitutions (first :: rest) []
+
+
+evaluateAtomHelp : Negatable Atom -> Substitutions -> List Atom -> List Substitutions -> List Substitutions
+evaluateAtomHelp negatableAtom substitutions facts soFar =
+    let
+        bound =
+            Negatable.unwrap negatableAtom
+    in
+    case facts of
+        [] ->
+            soFar
+
+        fact :: rest ->
+            case ( Negatable.isPositive negatableAtom, Atom.unify bound fact ) of
+                ( True, Just outcome ) ->
+                    evaluateAtomHelp
+                        negatableAtom
+                        substitutions
+                        rest
+                        (Atom.mergeSubstitutions substitutions outcome :: soFar)
+
+                ( True, Nothing ) ->
+                    evaluateAtomHelp negatableAtom substitutions rest soFar
+
+                -- negative: we just flip the result of unification around!
+                ( False, Just outcome ) ->
+                    []
+
+                ( False, Nothing ) ->
+                    evaluateAtomHelp
+                        negatableAtom
+                        substitutions
+                        rest
+                        (substitutions :: soFar)

@@ -1,4 +1,4 @@
-module Datalog.Rule exposing (Problem(..), Rule, body, fact, head, isFact, rule)
+module Datalog.Rule exposing (Problem(..), Rule, body, fact, head, isFact, rule, toString)
 
 import Datalog.Atom as Atom exposing (Atom)
 import Datalog.Negatable as Negatable exposing (Negatable)
@@ -66,3 +66,26 @@ head (Rule head_ _) =
 body : Rule -> List (Negatable Atom)
 body (Rule _ body_) =
     body_
+
+
+toString : Rule -> String
+toString (Rule head_ body_) =
+    case body_ of
+        [] ->
+            Atom.toString head_ ++ "."
+
+        _ ->
+            Atom.toString head_
+                ++ " :- "
+                ++ String.join ", "
+                    (List.map
+                        (\negatableAtom ->
+                            if Negatable.isPositive negatableAtom then
+                                Atom.toString (Negatable.unwrap negatableAtom)
+
+                            else
+                                "not " ++ Atom.toString (Negatable.unwrap negatableAtom)
+                        )
+                        body_
+                    )
+                ++ "."

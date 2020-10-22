@@ -51,47 +51,62 @@ solveTest =
                     |> get ( "reachable", 2 )
                     |> Expect.equal
                         [ atom "reachable" [ string "a", string "c" ]
-                        , atom "reachable" [ string "a", string "b" ]
                         , atom "reachable" [ string "b", string "c" ]
+                        , atom "reachable" [ string "a", string "b" ]
                         ]
         , test "can solve all-pairs reachability" <|
             \_ ->
                 solve allPairsReachability
                     |> get ( "query", 1 )
                     |> Expect.equal
-                        [ atom "query" [ string "b" ]
-                        , atom "query" [ string "d" ]
+                        [ atom "query" [ string "d" ]
                         , atom "query" [ string "c" ]
+                        , atom "query" [ string "b" ]
                         ]
         , test "negation works" <|
+            \_ ->
+                program
+                    [ Rule.fact (atom "person" [ string "A" ])
+                    , Rule.fact (atom "person" [ string "B" ])
+                    , Rule.fact (atom "notPerson" [ string "B" ])
+
+                    -- negation
+                    , Rule.rule
+                        (atom "allPositive" [ variable "name" ])
+                        [ positive (atom "person" [ variable "name" ])
+                        , negative (atom "notPerson" [ variable "name" ])
+                        ]
+                    ]
+                    |> solve
+                    |> get ( "allPositive", 1 )
+                    |> Expect.equal [ atom "allPositive" [ string "A" ] ]
+        , test "but wait, really?" <|
             \_ ->
                 program
                     [ Rule.fact (atom "parent" [ string "Child A", string "Parent" ])
                     , Rule.fact (atom "parent" [ string "Child B", string "Parent" ])
 
-                    -- sibling
+                    -- helper for negation
                     , Rule.rule
-                        (atom "sibling" [ variable "person1", variable "person2" ])
-                        [ positive (atom "parent" [ variable "person1", variable "parent" ])
-                        , positive (atom "parent" [ variable "person2", variable "parent" ])
-                        , negative (atom "samePerson" [ variable "person1", variable "person2" ])
-                        ]
+                        (atom "samePerson" [ variable "name", variable "name" ])
+                        [ positive (atom "parent" [ variable "name", anonymous ]) ]
+                    , Rule.rule
+                        (atom "samePerson" [ variable "name", variable "name" ])
+                        [ positive (atom "parent" [ anonymous, variable "name" ]) ]
 
-                    -- helper: same person just has duplicate names for
-                    -- everyone. This is to negate on. Some day this datalog
-                    -- will grow != and this can be refactored out.
+                    -- now the actual rule
                     , Rule.rule
-                        (atom "samePerson" [ variable "person", variable "person" ])
-                        [ positive (atom "parent" [ variable "person", anonymous ]) ]
-                    , Rule.rule
-                        (atom "samePerson" [ variable "person", variable "person" ])
-                        [ positive (atom "parent" [ anonymous, variable "person" ]) ]
+                        (atom "siblings" [ variable "person", variable "sibling" ])
+                        [ positive (atom "parent" [ variable "person", variable "parent" ])
+                        , positive (atom "parent" [ variable "sibling", variable "parent" ])
+                        , negative (atom "samePerson" [ variable "person", variable "sibling" ])
+                        ]
                     ]
                     |> solve
-                    |> get ( "sibling", 2 )
+                    |> get ( "siblings", 2 )
                     |> Expect.equal
-                        [ atom "sibling" [ string "Child A", string "Child B" ]
-                        , atom "sibling" [ string "Child B", string "Child A" ]
+                        [ atom "siblings" [ string "Child B", string "Child A" ]
+                        , atom "siblings" [ string "Child A", string "Child B" ]
                         ]
         ]
 

@@ -147,6 +147,7 @@ type Problem
     | ExpectingEnd
     | ExpectingPeriod
     | ExpectingUnderscore
+    | ExpectingNot
     | InvalidRule Rule.Problem
 
 
@@ -195,6 +196,9 @@ niceProblem problem =
         ExpectingUnderscore ->
             "an underscore for an anonymous variable"
 
+        ExpectingNot ->
+            "a 'not' to negate an atom in the rule body"
+
         InvalidRule Rule.NotRangeRestricted ->
             "a rule, which must use all the variables from the head in the body"
 
@@ -229,7 +233,7 @@ rule =
                 |. spaces
                 |. Parser.token (Parser.Token ":-" ExpectingImplies)
                 |. spaces
-                |= Parser.map Negatable.positive atom
+                |= bodyAtom
                 |= Parser.loop [] ruleTail
             , Parser.succeed []
                 |. Parser.token (Parser.Token "." ExpectingPeriod)
@@ -254,10 +258,21 @@ ruleTail soFar =
             |. spaces
             |. Parser.token (Parser.Token "," ExpectingComma)
             |. spaces
-            |= Parser.map Negatable.positive atom
+            |= bodyAtom
         , Parser.map (\() -> Parser.Done (List.reverse soFar))
             (Parser.token (Parser.Token "." ExpectingPeriod))
         ]
+
+
+bodyAtom : Parser Context Problem (Negatable Atom)
+bodyAtom =
+    Parser.succeed (\negator atom_ -> negator atom_)
+        |= Parser.oneOf
+            [ Parser.succeed Negatable.negative
+                |. Parser.token (Parser.Token "not " ExpectingNot)
+            , Parser.succeed Negatable.positive
+            ]
+        |= atom
 
 
 atom : Parser Context Problem Atom

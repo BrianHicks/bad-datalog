@@ -107,6 +107,20 @@ parseTests =
                             )
                         )
                         (parse "iceCream(favoriteFlavor) :- person(_, favoriteFlavor).")
+            , test "a rule using negation in a body atom" <|
+                \_ ->
+                    Expect.equal
+                        (Ok
+                            (program
+                                [ Rule.rule
+                                    (Atom.atom "ancestor" [ Term.variable "Child", Term.variable "Parent" ])
+                                    [ positive (Atom.atom "parent" [ Term.variable "Child", Term.variable "Parent" ])
+                                    , negative (Atom.atom "samePerson" [ Term.variable "Child", Term.variable "Parent" ])
+                                    ]
+                                ]
+                            )
+                        )
+                        (parse "ancestor(Child, Parent) :- parent(Child, Parent), not samePerson(Child, Parent).")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

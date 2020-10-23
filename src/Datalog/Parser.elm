@@ -148,6 +148,7 @@ type Problem
     | ExpectingPeriod
     | ExpectingUnderscore
     | ExpectingNot
+    | ExpectingComment
     | InvalidRule Rule.Problem
 
 
@@ -199,6 +200,9 @@ niceProblem problem =
         ExpectingNot ->
             "a 'not' to negate an atom in the rule body"
 
+        ExpectingComment ->
+            "a line comment starting with '--'"
+
         InvalidRule Rule.NotRangeRestricted ->
             "a rule, which must use all the variables from the head in the body"
 
@@ -209,7 +213,7 @@ niceProblem problem =
 parser : Parser Context Problem Program
 parser =
     Parser.succeed Program
-        |. spaces
+        |. spacesOrComment
         |= Parser.loop [] rules
 
 
@@ -218,7 +222,7 @@ rules soFar =
     Parser.oneOf
         [ Parser.succeed (\rule_ -> Parser.Loop (rule_ :: soFar))
             |= rule
-            |. spaces
+            |. spacesOrComment
         , Parser.end ExpectingEnd
             |> Parser.map (\() -> Parser.Done (List.reverse soFar))
         ]
@@ -230,9 +234,9 @@ rule =
         |= atom
         |= Parser.oneOf
             [ Parser.succeed (::)
-                |. spaces
+                |. spacesOrComment
                 |. Parser.token (Parser.Token ":-" ExpectingImplies)
-                |. spaces
+                |. spacesOrComment
                 |= bodyAtom
                 |= Parser.loop [] ruleTail
             , Parser.succeed []
@@ -255,9 +259,9 @@ ruleTail : List (Negatable Atom) -> Parser Context Problem (Parser.Step (List (N
 ruleTail soFar =
     Parser.oneOf
         [ Parser.succeed (\atom_ -> Parser.Loop (atom_ :: soFar))
-            |. spaces
+            |. spacesOrComment
             |. Parser.token (Parser.Token "," ExpectingComma)
-            |. spaces
+            |. spacesOrComment
             |= bodyAtom
         , Parser.map (\() -> Parser.Done (List.reverse soFar))
             (Parser.token (Parser.Token "." ExpectingPeriod))
@@ -291,7 +295,7 @@ atom =
                 { start = Parser.Token "(" ExpectingStartOfTerms
                 , separator = Parser.Token "," ExpectingComma
                 , end = Parser.Token ")" ExpectingEndOfTerms
-                , spaces = spaces
+                , spaces = spacesOrComment
                 , item = term
                 , trailing = Parser.Forbidden
                 }
@@ -302,7 +306,7 @@ atom =
                 Parser.inContext (Atom (Just name)) <|
                     Parser.succeed Atom.atom
                         |= Parser.succeed name
-                        |. spaces
+                        |. spacesOrComment
                         |= atomTerms
             )
 
@@ -343,6 +347,18 @@ anonymous =
         |. Parser.token (Parser.Token "_" ExpectingUnderscore)
 
 
+spacesOrComment : Parser Context Problem ()
+spacesOrComment =
+    spaces
+        |. Parser.oneOf [ lineComment, Parser.succeed () ]
+        |. spaces
+
+
 spaces : Parser Context Problem ()
 spaces =
     Parser.chompWhile (\c -> c == ' ' || c == '\n')
+
+
+lineComment : Parser Context Problem ()
+lineComment =
+    Parser.lineComment (Parser.Token "--" ExpectingComment)

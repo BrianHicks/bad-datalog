@@ -121,6 +121,14 @@ parseTests =
                             )
                         )
                         (parse "ancestor(Child, Parent) :- parent(Child, Parent), not samePerson(Child, Parent).")
+            , test "a line comment on a separate line" <|
+                \_ -> Expect.ok (parse "-- this is a comment")
+            , test "a line comment after a fact" <|
+                \_ -> Expect.ok (parse "greek(\"Socrates\"). -- lol classic Socrates")
+            , test "a line comment ater a rule" <|
+                \_ -> Expect.ok (parse "mortal(thing) :- greek(thing). -- wow, profound")
+            , test "a line comment between the body atoms in a rule" <|
+                \_ -> Expect.ok (parse "mortal(thing) :- -- just hanging out you know?\n  greek(thing).")
             ]
         , describe "failure"
             [ test "leaving the terms off an atom is not allowed" <|

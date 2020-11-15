@@ -64,7 +64,37 @@ solveTest =
                         , atom "query" [ string "b" ]
                         ]
         , describe "negation"
-            [ test "siblings example" <|
+            [ test "simple (semipositive) negation" <|
+                \_ ->
+                    program
+                        [ Rule.fact (atom "link" [ string "a", string "b" ])
+                        , Rule.fact (atom "link" [ string "b", string "c" ])
+                        , Rule.fact (atom "link" [ string "c", string "c" ])
+
+                        -- node
+                        , Rule.rule (atom "node" [ variable "name" ])
+                            [ positive (atom "link" [ variable "name", anonymous ]) ]
+                        , Rule.rule (atom "node" [ variable "name" ])
+                            [ positive (atom "link" [ anonymous, variable "name" ]) ]
+
+                        -- the thing with negation
+                        , Rule.rule (atom "disconnected" [ variable "x", variable "y" ])
+                            [ positive (atom "node" [ variable "x" ])
+                            , positive (atom "node" [ variable "y" ])
+                            , negative (atom "link" [ variable "x", variable "y" ])
+                            ]
+                        ]
+                        |> solve
+                        |> get ( "disconnected", 2 )
+                        |> Expect.equal
+                            [ atom "disconnected" [ string "c", string "b" ]
+                            , atom "disconnected" [ string "c", string "a" ]
+                            , atom "disconnected" [ string "b", string "b" ]
+                            , atom "disconnected" [ string "b", string "a" ]
+                            , atom "disconnected" [ string "a", string "c" ]
+                            , atom "disconnected" [ string "a", string "a" ]
+                            ]
+            , test "siblings example" <|
                 \_ ->
                     program
                         [ Rule.fact (atom "parent" [ string "Child A", string "Parent" ])

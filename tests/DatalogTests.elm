@@ -63,51 +63,36 @@ solveTest =
                         , atom "query" [ string "c" ]
                         , atom "query" [ string "b" ]
                         ]
-        , test "negation works" <|
-            \_ ->
-                program
-                    [ Rule.fact (atom "person" [ string "A" ])
-                    , Rule.fact (atom "person" [ string "B" ])
-                    , Rule.fact (atom "notPerson" [ string "B" ])
+        , describe "negation"
+            [ test "siblings example" <|
+                \_ ->
+                    program
+                        [ Rule.fact (atom "parent" [ string "Child A", string "Parent" ])
+                        , Rule.fact (atom "parent" [ string "Child B", string "Parent" ])
 
-                    -- negation
-                    , Rule.rule
-                        (atom "allPositive" [ variable "name" ])
-                        [ positive (atom "person" [ variable "name" ])
-                        , negative (atom "notPerson" [ variable "name" ])
-                        ]
-                    ]
-                    |> solve
-                    |> get ( "allPositive", 1 )
-                    |> Expect.equal [ atom "allPositive" [ string "A" ] ]
-        , test "but wait, really?" <|
-            \_ ->
-                program
-                    [ Rule.fact (atom "parent" [ string "Child A", string "Parent" ])
-                    , Rule.fact (atom "parent" [ string "Child B", string "Parent" ])
+                        -- helper for negation
+                        , Rule.rule
+                            (atom "samePerson" [ variable "name", variable "name" ])
+                            [ positive (atom "parent" [ variable "name", anonymous ]) ]
+                        , Rule.rule
+                            (atom "samePerson" [ variable "name", variable "name" ])
+                            [ positive (atom "parent" [ anonymous, variable "name" ]) ]
 
-                    -- helper for negation
-                    , Rule.rule
-                        (atom "samePerson" [ variable "name", variable "name" ])
-                        [ positive (atom "parent" [ variable "name", anonymous ]) ]
-                    , Rule.rule
-                        (atom "samePerson" [ variable "name", variable "name" ])
-                        [ positive (atom "parent" [ anonymous, variable "name" ]) ]
-
-                    -- now the actual rule
-                    , Rule.rule
-                        (atom "siblings" [ variable "person", variable "sibling" ])
-                        [ positive (atom "parent" [ variable "person", variable "parent" ])
-                        , positive (atom "parent" [ variable "sibling", variable "parent" ])
-                        , negative (atom "samePerson" [ variable "person", variable "sibling" ])
+                        -- now the actual rule
+                        , Rule.rule
+                            (atom "siblings" [ variable "person", variable "sibling" ])
+                            [ positive (atom "parent" [ variable "person", variable "parent" ])
+                            , positive (atom "parent" [ variable "sibling", variable "parent" ])
+                            , negative (atom "samePerson" [ variable "person", variable "sibling" ])
+                            ]
                         ]
-                    ]
-                    |> solve
-                    |> get ( "siblings", 2 )
-                    |> Expect.equal
-                        [ atom "siblings" [ string "Child B", string "Child A" ]
-                        , atom "siblings" [ string "Child A", string "Child B" ]
-                        ]
+                        |> solve
+                        |> get ( "siblings", 2 )
+                        |> Expect.equal
+                            [ atom "siblings" [ string "Child B", string "Child A" ]
+                            , atom "siblings" [ string "Child A", string "Child B" ]
+                            ]
+            ]
         ]
 
 

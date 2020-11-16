@@ -94,7 +94,6 @@ evaluateAtom database negatableAtom substitutions =
             Negatable.map (\atom -> Atom.substitute atom substitutions) negatableAtom
     in
     case Dict.get (Atom.key (Negatable.value bound)) database of
-        -- TODO: would it be possible to specify that the database values are non-empty?
         Nothing ->
             []
 

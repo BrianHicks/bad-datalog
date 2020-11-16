@@ -119,8 +119,12 @@ evaluateAtomHelp bound substitutions facts soFar =
                 Negatable Positive Nothing ->
                     evaluateAtomHelp bound substitutions rest soFar
 
-                -- bail early on negative--we've totally ruled out this
-                -- substitution so there's no point continuing.
+                -- the idea with negative atoms is essentially that we
+                -- select the complement of things that it would select if
+                -- it were positive. We do this by just flipping around the
+                -- positive/negative results! It seems to give weird results in
+                -- some cases (probably because I haven't implemented stratified
+                -- negation yet.)
                 Negatable Negative (Just _) ->
                     []
 

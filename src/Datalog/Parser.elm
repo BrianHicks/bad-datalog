@@ -1,6 +1,6 @@
 module Datalog.Parser exposing (parse)
 
-import Datalog exposing (Program(..))
+import Datalog exposing (Program, program)
 import Datalog.Atom as Atom exposing (Atom)
 import Datalog.Negatable as Negatable exposing (Negatable)
 import Datalog.Rule as Rule exposing (Rule)
@@ -212,7 +212,7 @@ niceProblem problem =
 
 parser : Parser Context Problem Program
 parser =
-    Parser.succeed Program
+    Parser.succeed program
         |. spacesOrComment
         |= Parser.loop [] rules
 

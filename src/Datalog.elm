@@ -1,4 +1,4 @@
-module Datalog exposing (Database, Program(..), solve)
+module Datalog exposing (Database, Program, program, solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
 import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
@@ -9,6 +9,11 @@ import Dict exposing (Dict)
 
 type Program
     = Program (List Rule)
+
+
+program : List Rule -> Program
+program =
+    Program
 
 
 {-| This is cheating a bit. A database is only ground atoms--that is, atoms
@@ -41,12 +46,12 @@ insertAtom atom database =
 
 
 solve : Program -> Database
-solve program =
-    solveHelp program Dict.empty
+solve program_ =
+    solveHelp program_ Dict.empty
 
 
 solveHelp : Program -> Database -> Database
-solveHelp ((Program rules) as program) database =
+solveHelp ((Program rules) as program_) database =
     let
         expanded =
             List.foldl evaluateRule database rules
@@ -55,7 +60,7 @@ solveHelp ((Program rules) as program) database =
         database
 
     else
-        solveHelp program expanded
+        solveHelp program_ expanded
 
 
 evaluateRule : Rule -> Database -> Database

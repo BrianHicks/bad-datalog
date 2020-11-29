@@ -15,14 +15,14 @@ solveTest =
     describe "solve"
         [ test "ground rules are solved" <|
             \_ ->
-                program
+                unsafeProgram
                     [ Rule.fact (atom "greek" [ string "Socrates" ]) ]
                     |> solve
                     |> get ( "greek", 1 )
                     |> Expect.equal [ atom "greek" [ string "Socrates" ] ]
         , test "non-ground rules are solved" <|
             \_ ->
-                program
+                unsafeProgram
                     [ Rule.fact (atom "greek" [ string "Socrates" ])
                     , Rule.rule
                         (atom "mortal" [ variable "Whom" ])
@@ -33,7 +33,7 @@ solveTest =
                     |> Expect.equal [ atom "mortal" [ string "Socrates" ] ]
         , test "recursive rules are solved" <|
             \_ ->
-                program
+                unsafeProgram
                     [ Rule.fact (atom "link" [ string "a", string "b" ])
                     , Rule.fact (atom "link" [ string "b", string "c" ])
 
@@ -66,7 +66,7 @@ solveTest =
         , describe "negation"
             [ test "simple (semipositive) negation" <|
                 \_ ->
-                    program
+                    unsafeProgram
                         [ Rule.fact (atom "link" [ string "a", string "b" ])
                         , Rule.fact (atom "link" [ string "b", string "c" ])
                         , Rule.fact (atom "link" [ string "c", string "c" ])
@@ -96,7 +96,7 @@ solveTest =
                             ]
             , test "siblings example" <|
                 \_ ->
-                    program
+                    unsafeProgram
                         [ Rule.fact (atom "parent" [ string "Child A", string "Parent" ])
                         , Rule.fact (atom "parent" [ string "Child B", string "Parent" ])
 
@@ -131,7 +131,7 @@ Programming.
 -}
 allPairsReachability : Datalog.Program
 allPairsReachability =
-    program
+    unsafeProgram
         [ -- base data
           Rule.fact (atom "link" [ string "a", string "b" ])
         , Rule.fact (atom "link" [ string "b", string "c" ])
@@ -162,8 +162,8 @@ get key dict =
         |> Maybe.withDefault []
 
 
-program : List (Result x Rule) -> Datalog.Program
-program =
+unsafeProgram : List (Result x Rule) -> Datalog.Program
+unsafeProgram =
     List.filterMap
         (\res ->
             case res of
@@ -173,4 +173,4 @@ program =
                 Err err ->
                     Debug.todo (Debug.toString err)
         )
-        >> Program
+        >> program

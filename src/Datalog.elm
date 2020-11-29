@@ -16,6 +16,10 @@ program =
     Program
 
 
+
+-- EVALUATION
+
+
 {-| This is cheating a bit. A database is only ground atoms--that is, atoms
 whose terms are all constants.
 -}
@@ -39,10 +43,6 @@ insertAtom atom database =
                     Just ( atom, [] )
         )
         database
-
-
-
--- EVALUATION
 
 
 solve : Program -> Database

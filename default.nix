@@ -26,16 +26,4 @@ in rec {
       elm make --optimize --output $out/share/datalog/index.html src/Main.elm
     '';
   };
-
-  container = let
-    linuxPkgs = import sources.nixpkgs { system = "x86_64-linux"; };
-    listenPort = "80";
-  in linuxPkgs.dockerTools.buildLayeredImage {
-    name = "datalog";
-    contents = linuxPkgs.darkhttpd;
-    config = {
-      Cmd = [ "darkhttpd" "${datalog}/share/datalog" ];
-      ExposedPorts = { "${listenPort}/tcp" = { }; };
-    };
-  };
 }

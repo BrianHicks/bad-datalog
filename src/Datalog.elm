@@ -18,6 +18,21 @@ program =
 
 
 -- STRATIFICATION
+{-
+
+   We have a couple of steps to complete here:
+
+      - [ ] make a precedence graph (edges from body atoms to head atom
+            for each rule including whether the body atom was positive
+            or negative)
+      - [ ] figure out the cycles in that graph. If there are any cycles
+            including a negative edge, the graph cannot be stratified
+            and should be rejected.
+      - [ ] make a topological sort of the rules using the graph.
+      - [ ] evaluate each layer of the graph in the normal way, building up
+            an answer
+
+-}
 
 
 type Edge

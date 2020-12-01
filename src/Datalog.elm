@@ -1,4 +1,4 @@
-module Datalog exposing (Database, Program, program, solve)
+module Datalog exposing (Database, Program, precedenceGraph, program, solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
 import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
@@ -14,6 +14,33 @@ type Program
 program : List Rule -> Program
 program =
     Program
+
+
+
+-- STRATIFICATION
+
+
+type Edge
+    = Edge Atom (Negatable Atom)
+
+
+precedenceGraph : List Rule -> List Edge
+precedenceGraph rules =
+    precedenceGraphHelp rules []
+
+
+precedenceGraphHelp : List Rule -> List Edge -> List Edge
+precedenceGraphHelp rules soFarOuter =
+    case rules of
+        [] ->
+            soFarOuter
+
+        rule :: rest ->
+            Rule.body rule
+                |> List.foldl
+                    (\bodyAtom soFar -> Edge (Rule.head rule) bodyAtom :: soFar)
+                    soFarOuter
+                |> precedenceGraphHelp rest
 
 
 

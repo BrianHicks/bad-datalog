@@ -123,6 +123,30 @@ solveTest =
                             , atom "siblings" [ string "Child A", string "Child B" ]
                             ]
             ]
+        , describe "(temporary) precedenceGraph"
+            [ test "does the right thing" <|
+                \_ ->
+                    [ Rule.rule
+                        (atom "reachable" [ variable "X", variable "Y" ])
+                        [ positive (atom "link" [ variable "X", variable "Y" ]) ]
+                    , Rule.rule
+                        (atom "reachable" [ variable "X", variable "Y" ])
+                        [ positive (atom "link" [ variable "X", variable "Z" ])
+                        , positive (atom "reachable" [ variable "Z", variable "Y" ])
+                        ]
+                    ]
+                        |> List.filterMap
+                            (\ruleResult ->
+                                case ruleResult of
+                                    Ok yep ->
+                                        Just yep
+
+                                    Err nope ->
+                                        Debug.todo (Debug.toString nope)
+                            )
+                        |> precedenceGraph
+                        |> Expect.equal []
+            ]
         ]
 
 

@@ -22,7 +22,7 @@ program =
 
    We have a couple of steps to complete here:
 
-      - [ ] make a precedence graph (edges from body atoms to head atom
+      - [x] make a precedence graph (edges from body atoms to head atom
             for each rule including whether the body atom was positive
             or negative)
       - [ ] figure out the cycles in that graph. If there are any cycles

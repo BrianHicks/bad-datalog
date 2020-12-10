@@ -37,6 +37,9 @@ program rules =
 
 
 stratify (Program rules) =
+    -- some future version of this function may want to create the entire graph
+    -- in a single pass over the rules. That'd be fine, of course, and faster,
+    -- but potentially way harder to work with. Keep it simple for now!
     let
         namesToIds =
             rules

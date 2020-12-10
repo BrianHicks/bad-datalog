@@ -27,6 +27,9 @@ atom name terms =
     Atom name (List.length terms) terms
 
 
+{-| TODO: this is useful but kind of internal. Should it move somewhere else,
+or split into `name` and `size`?
+-}
 key : Atom -> ( String, Int )
 key (Atom name arity _) =
     ( name, arity )

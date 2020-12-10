@@ -123,30 +123,50 @@ solveTest =
                             , atom "siblings" [ string "Child A", string "Child B" ]
                             ]
             ]
-        , describe "(temporary) precedenceGraph"
-            [ test "does the right thing" <|
-                \_ ->
-                    [ Rule.rule
-                        (atom "reachable" [ variable "X", variable "Y" ])
-                        [ positive (atom "link" [ variable "X", variable "Y" ]) ]
-                    , Rule.rule
-                        (atom "reachable" [ variable "X", variable "Y" ])
-                        [ positive (atom "link" [ variable "X", variable "Z" ])
-                        , positive (atom "reachable" [ variable "Z", variable "Y" ])
-                        ]
-                    ]
-                        |> List.filterMap
-                            (\ruleResult ->
-                                case ruleResult of
-                                    Ok yep ->
-                                        Just yep
+        , only <|
+            describe "(temporary) stratification"
+                [ test "does the right thing" <|
+                    \_ ->
+                        [ Rule.fact (atom "link" [ string "a", string "b" ])
+                        , Rule.fact (atom "link" [ string "b", string "c" ])
+                        , Rule.fact (atom "link" [ string "c", string "c" ])
+                        , Rule.fact (atom "link" [ string "c", string "d" ])
 
-                                    Err nope ->
-                                        Debug.todo (Debug.toString nope)
-                            )
-                        |> precedenceGraph
-                        |> Expect.equal []
-            ]
+                        -- reachable
+                        , Rule.rule (atom "reachable" [ variable "a", variable "b" ])
+                            [ positive (atom "link" [ variable "a", variable "b" ]) ]
+                        , Rule.rule (atom "reachable" [ variable "a", variable "c" ])
+                            [ positive (atom "link" [ variable "a", variable "b" ])
+                            , positive (atom "reachable" [ variable "b", variable "c" ])
+                            ]
+
+                        -- node
+                        , Rule.rule (atom "node" [ variable "a" ])
+                            [ positive (atom "link" [ variable "a", anonymous ]) ]
+                        , Rule.rule (atom "node" [ variable "a" ])
+                            [ positive (atom "link" [ anonymous, variable "a" ]) ]
+
+                        -- unreachable
+                        , Rule.rule (atom "unreachable" [ variable "a", variable "b" ])
+                            [ positive (atom "node" [ variable "a" ])
+                            , positive (atom "node" [ variable "b" ])
+                            , negative (atom "reachable" [ variable "a", variable "b" ])
+                            ]
+                        ]
+                            |> List.filterMap
+                                (\ruleResult ->
+                                    case ruleResult of
+                                        Ok yep ->
+                                            Just yep
+
+                                        Err nope ->
+                                            Debug.todo (Debug.toString nope)
+                                )
+                            |> program
+                            |> stratify
+                            |> Ok
+                            |> Expect.err
+                ]
         ]
 
 

@@ -1,10 +1,11 @@
-module Datalog exposing (Database, Program, precedenceGraph, program, solve)
+module Datalog exposing (Database, Program, program, solve, stratify)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
 import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
 import Datalog.Rule as Rule exposing (Rule)
 import Datalog.Term as Term exposing (Term(..))
 import Dict exposing (Dict)
+import Graph
 
 
 type Program
@@ -12,8 +13,8 @@ type Program
 
 
 program : List Rule -> Program
-program =
-    Program
+program rules =
+    Program rules
 
 
 
@@ -22,7 +23,7 @@ program =
 
    We have a couple of steps to complete here:
 
-      - [x] make a precedence graph (edges from body atoms to head atom
+      - [ ] make a precedence graph (edges from body atoms to head atom
             for each rule including whether the body atom was positive
             or negative)
       - [ ] figure out the cycles in that graph. If there are any cycles
@@ -35,27 +36,33 @@ program =
 -}
 
 
-type Edge
-    = Edge Atom (Negatable Atom)
-
-
-precedenceGraph : List Rule -> List Edge
-precedenceGraph rules =
-    precedenceGraphHelp rules []
-
-
-precedenceGraphHelp : List Rule -> List Edge -> List Edge
-precedenceGraphHelp rules soFarOuter =
-    case rules of
-        [] ->
-            soFarOuter
-
-        rule :: rest ->
-            Rule.body rule
+stratify (Program rules) =
+    let
+        namesToIds =
+            rules
+                |> List.concatMap
+                    (\rule ->
+                        Atom.key (Rule.head rule)
+                            :: List.map
+                                (\atom -> Atom.key (Negatable.value atom))
+                                (Rule.body rule)
+                    )
                 |> List.foldl
-                    (\bodyAtom soFar -> Edge (Rule.head rule) bodyAtom :: soFar)
-                    soFarOuter
-                |> precedenceGraphHelp rest
+                    (\key soFar ->
+                        Dict.update key
+                            (\value ->
+                                case value of
+                                    Just id ->
+                                        Just id
+
+                                    Nothing ->
+                                        Just (Dict.size soFar)
+                            )
+                            soFar
+                    )
+                    Dict.empty
+    in
+    namesToIds
 
 
 

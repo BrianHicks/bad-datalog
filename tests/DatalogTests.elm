@@ -125,7 +125,7 @@ solveTest =
             ]
         , only <|
             describe "(temporary) stratification"
-                [ test "does the right thing" <|
+                [ test "stratifies a stratifiable program" <|
                     \_ ->
                         [ Rule.fact (atom "link" [ string "a", string "b" ])
                         , Rule.fact (atom "link" [ string "b", string "c" ])
@@ -153,16 +153,16 @@ solveTest =
                             , negative (atom "reachable" [ variable "a", variable "b" ])
                             ]
                         ]
-                            |> List.filterMap
-                                (\ruleResult ->
-                                    case ruleResult of
-                                        Ok yep ->
-                                            Just yep
-
-                                        Err nope ->
-                                            Debug.todo (Debug.toString nope)
-                                )
-                            |> program
+                            |> unsafeProgram
+                            |> stratify
+                            |> Ok
+                            |> Expect.err
+                , test "does not stratify an unstratifiable program" <|
+                    \_ ->
+                        [ Rule.rule (atom "p" [ variable "x" ]) [ negative (atom "q" [ variable "x" ]) ]
+                        , Rule.rule (atom "q" [ variable "x" ]) [ negative (atom "p" [ variable "x" ]) ]
+                        ]
+                            |> unsafeProgram
                             |> stratify
                             |> Ok
                             |> Expect.err

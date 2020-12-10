@@ -98,8 +98,12 @@ stratify (Program rules) =
 
         precedenceGraph =
             Graph.fromNodesAndEdges nodes edges
+
+        scc =
+            Graph.stronglyConnectedComponents precedenceGraph
+                |> Result.mapError (List.map Graph.edges)
     in
-    precedenceGraph
+    scc
 
 
 

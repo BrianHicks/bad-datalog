@@ -64,8 +64,42 @@ stratify (Program rules) =
                             soFar
                     )
                     Dict.empty
+
+        nodes =
+            Dict.foldl
+                (\key id soFar ->
+                    Graph.Node id key :: soFar
+                )
+                []
+                namesToIds
+
+        edges =
+            rules
+                |> List.concatMap
+                    (\rule ->
+                        let
+                            headId =
+                                namesToIds
+                                    |> Dict.get (Atom.key (Rule.head rule))
+                                    |> Maybe.withDefault -1
+                        in
+                        List.map
+                            (\(Negatable direction bodyAtom) ->
+                                Graph.Edge
+                                    (namesToIds
+                                        |> Dict.get (Atom.key bodyAtom)
+                                        |> Maybe.withDefault -1
+                                    )
+                                    headId
+                                    direction
+                            )
+                            (Rule.body rule)
+                    )
+
+        precedenceGraph =
+            Graph.fromNodesAndEdges nodes edges
     in
-    namesToIds
+    precedenceGraph
 
 
 

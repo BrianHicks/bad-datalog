@@ -154,7 +154,6 @@ solveTest =
                             ]
                         ]
                             |> unsafeProgram
-                            |> stratify
                             |> Ok
                             |> Expect.err
                 , test "does not stratify an unstratifiable program" <|
@@ -163,7 +162,6 @@ solveTest =
                         , Rule.rule (atom "q" [ variable "x" ]) [ negative (atom "p" [ variable "x" ]) ]
                         ]
                             |> unsafeProgram
-                            |> stratify
                             |> Ok
                             |> Expect.err
                 ]

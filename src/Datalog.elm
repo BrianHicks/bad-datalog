@@ -1,4 +1,4 @@
-module Datalog exposing (Database, Program, program, solve, stratify)
+module Datalog exposing (Database, Program, program, solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
 import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
@@ -9,12 +9,12 @@ import Graph
 
 
 type Program
-    = Program (List Rule)
+    = Program (List (List Rule))
 
 
 program : List Rule -> Program
 program rules =
-    Program rules
+    Program (stratify rules)
 
 
 
@@ -36,7 +36,8 @@ program rules =
 -}
 
 
-stratify (Program rules) =
+stratify : List Rule -> List (List Rule)
+stratify rules =
     -- some future version of this function may want to create the entire graph
     -- in a single pass over the rules. That'd be fine, of course, and faster,
     -- but potentially way harder to work with. Keep it simple for now!
@@ -99,11 +100,45 @@ stratify (Program rules) =
         precedenceGraph =
             Graph.fromNodesAndEdges nodes edges
 
+        rulesByName =
+            List.foldr
+                (\rule soFar ->
+                    Dict.update (Atom.key (Rule.head rule))
+                        (\maybeRules ->
+                            case maybeRules of
+                                Nothing ->
+                                    Just [ rule ]
+
+                                Just already ->
+                                    Just (rule :: already)
+                        )
+                        soFar
+                )
+                Dict.empty
+                rules
+
         scc =
             Graph.stronglyConnectedComponents precedenceGraph
                 |> Result.mapError (List.map Graph.edges)
     in
-    scc
+    case Graph.stronglyConnectedComponents precedenceGraph of
+        -- pretty unlikely, but ok fine we'll handle it
+        Ok acyclic ->
+            [ rules ]
+
+        Err condensation ->
+            if List.any (Graph.edges >> List.map .label >> List.member Negative) condensation then
+                -- this should be an error later
+                []
+
+            else
+                List.concatMap
+                    (Graph.nodes
+                        >> List.filterMap (\{ label } -> Dict.get label rulesByName |> Maybe.map (Tuple.pair label))
+                        >> Dict.fromList
+                        >> Dict.values
+                    )
+                    condensation
 
 
 
@@ -144,7 +179,7 @@ solveHelp : Program -> Database -> Database
 solveHelp ((Program rules) as program_) database =
     let
         expanded =
-            List.foldl evaluateRule database rules
+            List.foldl evaluateRule database (List.concat rules)
     in
     if expanded == database then
         database

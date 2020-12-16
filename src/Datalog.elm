@@ -160,21 +160,21 @@ insertAtom atom database =
 
 
 solve : Program -> Database
-solve program_ =
-    solveHelp program_ Dict.empty
+solve (Program rules) =
+    List.foldl solveHelp Dict.empty rules
 
 
-solveHelp : Program -> Database -> Database
-solveHelp ((Program rules) as program_) database =
+solveHelp : List Rule -> Database -> Database
+solveHelp rules database =
     let
         expanded =
-            List.foldl evaluateRule database (List.concat rules)
+            List.foldl evaluateRule database rules
     in
     if expanded == database then
         database
 
     else
-        solveHelp program_ expanded
+        solveHelp rules expanded
 
 
 evaluateRule : Rule -> Database -> Database

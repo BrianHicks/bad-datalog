@@ -122,11 +122,9 @@ solveTest =
                             [ atom "siblings" [ string "Child B", string "Child A" ]
                             , atom "siblings" [ string "Child A", string "Child B" ]
                             ]
-            ]
-        , only <|
-            describe "(temporary) stratification"
-                [ test "stratifies a stratifiable program" <|
-                    \_ ->
+            , test "stratifies a stratifiable program" <|
+                \_ ->
+                    unsafeProgram
                         [ Rule.fact (atom "link" [ string "a", string "b" ])
                         , Rule.fact (atom "link" [ string "b", string "c" ])
                         , Rule.fact (atom "link" [ string "c", string "c" ])
@@ -153,18 +151,36 @@ solveTest =
                             , negative (atom "reachable" [ variable "a", variable "b" ])
                             ]
                         ]
-                            |> unsafeProgram
-                            |> Ok
-                            |> Expect.err
-                , test "does not stratify an unstratifiable program" <|
-                    \_ ->
-                        [ Rule.rule (atom "p" [ variable "x" ]) [ negative (atom "q" [ variable "x" ]) ]
-                        , Rule.rule (atom "q" [ variable "x" ]) [ negative (atom "p" [ variable "x" ]) ]
-                        ]
-                            |> unsafeProgram
-                            |> Ok
-                            |> Expect.err
-                ]
+                        |> solve
+                        |> get ( "unreachable", 2 )
+                        |> Expect.equal
+                            [ atom "unreachable" [ string "d", string "d" ]
+                            , atom "unreachable" [ string "d", string "c" ]
+                            , atom "unreachable" [ string "d", string "b" ]
+                            , atom "unreachable" [ string "d", string "a" ]
+                            , atom "unreachable" [ string "c", string "b" ]
+                            , atom "unreachable" [ string "c", string "a" ]
+                            , atom "unreachable" [ string "b", string "b" ]
+                            , atom "unreachable" [ string "b", string "a" ]
+                            , atom "unreachable" [ string "a", string "a" ]
+                            ]
+            , test "does not stratify an unstratifiable program" <|
+                \_ ->
+                    [ Rule.rule (atom "p" [ variable "x" ]) [ negative (atom "q" [ variable "x" ]) ]
+                    , Rule.rule (atom "q" [ variable "x" ]) [ negative (atom "p" [ variable "x" ]) ]
+                    ]
+                        |> List.map
+                            (\ruleOrErr ->
+                                case ruleOrErr of
+                                    Ok rule ->
+                                        rule
+
+                                    Err err ->
+                                        Debug.todo (Debug.toString err)
+                            )
+                        |> program
+                        |> Expect.equal (Err Datalog.CycleWithNegation)
+            ]
         ]
 
 

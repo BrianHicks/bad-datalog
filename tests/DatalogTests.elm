@@ -166,8 +166,14 @@ solveTest =
                             ]
             , test "does not stratify an unstratifiable program" <|
                 \_ ->
-                    [ Rule.rule (atom "p" [ variable "x" ]) [ negative (atom "q" [ variable "x" ]) ]
-                    , Rule.rule (atom "q" [ variable "x" ]) [ negative (atom "p" [ variable "x" ]) ]
+                    [ Rule.rule (atom "p" [ variable "x" ])
+                        [ positive (atom "exists" [ variable "x" ])
+                        , negative (atom "q" [ variable "x" ])
+                        ]
+                    , Rule.rule (atom "q" [ variable "x" ])
+                        [ positive (atom "exists" [ variable "x" ])
+                        , negative (atom "p" [ variable "x" ])
+                        ]
                     ]
                         |> List.map
                             (\ruleOrErr ->

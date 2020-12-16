@@ -29,6 +29,21 @@ ruleTest =
                     (atom "mortal" [ anonymous ])
                     [ positive (atom "greek" [ anonymous ]) ]
                     |> Expect.equal (Err UnnamedHeadVariable)
+        , test "negative terms are allowed if they also appear in a positive form" <|
+            \_ ->
+                rule
+                    (atom "unreachable" [ variable "a", variable "b" ])
+                    [ positive (atom "node" [ variable "a" ])
+                    , positive (atom "node" [ variable "b" ])
+                    , negative (atom "reachable" [ variable "a", variable "b" ])
+                    ]
+                    |> Expect.ok
+        , test "negative terms are not allowed if they don't also appear in a positive form" <|
+            \_ ->
+                rule
+                    (atom "immortal" [ variable "whom" ])
+                    [ negative (atom "mortal" [ variable "whom" ]) ]
+                    |> Expect.equal (Err VariableAppearsNegatedButNotPositive)
         ]
 
 

@@ -210,6 +210,9 @@ niceProblem problem =
         InvalidRule Rule.UnnamedHeadVariable ->
             "a rule, which may not use anonymous variables in the head"
 
+        InvalidRule Rule.VariableAppearsNegatedButNotPositive ->
+            "a rule, which may not contain atoms that appear in a negated expression without appearing in a positive one"
+
         InvalidProgram Datalog.CycleWithNegation ->
             -- TODO: wow, awkward way to phase this. Make it better!
             "a program, which may not contain cycles including negation"

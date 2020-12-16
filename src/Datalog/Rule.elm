@@ -3,6 +3,7 @@ module Datalog.Rule exposing (Problem(..), Rule, body, fact, head, isFact, rule,
 import Datalog.Atom as Atom exposing (Atom)
 import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
 import Datalog.Term as Term
+import Sort.Set as Set
 
 
 type Rule
@@ -12,6 +13,7 @@ type Rule
 type Problem
     = NotRangeRestricted
     | UnnamedHeadVariable
+    | VariableAppearsNegatedButNotPositive
 
 
 rule : Atom -> List (Negatable Atom) -> Result Problem Rule
@@ -25,6 +27,9 @@ rule head_ body_ =
 
     else if not (isRangeRestricted candidate) then
         Err NotRangeRestricted
+
+    else if not (isNegationSafe candidate) then
+        Err VariableAppearsNegatedButNotPositive
 
     else
         Ok candidate
@@ -56,6 +61,36 @@ isRangeRestricted (Rule head_ body_) =
     List.all
         (\headVar -> List.member headVar bodyVars)
         (Atom.variables head_)
+
+
+{-| Do all the variables in negated expressions also appear in positive
+expressions?
+-}
+isNegationSafe : Rule -> Bool
+isNegationSafe (Rule _ body_) =
+    body_
+        |> List.foldl
+            (\(Negatable direction atom) occurrences_ ->
+                List.foldl
+                    (\variable occurrences ->
+                        case direction of
+                            Positive ->
+                                { occurrences | positive = Set.insert variable occurrences.positive }
+
+                            Negative ->
+                                { occurrences | negative = Set.insert variable occurrences.negative }
+                    )
+                    occurrences_
+                    (Atom.variables atom)
+            )
+            { positive = Set.empty Term.variableSorter
+            , negative = Set.empty Term.variableSorter
+            }
+        |> (\{ positive, negative } ->
+                negative
+                    |> Set.dropIf (Set.memberOf positive)
+                    |> Set.isEmpty
+           )
 
 
 head : Rule -> Atom

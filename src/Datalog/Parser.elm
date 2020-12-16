@@ -150,6 +150,7 @@ type Problem
     | ExpectingNot
     | ExpectingComment
     | InvalidRule Rule.Problem
+    | InvalidProgram Datalog.Problem
 
 
 niceProblem : Problem -> String
@@ -209,12 +210,25 @@ niceProblem problem =
         InvalidRule Rule.UnnamedHeadVariable ->
             "a rule, which may not use anonymous variables in the head"
 
+        InvalidProgram Datalog.CycleWithNegation ->
+            -- TODO: wow, awkward way to phase this. Make it better!
+            "a program, which may not contain cycles including negation"
+
 
 parser : Parser Context Problem Program
 parser =
-    Parser.succeed program
+    Parser.succeed identity
         |. spacesOrComment
         |= Parser.loop [] rules
+        |> Parser.andThen
+            (\parsedRules ->
+                case program parsedRules of
+                    Ok program_ ->
+                        Parser.succeed program_
+
+                    Err problem ->
+                        Parser.problem (InvalidProgram problem)
+            )
 
 
 rules : List Rule -> Parser Context Problem (Parser.Step (List Rule) (List Rule))

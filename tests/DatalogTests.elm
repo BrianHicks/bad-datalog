@@ -205,14 +205,23 @@ get key dict =
 
 
 unsafeProgram : List (Result x Rule) -> Datalog.Program
-unsafeProgram =
-    List.filterMap
-        (\res ->
-            case res of
-                Ok cool ->
-                    Just cool
+unsafeProgram questionableRules =
+    let
+        rulesOrCrash =
+            List.filterMap
+                (\res ->
+                    case res of
+                        Ok cool ->
+                            Just cool
 
-                Err err ->
-                    Debug.todo (Debug.toString err)
-        )
-        >> program
+                        Err err ->
+                            Debug.todo (Debug.toString err)
+                )
+                questionableRules
+    in
+    case program rulesOrCrash of
+        Ok program_ ->
+            program_
+
+        Err err ->
+            Debug.todo (Debug.toString err)

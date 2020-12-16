@@ -1,4 +1,4 @@
-module Datalog exposing (Database, Program, program, solve)
+module Datalog exposing (Database, Problem(..), Program, program, solve)
 
 import Datalog.Atom as Atom exposing (Atom, Substitutions)
 import Datalog.Negatable as Negatable exposing (Direction(..), Negatable(..))
@@ -12,9 +12,13 @@ type Program
     = Program (List (List Rule))
 
 
-program : List Rule -> Program
+program : List Rule -> Result Problem Program
 program rules =
-    Program (stratify rules)
+    Result.map Program (stratify rules)
+
+
+type Problem
+    = CycleWithNegation
 
 
 
@@ -36,7 +40,7 @@ program rules =
 -}
 
 
-stratify : List Rule -> List (List Rule)
+stratify : List Rule -> Result Problem (List (List Rule))
 stratify rules =
     -- some future version of this function may want to create the entire graph
     -- in a single pass over the rules. That'd be fine, of course, and faster,
@@ -124,21 +128,21 @@ stratify rules =
     case Graph.stronglyConnectedComponents precedenceGraph of
         -- pretty unlikely, but ok fine we'll handle it
         Ok acyclic ->
-            [ rules ]
+            Ok [ rules ]
 
         Err condensation ->
             if List.any (Graph.edges >> List.map .label >> List.member Negative) condensation then
-                -- this should be an error later
-                []
+                Err CycleWithNegation
 
             else
-                List.concatMap
-                    (Graph.nodes
-                        >> List.filterMap (\{ label } -> Dict.get label rulesByName |> Maybe.map (Tuple.pair label))
-                        >> Dict.fromList
-                        >> Dict.values
-                    )
-                    condensation
+                condensation
+                    |> List.concatMap
+                        (Graph.nodes
+                            >> List.filterMap (\{ label } -> Dict.get label rulesByName |> Maybe.map (Tuple.pair label))
+                            >> Dict.fromList
+                            >> Dict.values
+                        )
+                    |> Ok
 
 
 

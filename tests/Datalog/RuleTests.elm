@@ -38,6 +38,14 @@ ruleTest =
                     , negative (atom "reachable" [ variable "a", variable "b" ])
                     ]
                     |> Expect.ok
+        , test "negative terms which are introduced outside the head are still allowed if they appear in positive form" <|
+            \_ ->
+                rule
+                    (atom "peopleWithoutEmails" [ variable "Name" ])
+                    [ positive (atom "people" [ variable "Id", variable "Name" ])
+                    , negative (atom "peopleToEmails" [ variable "Id", anonymous ])
+                    ]
+                    |> Expect.ok
         , test "negative terms are not allowed if they don't also appear in a positive form" <|
             \_ ->
                 rule

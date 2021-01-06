@@ -89,6 +89,7 @@ isNegationSafe (Rule _ body_) =
         |> (\{ positive, negative } ->
                 negative
                     |> Set.dropIf (Set.memberOf positive)
+                    |> Set.dropIf ((==) Term.Anonymous)
                     |> Set.isEmpty
            )
 

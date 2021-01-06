@@ -7,7 +7,7 @@ import Test exposing (..)
 
 isGroundTest : Test
 isGroundTest =
-    describe "isGround"
+    describe "term isGround"
         [ test "a string is ground" <|
             \_ -> string "a" |> isGround |> Expect.equal True
         , test "an integer is ground" <|

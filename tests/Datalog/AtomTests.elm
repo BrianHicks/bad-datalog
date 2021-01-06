@@ -9,7 +9,7 @@ import Test exposing (..)
 
 isGroundTest : Test
 isGroundTest =
-    describe "isGround"
+    describe "atom isGround"
         [ test "if there are terms, the atom is ground" <|
             \_ -> atom "x" [] |> isGround |> Expect.equal False
         , test "if all terms are constant, the atom is ground" <|

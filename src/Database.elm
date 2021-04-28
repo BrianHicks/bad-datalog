@@ -84,34 +84,22 @@ runPlan plan database =
                 Err ProjectedWithEmptyFieldSet
 
             else
-                Result.andThen
-                    (List.foldl
-                        (\row rowsResult ->
-                            case rowsResult of
-                                Ok rows ->
-                                    let
-                                        projectedRow =
-                                            Dict.filter (\field _ -> Set.member field fields) row
+                case runPlan input database of
+                    Err problem ->
+                        Err problem
 
-                                        missingFields =
-                                            Set.diff fields (Set.fromList (Dict.keys projectedRow))
-                                    in
-                                    -- OK, so all this error checking is pretty
-                                    -- horribly inefficient. It does all the same
-                                    -- validation for each valid row! I feel like
-                                    -- it would make more sense to construct the
-                                    -- schema when the first item is inserted,
-                                    -- and then validate that the schema has to
-                                    -- stay the same for all subsequent inserts.
-                                    if Set.isEmpty missingFields then
-                                        Ok (projectedRow :: rows)
+                    Ok [] ->
+                        Ok []
 
-                                    else
-                                        Err (FieldsDoNotExist missingFields)
+                    Ok ((first :: _) as rows) ->
+                        let
+                            missingFields =
+                                Set.diff fields (Set.fromList (Dict.keys first))
+                        in
+                        if not (Set.isEmpty missingFields) then
+                            Err (FieldsDoNotExist missingFields)
 
-                                _ ->
-                                    rowsResult
-                        )
-                        (Ok [])
-                    )
-                    (runPlan input database)
+                        else
+                            rows
+                                |> List.map (Dict.filter (\field _ -> Set.member field fields))
+                                |> Ok

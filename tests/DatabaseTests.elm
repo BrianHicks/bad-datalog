@@ -1,7 +1,7 @@
 module DatabaseTests exposing (..)
 
-import Array
 import Database exposing (Database)
+import Dict
 import Expect
 import Test exposing (..)
 
@@ -19,7 +19,7 @@ relationTests =
                 \_ ->
                     socratesDb
                         |> Database.runPlan (Database.ReadTable "mortal")
-                        |> Expect.equal (Ok [ Array.fromList [ Database.String "Socrates" ] ])
+                        |> Expect.equal (Ok [ Dict.fromList [ ( "name", Database.String "Socrates" ) ] ])
             ]
         , describe "filtering a constant" <|
             [ test "removes all rows matching the constant" <|
@@ -27,7 +27,7 @@ relationTests =
                     socratesDb
                         |> Database.runPlan
                             (Database.ReadTable "mortal"
-                                |> Database.FilterConstant { field = 0, constant = Database.String "Socrates" }
+                                |> Database.FilterConstant { field = "name", constant = Database.String "Socrates" }
                             )
                         |> Expect.equal (Ok [])
             , test "keeps all rows not matching the constant" <|
@@ -35,9 +35,9 @@ relationTests =
                     socratesDb
                         |> Database.runPlan
                             (Database.ReadTable "mortal"
-                                |> Database.FilterConstant { field = 0, constant = Database.String "Dave" }
+                                |> Database.FilterConstant { field = "name", constant = Database.String "Dave" }
                             )
-                        |> Expect.equal (Ok [ Array.fromList [ Database.String "Socrates" ] ])
+                        |> Expect.equal (Ok [ Dict.fromList socratesRow ])
             ]
         ]
 
@@ -45,4 +45,9 @@ relationTests =
 socratesDb : Database
 socratesDb =
     Database.empty
-        |> Database.insert "mortal" [ Database.String "Socrates" ]
+        |> Database.insert "mortal" socratesRow
+
+
+socratesRow : List ( String, Database.Constant )
+socratesRow =
+    [ ( "name", Database.String "Socrates" ) ]

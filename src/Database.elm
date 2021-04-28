@@ -1,6 +1,5 @@
 module Database exposing (..)
 
-import Array exposing (Array)
 import Dict exposing (Dict)
 
 
@@ -10,7 +9,7 @@ type Constant
 
 
 type alias Relation =
-    List (Array Constant)
+    List (Dict String Constant)
 
 
 type alias Database =
@@ -22,11 +21,11 @@ empty =
     Dict.empty
 
 
-insert : String -> List Constant -> Database -> Database
+insert : String -> List ( String, Constant ) -> Database -> Database
 insert tableName row database =
     let
         rowArr =
-            Array.fromList row
+            Dict.fromList row
     in
     Dict.update tableName
         (\existing ->
@@ -48,7 +47,7 @@ insert tableName row database =
 
 type QueryPlan
     = ReadTable String
-    | FilterConstant { field : Int, constant : Constant } QueryPlan
+    | FilterConstant { field : String, constant : Constant } QueryPlan
 
 
 type Problem
@@ -68,5 +67,5 @@ runPlan plan database =
 
         FilterConstant { field, constant } input ->
             Result.map
-                (List.filter (\row -> Array.get field row /= Just constant))
+                (List.filter (\row -> Dict.get field row /= Just constant))
                 (runPlan input database)

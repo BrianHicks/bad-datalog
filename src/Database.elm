@@ -89,6 +89,12 @@ runPlan plan database =
                         Err problem
 
                     Ok [] ->
+                        -- TODO: is this OK? The allowable field names of an
+                        -- empty relation are just never checked. This would go
+                        -- away if we would explicitly store the field names
+                        -- on the first insert, but that causes all kinds of
+                        -- headaches up and down the chain. It seems like it
+                        -- might be worth it eventually, though?
                         Ok []
 
                     Ok ((first :: _) as rows) ->

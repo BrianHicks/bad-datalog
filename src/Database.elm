@@ -67,5 +67,5 @@ runPlan plan database =
 
         FilterConstant { field, constant } input ->
             Result.map
-                (List.filter (\row -> Dict.get field row /= Just constant))
+                (List.filter (\row -> Dict.get field row == Just constant))
                 (runPlan input database)

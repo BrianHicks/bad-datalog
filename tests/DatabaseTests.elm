@@ -22,20 +22,20 @@ relationTests =
                         |> Expect.equal (Ok [ Dict.fromList [ ( "name", Database.String "Socrates" ) ] ])
             ]
         , describe "filtering a constant" <|
-            [ test "removes all rows matching the constant" <|
-                \_ ->
-                    socratesDb
-                        |> Database.runPlan
-                            (Database.ReadTable "mortal"
-                                |> Database.FilterConstant { field = "name", constant = Database.String "Socrates" }
-                            )
-                        |> Expect.equal (Ok [])
-            , test "keeps all rows not matching the constant" <|
+            [ test "keeps all rows matching the constant" <|
                 \_ ->
                     socratesDb
                         |> Database.runPlan
                             (Database.ReadTable "mortal"
                                 |> Database.FilterConstant { field = "name", constant = Database.String "Dave" }
+                            )
+                        |> Expect.equal (Ok [])
+            , test "removes all rows not matching the constant" <|
+                \_ ->
+                    socratesDb
+                        |> Database.runPlan
+                            (Database.ReadTable "mortal"
+                                |> Database.FilterConstant { field = "name", constant = Database.String "Socrates" }
                             )
                         |> Expect.equal (Ok [ Dict.fromList socratesRow ])
             ]

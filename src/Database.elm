@@ -55,6 +55,7 @@ type QueryPlan
 type Problem
     = TableDoesNotExist String
     | FieldsDoNotExist (Set String)
+    | ProjectedWithEmptyFieldSet
 
 
 runPlan : QueryPlan -> Database -> Result Problem Relation
@@ -74,27 +75,38 @@ runPlan plan database =
                 (runPlan input database)
 
         Project { fields } input ->
-            Result.andThen
-                (List.foldl
-                    (\row rowsResult ->
-                        case rowsResult of
-                            Ok rows ->
-                                let
-                                    projectedRow =
-                                        Dict.filter (\field _ -> Set.member field fields) row
+            if Set.isEmpty fields then
+                Err ProjectedWithEmptyFieldSet
 
-                                    missingFields =
-                                        Set.diff fields (Set.fromList (Dict.keys projectedRow))
-                                in
-                                if Set.isEmpty missingFields then
-                                    Ok (projectedRow :: rows)
+            else
+                Result.andThen
+                    (List.foldl
+                        (\row rowsResult ->
+                            case rowsResult of
+                                Ok rows ->
+                                    let
+                                        projectedRow =
+                                            Dict.filter (\field _ -> Set.member field fields) row
 
-                                else
-                                    Err (FieldsDoNotExist missingFields)
+                                        missingFields =
+                                            Set.diff fields (Set.fromList (Dict.keys projectedRow))
+                                    in
+                                    -- OK, so all this error checking is pretty
+                                    -- horribly inefficient. It does all the same
+                                    -- validation for each valid row! I feel like
+                                    -- it would make more sense to construct the
+                                    -- schema when the first item is inserted,
+                                    -- and then validate that the schema has to
+                                    -- stay the same for all subsequent inserts.
+                                    if Set.isEmpty missingFields then
+                                        Ok (projectedRow :: rows)
 
-                            _ ->
-                                rowsResult
+                                    else
+                                        Err (FieldsDoNotExist missingFields)
+
+                                _ ->
+                                    rowsResult
+                        )
+                        (Ok [])
                     )
-                    (Ok [])
-                )
-                (runPlan input database)
+                    (runPlan input database)

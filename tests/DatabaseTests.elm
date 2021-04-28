@@ -61,6 +61,14 @@ relationTests =
                                 |> Database.Project { fields = Set.fromList [ "age" ] }
                             )
                         |> Expect.equal (Err (Database.FieldsDoNotExist (Set.singleton "age")))
+            , test "raises an error if no fields are selected" <|
+                \_ ->
+                    socratesDb
+                        |> Database.runPlan
+                            (Database.ReadTable "human"
+                                |> Database.Project { fields = Set.fromList [] }
+                            )
+                        |> Expect.equal (Err Database.ProjectedWithEmptyFieldSet)
             ]
         ]
 

@@ -7,6 +7,29 @@ import Set
 import Test exposing (..)
 
 
+insertionTests : Test
+insertionTests =
+    describe "insertion"
+        [ test "adds a row to the database" <|
+            \_ ->
+                Database.empty
+                    |> Database.insert "human" socratesRow
+                    -- !!! implementation details !!!
+                    |> Dict.get "human"
+                    -- !!! implementation details !!!
+                    |> Expect.equal (Just [ Dict.fromList socratesRow ])
+        , test "does not allow duplicate rows" <|
+            \_ ->
+                Database.empty
+                    |> Database.insert "human" socratesRow
+                    |> Database.insert "human" socratesRow
+                    -- !!! implementation details !!!
+                    |> Dict.get "human"
+                    -- !!! implementation details !!!
+                    |> Expect.equal (Just [ Dict.fromList socratesRow ])
+        ]
+
+
 relationTests : Test
 relationTests =
     describe "relations"

@@ -26,7 +26,7 @@ insertionTests =
                     -- !!! implementation details !!!
                     |> Result.map (Dict.get "human")
                     -- !!! implementation details !!!
-                    |> Expect.equal (Ok (Just [ Dict.fromList socratesRow ]))
+                    |> Expect.equal (Err Database.DuplicateRow)
         , test "does not allow the field names to vary" <|
             \_ ->
                 Database.empty

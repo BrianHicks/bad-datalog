@@ -24,6 +24,7 @@ empty =
 
 type InsertProblem
     = IncompatibleFieldNames
+    | DuplicateRow
 
 
 insert : String -> List ( String, Constant ) -> Database -> Result InsertProblem Database
@@ -44,7 +45,7 @@ insert tableName row database =
                 Err IncompatibleFieldNames
 
             else if List.member rowDict rows then
-                Ok database
+                Err DuplicateRow
 
             else
                 Ok (Dict.insert tableName (rowDict :: rows) database)

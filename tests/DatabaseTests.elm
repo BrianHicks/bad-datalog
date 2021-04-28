@@ -13,12 +13,12 @@ relationTests =
             [ test "from an empty database, returns an error" <|
                 \_ ->
                     Database.empty
-                        |> Database.runPlan (Database.ReadTable "mortal")
-                        |> Expect.equal (Err (Database.TableDoesNotExist "mortal"))
+                        |> Database.runPlan (Database.ReadTable "human")
+                        |> Expect.equal (Err (Database.TableDoesNotExist "human"))
             , test "from a non-empty database, returns the table" <|
                 \_ ->
                     socratesDb
-                        |> Database.runPlan (Database.ReadTable "mortal")
+                        |> Database.runPlan (Database.ReadTable "human")
                         |> Expect.equal (Ok [ Dict.fromList [ ( "name", Database.String "Socrates" ) ] ])
             ]
         , describe "filtering a constant" <|
@@ -26,7 +26,7 @@ relationTests =
                 \_ ->
                     socratesDb
                         |> Database.runPlan
-                            (Database.ReadTable "mortal"
+                            (Database.ReadTable "human"
                                 |> Database.FilterConstant { field = "name", constant = Database.String "Dave" }
                             )
                         |> Expect.equal (Ok [])
@@ -34,7 +34,7 @@ relationTests =
                 \_ ->
                     socratesDb
                         |> Database.runPlan
-                            (Database.ReadTable "mortal"
+                            (Database.ReadTable "human"
                                 |> Database.FilterConstant { field = "name", constant = Database.String "Socrates" }
                             )
                         |> Expect.equal (Ok [ Dict.fromList socratesRow ])
@@ -45,7 +45,7 @@ relationTests =
 socratesDb : Database
 socratesDb =
     Database.empty
-        |> Database.insert "mortal" socratesRow
+        |> Database.insert "human" socratesRow
 
 
 socratesRow : List ( String, Database.Constant )

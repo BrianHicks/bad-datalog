@@ -9,10 +9,6 @@ type Constant
     | Int Int
 
 
-type QueryPlan
-    = ReadTable String
-
-
 type alias Relation =
     List (Array Constant)
 
@@ -50,6 +46,11 @@ insert tableName row database =
         database
 
 
+type QueryPlan
+    = ReadTable String
+    | FilterConstant { field : Int, constant : Constant } QueryPlan
+
+
 type Problem
     = TableDoesNotExist String
 
@@ -64,3 +65,8 @@ runPlan plan database =
 
                 Nothing ->
                     Err (TableDoesNotExist tableName)
+
+        FilterConstant { field, constant } input ->
+            Result.map
+                (List.filter (\row -> Array.get field row /= Just constant))
+                (runPlan input database)

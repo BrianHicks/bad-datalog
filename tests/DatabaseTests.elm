@@ -3,6 +3,7 @@ module DatabaseTests exposing (..)
 import Database exposing (Database)
 import Dict
 import Expect
+import Set
 import Test exposing (..)
 
 
@@ -38,6 +39,28 @@ relationTests =
                                 |> Database.FilterConstant { field = "name", constant = Database.String "Socrates" }
                             )
                         |> Expect.equal (Ok [ Dict.fromList socratesRow ])
+            ]
+        , describe "projection"
+            [ test "gets only the specified columns" <|
+                \_ ->
+                    Database.empty
+                        |> Database.insert "pet"
+                            [ ( "name", Database.String "Axel" )
+                            , ( "species", Database.String "Puffin" )
+                            ]
+                        |> Database.runPlan
+                            (Database.ReadTable "pet"
+                                |> Database.Project { fields = Set.fromList [ "name" ] }
+                            )
+                        |> Expect.equal (Ok [ Dict.fromList [ ( "name", Database.String "Axel" ) ] ])
+            , test "raises an error if the column does not exist" <|
+                \_ ->
+                    socratesDb
+                        |> Database.runPlan
+                            (Database.ReadTable "human"
+                                |> Database.Project { fields = Set.fromList [ "age" ] }
+                            )
+                        |> Expect.equal (Err (Database.FieldsDoNotExist (Set.singleton "age")))
             ]
         ]
 

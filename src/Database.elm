@@ -22,28 +22,32 @@ empty =
     Dict.empty
 
 
-insert : String -> List ( String, Constant ) -> Database -> Database
+type InsertProblem
+    = IncompatibleFieldNames
+
+
+insert : String -> List ( String, Constant ) -> Database -> Result InsertProblem Database
 insert tableName row database =
     let
-        rowArr =
+        rowDict =
             Dict.fromList row
     in
-    Dict.update tableName
-        (\existing ->
-            case existing of
-                Just rows ->
-                    -- set semantics without having to do comparable tricks
-                    -- to turn this into an actual set. Iffy but... fine.
-                    if List.member rowArr rows then
-                        Just rows
+    case Dict.get tableName database of
+        Nothing ->
+            Ok (Dict.insert tableName [ rowDict ] database)
 
-                    else
-                        Just (rowArr :: rows)
+        Just [] ->
+            Ok (Dict.insert tableName [ rowDict ] database)
 
-                Nothing ->
-                    Just [ rowArr ]
-        )
-        database
+        Just ((firstRow :: _) as rows) ->
+            if Dict.keys firstRow /= Dict.keys rowDict then
+                Err IncompatibleFieldNames
+
+            else if List.member rowDict rows then
+                Ok database
+
+            else
+                Ok (Dict.insert tableName (rowDict :: rows) database)
 
 
 type QueryPlan

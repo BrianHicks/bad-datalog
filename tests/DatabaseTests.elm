@@ -15,18 +15,24 @@ insertionTests =
                 Database.empty
                     |> Database.insert "human" socratesRow
                     -- !!! implementation details !!!
-                    |> Dict.get "human"
+                    |> Result.map (Dict.get "human")
                     -- !!! implementation details !!!
-                    |> Expect.equal (Just [ Dict.fromList socratesRow ])
+                    |> Expect.equal (Ok (Just [ Dict.fromList socratesRow ]))
         , test "does not allow duplicate rows" <|
             \_ ->
                 Database.empty
                     |> Database.insert "human" socratesRow
-                    |> Database.insert "human" socratesRow
+                    |> Result.andThen (Database.insert "human" socratesRow)
                     -- !!! implementation details !!!
-                    |> Dict.get "human"
+                    |> Result.map (Dict.get "human")
                     -- !!! implementation details !!!
-                    |> Expect.equal (Just [ Dict.fromList socratesRow ])
+                    |> Expect.equal (Ok (Just [ Dict.fromList socratesRow ]))
+        , test "does not allow the field names to vary" <|
+            \_ ->
+                Database.empty
+                    |> Database.insert "pet" [ ( "name", Database.String "Axel" ) ]
+                    |> Result.andThen (Database.insert "pet" [ ( "species", Database.String "Puffin" ) ])
+                    |> Expect.equal (Err Database.IncompatibleFieldNames)
         ]
 
 
@@ -67,7 +73,7 @@ relationTests =
             [ test "gets only the specified columns" <|
                 \_ ->
                     Database.empty
-                        |> Database.insert "pet"
+                        |> unsafelyInsert "pet"
                             [ ( "name", Database.String "Axel" )
                             , ( "species", Database.String "Puffin" )
                             ]
@@ -98,8 +104,26 @@ relationTests =
 
 socratesDb : Database
 socratesDb =
-    Database.empty
-        |> Database.insert "human" socratesRow
+    unsafelyInsert "human" socratesRow Database.empty
+
+
+unsafelyInsert : String -> List ( String, Database.Constant ) -> Database -> Database
+unsafelyInsert tableName row database =
+    case Database.insert tableName row database of
+        Ok db ->
+            db
+
+        Err problem ->
+            Debug.todo
+                ("There was a problem trying to insert `"
+                    ++ Debug.toString row
+                    ++ "` into the `"
+                    ++ tableName
+                    ++ "` table of `"
+                    ++ Debug.toString database
+                    ++ "`: "
+                    ++ Debug.toString problem
+                )
 
 
 socratesRow : List ( String, Database.Constant )

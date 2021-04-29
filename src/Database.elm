@@ -76,6 +76,7 @@ type QueryPlan
     = ReadTable String
     | FilterConstant { field : String, constant : Constant } QueryPlan
     | Project { fields : Set String } QueryPlan
+    | Join { leftFields : Set String, left : QueryPlan, rightFields : Set String, right : QueryPlan }
 
 
 type Problem
@@ -130,6 +131,27 @@ runPlan plan database =
                             rows
                                 |> List.map (Dict.filter (\field _ -> Set.member field fields))
                                 |> Ok
+
+        Join config ->
+            let
+                key : Set String -> Dict String Constant -> List Constant
+                key fields row =
+                    List.filterMap (\field -> Dict.get field row) (Set.toList fields)
+            in
+            Result.map2
+                (\left right ->
+                    let
+                        leftIndex : Sort.Dict.Dict (List Constant) (Dict String Constant)
+                        leftIndex =
+                            List.foldl
+                                (\row soFar -> Sort.Dict.insert (key config.leftFields row) row soFar)
+                                (Sort.Dict.empty (listSorter constantSorter))
+                                left
+                    in
+                    []
+                )
+                (runPlan config.left database)
+                (runPlan config.right database)
 
 
 listSorter : Sorter a -> Sorter (List a)

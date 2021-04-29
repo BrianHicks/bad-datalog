@@ -2,11 +2,32 @@ module Database exposing (..)
 
 import Dict exposing (Dict)
 import Set exposing (Set)
+import Sort exposing (Sorter)
+import Sort.Dict
 
 
 type Constant
     = String String
     | Int Int
+
+
+constantSorter : Sorter Constant
+constantSorter =
+    Sort.custom
+        (\a b ->
+            case ( a, b ) of
+                ( String _, Int _ ) ->
+                    LT
+
+                ( Int _, String _ ) ->
+                    GT
+
+                ( String s1, String s2 ) ->
+                    compare s1 s2
+
+                ( Int i1, Int i2 ) ->
+                    compare i1 i2
+        )
 
 
 type alias Relation =
@@ -109,3 +130,29 @@ runPlan plan database =
                             rows
                                 |> List.map (Dict.filter (\field _ -> Set.member field fields))
                                 |> Ok
+
+
+listSorter : Sorter a -> Sorter (List a)
+listSorter inner =
+    let
+        sortPairs : List a -> List a -> Order
+        sortPairs a b =
+            case ( a, b ) of
+                ( [], [] ) ->
+                    EQ
+
+                ( _, [] ) ->
+                    GT
+
+                ( [], _ ) ->
+                    LT
+
+                ( lFirst :: lRest, rFirst :: rRest ) ->
+                    case Sort.toOrder inner lFirst rFirst of
+                        EQ ->
+                            sortPairs lRest rRest
+
+                        otherwise ->
+                            otherwise
+    in
+    Sort.custom sortPairs

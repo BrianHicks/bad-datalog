@@ -12,6 +12,6 @@ insertTests =
         [ test "you can insert a row" <|
             \_ ->
                 empty
-                    |> insert "human" (Array.fromList [ String "Socrates" ])
+                    |> insert "human" [ String "Socrates" ]
                     |> Expect.ok
         ]

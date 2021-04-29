@@ -23,16 +23,16 @@ empty =
 
 
 {-| -}
-insert : String -> Array Constant -> Database -> Result () Database
+insert : String -> List Constant -> Database -> Result () Database
 insert tableName row db =
     Dict.update tableName
         (\maybeTable ->
             case maybeTable of
                 Just table ->
-                    Just (row :: table)
+                    Just (Array.fromList row :: table)
 
                 Nothing ->
-                    Just [ row ]
+                    Just [ Array.fromList row ]
         )
         db
         |> Ok

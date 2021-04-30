@@ -1,6 +1,6 @@
 module RelationalTests exposing (..)
 
-import Array
+import Array exposing (Array)
 import Expect
 import Relational exposing (..)
 import Test exposing (..)
@@ -60,4 +60,49 @@ runPlanTests =
                         |> runPlan (Read "human")
                         |> Expect.equal (Err (RelationNotFound "human"))
             ]
+        , describe "select"
+            [ test "can select on string equality" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 1 Eq (Constant (String "Bear"))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ cloudBear ])
+            , test "can select on integer equality" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 3 Eq (Constant (Int 16))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ axel ])
+            ]
         ]
+
+
+toysDb : Result Problem Database
+toysDb =
+    Ok empty
+        |> Result.andThen (insert "toys" (Array.toList axel))
+        |> Result.andThen (insert "toys" (Array.toList cloudBear))
+        |> Result.andThen (insert "toys" (Array.toList humphrey))
+        |> Result.andThen (insert "toys" (Array.toList hampton))
+
+
+axel : Array Constant
+axel =
+    Array.fromList [ String "Axel", String "Puffin", String "Iceland", Int 16 ]
+
+
+cloudBear : Array Constant
+cloudBear =
+    Array.fromList [ String "Cloud Bear", String "Bear", String "USA", Int 24 ]
+
+
+humphrey : Array Constant
+humphrey =
+    Array.fromList [ String "Humphrey", String "Elephant", String "USA", Int 32 ]
+
+
+hampton : Array Constant
+hampton =
+    Array.fromList [ String "Hampton", String "Rabbit", String "USA", Int 8 ]

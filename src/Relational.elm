@@ -1,4 +1,4 @@
-module Relational exposing (Constant(..), Database, Field(..), Problem(..), QueryPlan(..), Relation, Schema, empty, insert, runPlan)
+module Relational exposing (Constant(..), Database, FieldOrConstant(..), FieldType(..), Op(..), Problem(..), QueryPlan(..), Relation, Schema, Selection(..), empty, insert, runPlan)
 
 {-| Some relational algebra stuff.
 
@@ -19,19 +19,23 @@ type Constant
     | Int Int
 
 
-type Field
+type FieldType
     = StringField
     | IntField
 
 
+type alias Row =
+    Array Constant
+
+
 type alias Relation =
     { schema : Schema
-    , rows : List (Array Constant)
+    , rows : List Row
     }
 
 
 type alias Schema =
-    Array Field
+    Array FieldType
 
 
 rowToSchema : List Constant -> Schema
@@ -59,6 +63,8 @@ type Problem
         , got : Schema
         }
     | RelationNotFound String
+    | UnknownField Field
+    | IncompatibleComparison Constant Constant
 
 
 empty : Database
@@ -100,10 +106,32 @@ insert relationName row (Database db) =
 
 type QueryPlan
     = Read String
+    | Select Selection QueryPlan
+
+
+runPlan : QueryPlan -> Database -> Result Problem Relation
+runPlan plan ((Database db) as db_) =
+    case plan of
+        Read relationName ->
+            case Dict.get relationName db of
+                Just relation ->
+                    Ok relation
+
+                Nothing ->
+                    Err (RelationNotFound relationName)
+
+        Select selection inputPlan ->
+            Result.andThen
+                (\input ->
+                    input.rows
+                        |> filterWithResult (rowMatchesSelection selection)
+                        |> Result.map (Relation input.schema)
+                )
+                (runPlan inputPlan db_)
 
 
 type Selection
-    = Predicate Attribute Op AttributeOrConstant
+    = Predicate Field Op FieldOrConstant
 
 
 
@@ -112,12 +140,12 @@ type Selection
 -- | Not Selection
 
 
-type alias Attribute =
-    String
+type alias Field =
+    Int
 
 
-type AttributeOrConstant
-    = Attribute Attribute
+type FieldOrConstant
+    = Field Field
     | Constant Constant
 
 
@@ -133,13 +161,69 @@ type Op
 -- | LtEq
 
 
-runPlan : QueryPlan -> Database -> Result Problem Relation
-runPlan plan (Database db) =
-    case plan of
-        Read relationName ->
-            case Dict.get relationName db of
-                Just relation ->
-                    Ok relation
+filterWithResult : (a -> Result problem Bool) -> List a -> Result problem (List a)
+filterWithResult =
+    filterWithResultHelp []
+
+
+filterWithResultHelp : List a -> (a -> Result problem Bool) -> List a -> Result problem (List a)
+filterWithResultHelp done filter todo =
+    case todo of
+        [] ->
+            Ok (List.reverse done)
+
+        next :: rest ->
+            case filter next of
+                Ok True ->
+                    filterWithResultHelp (next :: done) filter rest
+
+                Ok False ->
+                    filterWithResultHelp done filter rest
+
+                Err problem ->
+                    Err problem
+
+
+rowMatchesSelection : Selection -> Row -> Result Problem Bool
+rowMatchesSelection selection row =
+    let
+        lookup field =
+            case Array.get field row of
+                Just constant ->
+                    Ok constant
 
                 Nothing ->
-                    Err (RelationNotFound relationName)
+                    Err (UnknownField field)
+
+        resolve fieldOrConstant =
+            case fieldOrConstant of
+                Field field ->
+                    lookup field
+
+                Constant constant ->
+                    Ok constant
+    in
+    case selection of
+        Predicate lRaw op rRaw ->
+            Result.map2
+                (applyOp op)
+                (lookup lRaw)
+                (resolve rRaw)
+                |> Result.andThen identity
+
+
+applyOp : Op -> Constant -> Constant -> Result Problem Bool
+applyOp op lConstant rConstant =
+    case ( lConstant, rConstant ) of
+        ( String l, String r ) ->
+            case op of
+                Eq ->
+                    Ok (l == r)
+
+        ( Int l, Int r ) ->
+            case op of
+                Eq ->
+                    Ok (l == r)
+
+        _ ->
+            Err (IncompatibleComparison lConstant rConstant)

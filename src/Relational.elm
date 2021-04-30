@@ -1,4 +1,4 @@
-module Relational exposing (Constant(..), Database, Field(..), Relation, Schema, empty, insert)
+module Relational exposing (Constant(..), Database, Field(..), Problem(..), QueryPlan(..), Relation, Schema, empty, insert, runPlan)
 
 {-| Some relational algebra stuff.
 
@@ -57,6 +57,7 @@ type Problem
         { wanted : Schema
         , got : Schema
         }
+    | RelationNotFound String
 
 
 empty : Database
@@ -94,3 +95,19 @@ insert relationName row (Database db) =
                         , got = rowToSchema row
                         }
                     )
+
+
+type QueryPlan
+    = Read String
+
+
+runPlan : QueryPlan -> Database -> Result Problem Relation
+runPlan plan (Database db) =
+    case plan of
+        Read relationName ->
+            case Dict.get relationName db of
+                Just relation ->
+                    Ok relation
+
+                Nothing ->
+                    Err (RelationNotFound relationName)

@@ -186,6 +186,11 @@ runPlanTests =
         ]
 
 
+
+-- Example: toys
+-- Used for simple selection
+
+
 toysDb : Result Problem Database
 toysDb =
     Ok empty
@@ -213,3 +218,49 @@ humphrey =
 hampton : Array Constant
 hampton =
     Array.fromList [ String "Hampton", String "Rabbit", String "USA", Int 8 ]
+
+
+
+-- Example: Mascots
+-- used for joining
+
+
+mascotsDb : Result Problem Database
+mascotsDb =
+    Ok empty
+        |> Result.andThen (insert "mascots" (Array.toList fredbird))
+        |> Result.andThen (insert "mascots" (Array.toList louie))
+        |> Result.andThen (insert "mascots" (Array.toList gritty))
+        |> Result.andThen (insert "teams" (Array.toList cardinals))
+        |> Result.andThen (insert "teams" (Array.toList blues))
+        |> Result.andThen (insert "teams" (Array.toList flyers))
+
+
+fredbird : Array Constant
+fredbird =
+    Array.fromList [ String "Fredbird", String "Cardinals" ]
+
+
+louie : Array Constant
+louie =
+    Array.fromList [ String "Louie", String "Blues" ]
+
+
+gritty : Array Constant
+gritty =
+    Array.fromList [ String "Gritty", String "Flyers" ]
+
+
+cardinals : Array Constant
+cardinals =
+    Array.fromList [ String "Cardinals", String "MLB", String "St. Louis, MO" ]
+
+
+blues : Array Constant
+blues =
+    Array.fromList [ String "Blues", String "NHL", String "St. Louis, MO" ]
+
+
+flyers : Array Constant
+flyers =
+    Array.fromList [ String "Flyers", String "NHL", String "Philadelphia, PA" ]

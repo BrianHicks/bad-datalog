@@ -22,8 +22,8 @@ insertTests =
                     |> Expect.equal
                         (Err
                             (SchemaMismatch
-                                { wanted = [ StringField ]
-                                , got = [ StringField, StringField ]
+                                { wanted = Array.fromList [ StringField ]
+                                , got = Array.fromList [ StringField, StringField ]
                                 }
                             )
                         )
@@ -35,8 +35,8 @@ insertTests =
                     |> Expect.equal
                         (Err
                             (SchemaMismatch
-                                { wanted = [ StringField ]
-                                , got = [ IntField ]
+                                { wanted = Array.fromList [ StringField ]
+                                , got = Array.fromList [ IntField ]
                                 }
                             )
                         )

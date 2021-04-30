@@ -31,21 +31,22 @@ type alias Relation =
 
 
 type alias Schema =
-    List Field
+    Array Field
 
 
 rowToSchema : List Constant -> Schema
 rowToSchema row =
-    List.map
-        (\value ->
-            case value of
-                String _ ->
-                    StringField
+    row
+        |> List.map
+            (\value ->
+                case value of
+                    String _ ->
+                        StringField
 
-                Int _ ->
-                    IntField
-        )
-        row
+                    Int _ ->
+                        IntField
+            )
+        |> Array.fromList
 
 
 type Database

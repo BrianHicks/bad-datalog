@@ -101,6 +101,37 @@ type QueryPlan
     = Read String
 
 
+type Selection
+    = Predicate Attribute Op AttributeOrConstant
+
+
+
+-- | And Selection Selection
+-- | Or Selection Selection
+-- | Not Selection
+
+
+type alias Attribute =
+    String
+
+
+type AttributeOrConstant
+    = Attribute Attribute
+    | Constant Constant
+
+
+type Op
+    = Eq
+
+
+
+-- | NEq
+-- | Gt
+-- | GtEq
+-- | Lt
+-- | LtEq
+
+
 runPlan : QueryPlan -> Database -> Result Problem Relation
 runPlan plan (Database db) =
     case plan of

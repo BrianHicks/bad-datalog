@@ -75,20 +75,6 @@ runPlanTests =
                             (runPlan (Select (Predicate 3 Eq (Constant (Int 16))) (Read "toys")))
                         |> Result.map .rows
                         |> Expect.equal (Ok [ axel ])
-            , test "can select on string inequality" <|
-                \_ ->
-                    toysDb
-                        |> Result.andThen
-                            (runPlan (Select (Predicate 2 NEq (Constant (String "USA"))) (Read "toys")))
-                        |> Result.map .rows
-                        |> Expect.equal (Ok [ axel ])
-            , test "can select on integer inequality" <|
-                \_ ->
-                    toysDb
-                        |> Result.andThen
-                            (runPlan (Select (Predicate 3 NEq (Constant (Int 16))) (Read "toys")))
-                        |> Result.map .rows
-                        |> Expect.equal (Ok [ hampton, humphrey, cloudBear ])
             , test "can select on string greater-than" <|
                 \_ ->
                     toysDb
@@ -103,6 +89,20 @@ runPlanTests =
                             (runPlan (Select (Predicate 3 Gt (Constant (Int 20))) (Read "toys")))
                         |> Result.map .rows
                         |> Expect.equal (Ok [ humphrey, cloudBear ])
+            , test "can select on string less-than" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 0 Lt (Constant (String "Cloud Bear"))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ axel ])
+            , test "can select on integer less-than" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 3 Lt (Constant (Int 20))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ hampton, axel ])
             ]
         ]
 

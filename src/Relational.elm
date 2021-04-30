@@ -151,14 +151,8 @@ type FieldOrConstant
 
 type Op
     = Eq
-    | NEq
     | Gt
-
-
-
--- | GtEq
--- | Lt
--- | LtEq
+    | Lt
 
 
 filterWithResult : (a -> Result problem Bool) -> List a -> Result problem (List a)
@@ -220,22 +214,22 @@ applyOp op lConstant rConstant =
                 Eq ->
                     Ok (l == r)
 
-                NEq ->
-                    Ok (l /= r)
-
                 Gt ->
                     Ok (l > r)
+
+                Lt ->
+                    Ok (l < r)
 
         ( Int l, Int r ) ->
             case op of
                 Eq ->
                     Ok (l == r)
 
-                NEq ->
-                    Ok (l /= r)
-
                 Gt ->
                     Ok (l > r)
+
+                Lt ->
+                    Ok (l < r)
 
         _ ->
             Err (IncompatibleComparison lConstant rConstant)

@@ -20,8 +20,8 @@ type Constant
 
 
 type FieldType
-    = StringField
-    | IntField
+    = StringType
+    | IntType
 
 
 type alias Row =
@@ -41,16 +41,18 @@ type alias Schema =
 rowToSchema : List Constant -> Schema
 rowToSchema row =
     row
-        |> List.map
-            (\value ->
-                case value of
-                    String _ ->
-                        StringField
-
-                    Int _ ->
-                        IntField
-            )
+        |> List.map fieldType
         |> Array.fromList
+
+
+fieldType : Constant -> FieldType
+fieldType constant =
+    case constant of
+        String _ ->
+            StringType
+
+        Int _ ->
+            IntType
 
 
 type Database
@@ -64,7 +66,7 @@ type Problem
         }
     | RelationNotFound String
     | UnknownField Field
-    | IncompatibleComparison Constant Constant
+    | IncompatibleComparison FieldType FieldType
 
 
 empty : Database
@@ -243,4 +245,4 @@ applyOp op lConstant rConstant =
                     Ok (l < r)
 
         _ ->
-            Err (IncompatibleComparison lConstant rConstant)
+            Err (IncompatibleComparison (fieldType lConstant) (fieldType rConstant))

@@ -22,8 +22,8 @@ insertTests =
                     |> Expect.equal
                         (Err
                             (SchemaMismatch
-                                { wanted = Array.fromList [ StringField ]
-                                , got = Array.fromList [ StringField, StringField ]
+                                { wanted = Array.fromList [ StringType ]
+                                , got = Array.fromList [ StringType, StringType ]
                                 }
                             )
                         )
@@ -35,8 +35,8 @@ insertTests =
                     |> Expect.equal
                         (Err
                             (SchemaMismatch
-                                { wanted = Array.fromList [ StringField ]
-                                , got = Array.fromList [ IntField ]
+                                { wanted = Array.fromList [ StringType ]
+                                , got = Array.fromList [ IntType ]
                                 }
                             )
                         )
@@ -61,7 +61,25 @@ runPlanTests =
                         |> Expect.equal (Err (RelationNotFound "human"))
             ]
         , describe "select"
-            [ test "can select on string equality" <|
+            [ test "doesn't let you select a field that doesn't exist on the left-hand side" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 5 Eq (Constant (Int 0))) (Read "toys")))
+                        |> Expect.equal (Err (UnknownField 5))
+            , test "doesn't let you select a field that doesn't exist on the right-hand side" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 0 Eq (Field 5)) (Read "toys")))
+                        |> Expect.equal (Err (UnknownField 5))
+            , test "doesn't let you make comparisons against unlike types" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 0 Eq (Constant (Int 0))) (Read "toys")))
+                        |> Expect.equal (Err (IncompatibleComparison StringType IntType))
+            , test "can select on string equality" <|
                 \_ ->
                     toysDb
                         |> Result.andThen

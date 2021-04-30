@@ -89,6 +89,20 @@ runPlanTests =
                             (runPlan (Select (Predicate 3 NEq (Constant (Int 16))) (Read "toys")))
                         |> Result.map .rows
                         |> Expect.equal (Ok [ hampton, humphrey, cloudBear ])
+            , test "can select on string greater-than" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 0 Gt (Constant (String "Cloud Bear"))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ hampton, humphrey ])
+            , test "can select on integer greater-than" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 3 Gt (Constant (Int 20))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ humphrey, cloudBear ])
             ]
         ]
 

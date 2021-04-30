@@ -152,10 +152,10 @@ type FieldOrConstant
 type Op
     = Eq
     | NEq
+    | Gt
 
 
 
--- | Gt
 -- | GtEq
 -- | Lt
 -- | LtEq
@@ -223,6 +223,9 @@ applyOp op lConstant rConstant =
                 NEq ->
                     Ok (l /= r)
 
+                Gt ->
+                    Ok (l > r)
+
         ( Int l, Int r ) ->
             case op of
                 Eq ->
@@ -230,6 +233,9 @@ applyOp op lConstant rConstant =
 
                 NEq ->
                     Ok (l /= r)
+
+                Gt ->
+                    Ok (l > r)
 
         _ ->
             Err (IncompatibleComparison lConstant rConstant)

@@ -65,7 +65,7 @@ type Problem
         , got : Schema
         }
     | RelationNotFound String
-    | UnknownField Field
+    | UnknownFields (List Field)
     | IncompatibleComparison FieldType FieldType
 
 
@@ -141,11 +141,17 @@ runPlan plan ((Database db) as db_) =
                         fields
                         |> Array.fromList
             in
-            Result.map
+            Result.andThen
                 (\input ->
-                    { schema = takeFields input.schema
-                    , rows = List.map takeFields input.rows
-                    }
+                    case List.filter (\i -> Array.get i input.schema == Nothing) fields of
+                        [] ->
+                            Ok
+                                { schema = takeFields input.schema
+                                , rows = List.map takeFields input.rows
+                                }
+
+                        unknownFields ->
+                            Err (UnknownFields unknownFields)
                 )
                 (runPlan inputPlan db_)
 
@@ -204,7 +210,7 @@ rowMatchesSelection selection row =
                     Ok constant
 
                 Nothing ->
-                    Err (UnknownField field)
+                    Err (UnknownFields [ field ])
 
         resolve fieldOrConstant =
             case fieldOrConstant of

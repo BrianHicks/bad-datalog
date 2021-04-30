@@ -66,13 +66,13 @@ runPlanTests =
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 5 Eq (Constant (Int 0))) (Read "toys")))
-                        |> Expect.equal (Err (UnknownField 5))
+                        |> Expect.equal (Err (UnknownFields [ 5 ]))
             , test "doesn't let you select a field that doesn't exist on the right-hand side" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 0 Eq (Field 5)) (Read "toys")))
-                        |> Expect.equal (Err (UnknownField 5))
+                        |> Expect.equal (Err (UnknownFields [ 5 ]))
             , test "doesn't let you make comparisons against unlike types" <|
                 \_ ->
                     toysDb
@@ -160,7 +160,13 @@ runPlanTests =
                         |> Expect.equal (Ok [ hampton, axel ])
             ]
         , describe "project"
-            [ test "can project a set of fields" <|
+            [ test "does not allow selecting non-existent fields" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Project [ 5 ] (Read "toys")))
+                        |> Expect.equal (Err (UnknownFields [ 5 ]))
+            , test "can project a set of fields" <|
                 \_ ->
                     toysDb
                         |> Result.andThen

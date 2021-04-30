@@ -1,5 +1,15 @@
 module Relational exposing (..)
 
+{-| Some relational algebra stuff.
+
+Resources:
+
+  - <https://en.wikipedia.org/wiki/Relational_algebra>
+  - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
+  - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
+
+-}
+
 import Array exposing (Array)
 import Dict exposing (Dict)
 

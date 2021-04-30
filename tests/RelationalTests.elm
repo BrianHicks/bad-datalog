@@ -75,6 +75,20 @@ runPlanTests =
                             (runPlan (Select (Predicate 3 Eq (Constant (Int 16))) (Read "toys")))
                         |> Result.map .rows
                         |> Expect.equal (Ok [ axel ])
+            , test "can select on string inequality" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 2 NEq (Constant (String "USA"))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ axel ])
+            , test "can select on integer inequality" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Predicate 3 NEq (Constant (Int 16))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ hampton, humphrey, cloudBear ])
             ]
         ]
 

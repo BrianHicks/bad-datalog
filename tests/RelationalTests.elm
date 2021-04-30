@@ -103,6 +103,13 @@ runPlanTests =
                             (runPlan (Select (Predicate 3 Lt (Constant (Int 20))) (Read "toys")))
                         |> Result.map .rows
                         |> Expect.equal (Ok [ hampton, axel ])
+            , test "can not-ify a selection" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Select (Not (Predicate 0 Eq (Constant (String "Humphrey")))) (Read "toys")))
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ hampton, cloudBear, axel ])
             ]
         ]
 

@@ -132,12 +132,12 @@ runPlan plan ((Database db) as db_) =
 
 type Selection
     = Predicate Field Op FieldOrConstant
+    | Not Selection
 
 
 
 -- | And Selection Selection
 -- | Or Selection Selection
--- | Not Selection
 
 
 type alias Field =
@@ -204,6 +204,10 @@ rowMatchesSelection selection row =
                 (lookup lRaw)
                 (resolve rRaw)
                 |> Result.andThen identity
+
+        Not inner ->
+            rowMatchesSelection inner row
+                |> Result.map not
 
 
 applyOp : Op -> Constant -> Constant -> Result Problem Bool

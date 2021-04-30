@@ -109,6 +109,7 @@ insert relationName row (Database db) =
 type QueryPlan
     = Read String
     | Select Selection QueryPlan
+    | Project (List Field) QueryPlan
 
 
 runPlan : QueryPlan -> Database -> Result Problem Relation
@@ -128,6 +129,23 @@ runPlan plan ((Database db) as db_) =
                     input.rows
                         |> filterWithResult (rowMatchesSelection selection)
                         |> Result.map (Relation input.schema)
+                )
+                (runPlan inputPlan db_)
+
+        Project fields inputPlan ->
+            let
+                takeFields : Array a -> Array a
+                takeFields arr =
+                    List.filterMap
+                        (\i -> Array.get i arr)
+                        fields
+                        |> Array.fromList
+            in
+            Result.map
+                (\input ->
+                    { schema = takeFields input.schema
+                    , rows = List.map takeFields input.rows
+                    }
                 )
                 (runPlan inputPlan db_)
 

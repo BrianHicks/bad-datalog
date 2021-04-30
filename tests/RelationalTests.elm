@@ -159,6 +159,24 @@ runPlanTests =
                         |> Result.map .rows
                         |> Expect.equal (Ok [ hampton, axel ])
             ]
+        , describe "project"
+            [ test "can project a set of fields" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan (Project [ 0, 2 ] (Read "toys")))
+                        |> Expect.equal
+                            (Ok
+                                { schema = Array.fromList [ StringType, StringType ]
+                                , rows =
+                                    [ Array.fromList [ String "Hampton", String "USA" ]
+                                    , Array.fromList [ String "Humphrey", String "USA" ]
+                                    , Array.fromList [ String "Cloud Bear", String "USA" ]
+                                    , Array.fromList [ String "Axel", String "Iceland" ]
+                                    ]
+                                }
+                            )
+            ]
         ]
 
 

@@ -19,13 +19,27 @@ insertTests =
                 empty
                     |> insert "human" [ String "Socrates" ]
                     |> Result.andThen (insert "human" [ String "Socrates", String "Greek" ])
-                    |> Expect.err
+                    |> Expect.equal
+                        (Err
+                            (SchemaMismatch
+                                { wanted = [ StringField ]
+                                , got = [ StringField, StringField ]
+                                }
+                            )
+                        )
         , test "you can't insert a row with a different field type" <|
             \_ ->
                 empty
                     |> insert "human" [ String "Socrates" ]
                     |> Result.andThen (insert "human" [ Int 0 ])
-                    |> Expect.err
+                    |> Expect.equal
+                        (Err
+                            (SchemaMismatch
+                                { wanted = [ StringField ]
+                                , got = [ IntField ]
+                                }
+                            )
+                        )
         ]
 
 

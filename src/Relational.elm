@@ -133,10 +133,10 @@ runPlan plan ((Database db) as db_) =
 type Selection
     = Predicate Field Op FieldOrConstant
     | Not Selection
+    | And Selection Selection
 
 
 
--- | And Selection Selection
 -- | Or Selection Selection
 
 
@@ -208,6 +208,11 @@ rowMatchesSelection selection row =
         Not inner ->
             rowMatchesSelection inner row
                 |> Result.map not
+
+        And left right ->
+            Result.map2 (&&)
+                (rowMatchesSelection left row)
+                (rowMatchesSelection right row)
 
 
 applyOp : Op -> Constant -> Constant -> Result Problem Bool

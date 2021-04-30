@@ -110,6 +110,21 @@ runPlanTests =
                             (runPlan (Select (Not (Predicate 0 Eq (Constant (String "Humphrey")))) (Read "toys")))
                         |> Result.map .rows
                         |> Expect.equal (Ok [ hampton, cloudBear, axel ])
+            , test "can and-ify two selections" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan
+                                (Select
+                                    (And
+                                        (Predicate 2 Eq (Constant (String "USA")))
+                                        (Predicate 3 Gt (Constant (Int 30)))
+                                    )
+                                    (Read "toys")
+                                )
+                            )
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ humphrey ])
             ]
         ]
 

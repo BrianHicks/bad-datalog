@@ -125,6 +125,21 @@ runPlanTests =
                             )
                         |> Result.map .rows
                         |> Expect.equal (Ok [ humphrey ])
+            , test "can or-ify two selections" <|
+                \_ ->
+                    toysDb
+                        |> Result.andThen
+                            (runPlan
+                                (Select
+                                    (Or
+                                        (Predicate 3 Lt (Constant (Int 16)))
+                                        (Predicate 3 Eq (Constant (Int 16)))
+                                    )
+                                    (Read "toys")
+                                )
+                            )
+                        |> Result.map .rows
+                        |> Expect.equal (Ok [ hampton, axel ])
             ]
         ]
 

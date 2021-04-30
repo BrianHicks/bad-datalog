@@ -134,10 +134,7 @@ type Selection
     = Predicate Field Op FieldOrConstant
     | Not Selection
     | And Selection Selection
-
-
-
--- | Or Selection Selection
+    | Or Selection Selection
 
 
 type alias Field =
@@ -211,6 +208,11 @@ rowMatchesSelection selection row =
 
         And left right ->
             Result.map2 (&&)
+                (rowMatchesSelection left row)
+                (rowMatchesSelection right row)
+
+        Or left right ->
+            Result.map2 (||)
                 (rowMatchesSelection left row)
                 (rowMatchesSelection right row)
 

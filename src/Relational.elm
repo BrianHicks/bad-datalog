@@ -110,6 +110,7 @@ type QueryPlan
     = Read String
     | Select Selection QueryPlan
     | Project (List Field) QueryPlan
+    | CrossProduct QueryPlan QueryPlan
 
 
 runPlan : QueryPlan -> Database -> Result Problem Relation
@@ -154,6 +155,23 @@ runPlan plan ((Database db) as db_) =
                             Err (UnknownFields unknownFields)
                 )
                 (runPlan inputPlan db_)
+
+        CrossProduct leftInputPlan rightInputPlan ->
+            Result.map2
+                (\left right ->
+                    { schema = Array.append left.schema right.schema
+                    , rows =
+                        List.concatMap
+                            (\leftRow ->
+                                List.map
+                                    (\rightRow -> Array.append leftRow rightRow)
+                                    right.rows
+                            )
+                            left.rows
+                    }
+                )
+                (runPlan leftInputPlan db_)
+                (runPlan rightInputPlan db_)
 
 
 type Selection

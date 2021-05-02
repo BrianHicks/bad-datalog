@@ -207,20 +207,10 @@ runPlan plan ((Database db) as db_) =
                     -- TODO: validate that the left and right fields result in
                     -- matching key schemas
                     let
-                        leftKey row =
-                            List.filterMap
-                                (\field -> Array.get field row)
-                                config.leftFields
-
-                        rightKey row =
-                            List.filterMap
-                                (\field -> Array.get field row)
-                                config.rightFields
-
                         leftIndex =
                             List.foldl
                                 (\row ->
-                                    Sort.Dict.update (leftKey row)
+                                    Sort.Dict.update (takeFields config.leftFields row)
                                         (\maybeRows ->
                                             case maybeRows of
                                                 Just rows ->
@@ -230,14 +220,14 @@ runPlan plan ((Database db) as db_) =
                                                     Just [ row ]
                                         )
                                 )
-                                (Sort.Dict.empty (listSorter constantSorter))
+                                (Sort.Dict.empty (arraySorter constantSorter))
                                 left.rows
                     in
                     { schema = Array.append left.schema right.schema
                     , rows =
                         List.concatMap
                             (\rightRow ->
-                                case Sort.Dict.get (rightKey rightRow) leftIndex of
+                                case Sort.Dict.get (takeFields config.rightFields rightRow) leftIndex of
                                     Just rows ->
                                         List.map (\leftRow -> Array.append leftRow rightRow) rows
 
@@ -404,27 +394,27 @@ applyOp op lConstant rConstant =
             Err (IncompatibleComparison (fieldType lConstant) (fieldType rConstant))
 
 
-listSorter : Sorter a -> Sorter (List a)
-listSorter inner =
+arraySorter : Sorter a -> Sorter (Array a)
+arraySorter inner =
     let
-        sortPairs : List a -> List a -> Order
-        sortPairs a b =
-            case ( a, b ) of
-                ( [], [] ) ->
+        sortPairs : Int -> Array a -> Array a -> Order
+        sortPairs index a b =
+            case ( Array.get index a, Array.get index b ) of
+                ( Nothing, Nothing ) ->
                     EQ
 
-                ( _, [] ) ->
+                ( Just _, Nothing ) ->
                     GT
 
-                ( [], _ ) ->
+                ( Nothing, Just _ ) ->
                     LT
 
-                ( lFirst :: lRest, rFirst :: rRest ) ->
-                    case Sort.toOrder inner lFirst rFirst of
+                ( Just left, Just right ) ->
+                    case Sort.toOrder inner left right of
                         EQ ->
-                            sortPairs lRest rRest
+                            sortPairs (index + 1) a b
 
                         otherwise ->
                             otherwise
     in
-    Sort.custom sortPairs
+    Sort.custom (sortPairs 0)

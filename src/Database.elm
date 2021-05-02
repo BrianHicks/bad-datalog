@@ -182,15 +182,13 @@ runPlan plan ((Database db) as db_) =
             in
             Result.andThen
                 (\input ->
-                    case List.filter (\i -> Array.get i input.schema == Nothing) fields of
-                        [] ->
-                            Ok
-                                { schema = takeFields input.schema
-                                , rows = List.map takeFields input.rows
-                                }
-
-                        unknownFields ->
-                            Err (UnknownFields unknownFields)
+                    Result.map
+                        (\() ->
+                            { schema = takeFields input.schema
+                            , rows = List.map takeFields input.rows
+                            }
+                        )
+                        (validateFieldsAreInSchema input.schema fields)
                 )
                 (runPlan inputPlan db_)
 
@@ -259,6 +257,16 @@ runPlan plan ((Database db) as db_) =
                 )
                 (runPlan config.left db_)
                 (runPlan config.right db_)
+
+
+validateFieldsAreInSchema : Schema -> List Int -> Result Problem ()
+validateFieldsAreInSchema schema fields =
+    case List.filter (\field -> Array.get field schema == Nothing) fields of
+        [] ->
+            Ok ()
+
+        unknownFields ->
+            Err (UnknownFields unknownFields)
 
 
 type Selection

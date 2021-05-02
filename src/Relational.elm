@@ -12,11 +12,32 @@ Resources:
 
 import Array exposing (Array)
 import Dict exposing (Dict)
+import Sort exposing (Sorter)
+import Sort.Dict
 
 
 type Constant
     = String String
     | Int Int
+
+
+constantSorter : Sorter Constant
+constantSorter =
+    Sort.custom
+        (\a b ->
+            case ( a, b ) of
+                ( String _, Int _ ) ->
+                    LT
+
+                ( Int _, String _ ) ->
+                    GT
+
+                ( String s1, String s2 ) ->
+                    compare s1 s2
+
+                ( Int i1, Int i2 ) ->
+                    compare i1 i2
+        )
 
 
 type FieldType
@@ -111,6 +132,7 @@ type QueryPlan
     | Select Selection QueryPlan
     | Project (List Field) QueryPlan
     | CrossProduct QueryPlan QueryPlan
+    | Join { left : QueryPlan, leftFields : List Field, right : QueryPlan, rightFields : List Field }
 
 
 runPlan : QueryPlan -> Database -> Result Problem Relation
@@ -172,6 +194,55 @@ runPlan plan ((Database db) as db_) =
                 )
                 (runPlan leftInputPlan db_)
                 (runPlan rightInputPlan db_)
+
+        Join config ->
+            Result.map2
+                (\left right ->
+                    -- TODO: validate that the left and right column selections
+                    -- match the schemas
+                    let
+                        leftKey row =
+                            List.filterMap
+                                (\field -> Array.get field row)
+                                config.leftFields
+
+                        rightKey row =
+                            List.filterMap
+                                (\field -> Array.get field row)
+                                config.rightFields
+
+                        leftIndex =
+                            List.foldl
+                                (\row ->
+                                    Sort.Dict.update (leftKey row)
+                                        (\maybeRows ->
+                                            case maybeRows of
+                                                Just rows ->
+                                                    Just (row :: rows)
+
+                                                Nothing ->
+                                                    Just [ row ]
+                                        )
+                                )
+                                (Sort.Dict.empty (listSorter constantSorter))
+                                left.rows
+                    in
+                    { schema = Array.append left.schema right.schema
+                    , rows =
+                        List.concatMap
+                            (\rightRow ->
+                                case Sort.Dict.get (rightKey rightRow) leftIndex of
+                                    Just rows ->
+                                        List.map (\leftRow -> Array.append leftRow rightRow) rows
+
+                                    Nothing ->
+                                        []
+                            )
+                            right.rows
+                    }
+                )
+                (runPlan config.left db_)
+                (runPlan config.right db_)
 
 
 type Selection
@@ -288,3 +359,29 @@ applyOp op lConstant rConstant =
 
         _ ->
             Err (IncompatibleComparison (fieldType lConstant) (fieldType rConstant))
+
+
+listSorter : Sorter a -> Sorter (List a)
+listSorter inner =
+    let
+        sortPairs : List a -> List a -> Order
+        sortPairs a b =
+            case ( a, b ) of
+                ( [], [] ) ->
+                    EQ
+
+                ( _, [] ) ->
+                    GT
+
+                ( [], _ ) ->
+                    LT
+
+                ( lFirst :: lRest, rFirst :: rRest ) ->
+                    case Sort.toOrder inner lFirst rFirst of
+                        EQ ->
+                            sortPairs lRest rRest
+
+                        otherwise ->
+                            otherwise
+    in
+    Sort.custom sortPairs

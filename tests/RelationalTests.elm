@@ -206,6 +206,31 @@ runPlanTests =
                                 }
                             )
             ]
+        , describe "join"
+            [ test "joins on attributes in order" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (runPlan
+                                (Join
+                                    { left = Read "mascots"
+                                    , leftFields = [ 1 ]
+                                    , right = Read "teams"
+                                    , rightFields = [ 0 ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal
+                            (Ok
+                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType ]
+                                , rows =
+                                    [ Array.append gritty flyers
+                                    , Array.append louie blues
+                                    , Array.append fredbird cardinals
+                                    ]
+                                }
+                            )
+            ]
         ]
 
 

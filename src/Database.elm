@@ -204,6 +204,8 @@ runPlan plan ((Database db) as db_) =
         Join config ->
             Result.map2
                 (\left right ->
+                    -- TODO: validate that the left and right fields result in
+                    -- matching key schemas
                     let
                         leftKey row =
                             List.filterMap

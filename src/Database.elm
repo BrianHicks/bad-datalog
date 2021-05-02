@@ -172,20 +172,12 @@ runPlan plan ((Database db) as db_) =
                 (runPlan inputPlan db_)
 
         Project fields inputPlan ->
-            let
-                takeFields : Array a -> Array a
-                takeFields arr =
-                    List.filterMap
-                        (\i -> Array.get i arr)
-                        fields
-                        |> Array.fromList
-            in
             Result.andThen
                 (\input ->
                     Result.map
                         (\() ->
-                            { schema = takeFields input.schema
-                            , rows = List.map takeFields input.rows
+                            { schema = takeFields fields input.schema
+                            , rows = List.map (takeFields fields) input.rows
                             }
                         )
                         (validateFieldsAreInSchema input.schema fields)
@@ -267,6 +259,13 @@ validateFieldsAreInSchema schema fields =
 
         unknownFields ->
             Err (UnknownFields unknownFields)
+
+
+takeFields : List Int -> Array a -> Array a
+takeFields fields row =
+    fields
+        |> List.filterMap (\field -> Array.get field row)
+        |> Array.fromList
 
 
 type Selection

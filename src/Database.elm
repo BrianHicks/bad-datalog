@@ -1,4 +1,10 @@
-module Database exposing (Constant(..), Database, FieldOrConstant(..), FieldType(..), Op(..), Problem(..), QueryPlan(..), Relation, Schema, Selection(..), empty, insert, runPlan)
+module Database exposing
+    ( Database, Relation, empty
+    , Schema, FieldType(..)
+    , Constant(..), insert, Problem(..)
+    , QueryPlan(..), runPlan
+    , Selection(..), Op(..), FieldOrConstant(..)
+    )
 
 {-| Some relational algebra stuff.
 
@@ -7,6 +13,16 @@ Resources:
   - <https://en.wikipedia.org/wiki/Relational_algebra>
   - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
   - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
+
+@docs Database, Relation, empty
+
+@docs Schema, FieldType
+
+@docs Constant, insert, Problem
+
+@docs QueryPlan, runPlan
+
+@docs Selection, Op, FieldOrConstant
 
 -}
 

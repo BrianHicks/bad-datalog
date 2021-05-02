@@ -204,8 +204,6 @@ runPlan plan ((Database db) as db_) =
         Join config ->
             Result.map2
                 (\left right ->
-                    -- TODO: validate that the left and right column selections
-                    -- match the schemas
                     let
                         leftKey row =
                             List.filterMap
@@ -247,8 +245,28 @@ runPlan plan ((Database db) as db_) =
                             right.rows
                     }
                 )
-                (runPlan config.left db_)
-                (runPlan config.right db_)
+                (runPlan config.left db_
+                    |> Result.andThen
+                        (\relation ->
+                            case validateFieldsAreInSchema relation.schema config.leftFields of
+                                Ok _ ->
+                                    Ok relation
+
+                                Err err ->
+                                    Err err
+                        )
+                )
+                (runPlan config.right db_
+                    |> Result.andThen
+                        (\relation ->
+                            case validateFieldsAreInSchema relation.schema config.rightFields of
+                                Ok _ ->
+                                    Ok relation
+
+                                Err err ->
+                                    Err err
+                        )
+                )
 
 
 validateFieldsAreInSchema : Schema -> List Int -> Result Problem ()

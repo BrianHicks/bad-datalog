@@ -207,7 +207,35 @@ runPlanTests =
                             )
             ]
         , describe "join"
-            [ test "joins on attributes in order" <|
+            [ test "it's an error if you choose fields that don't exist on the left" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (runPlan
+                                (Join
+                                    { left = Read "mascots"
+                                    , leftFields = [ 3 ]
+                                    , right = Read "teams"
+                                    , rightFields = [ 0 ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal (Err (UnknownFields [ 3 ]))
+            , test "it's an error if you choose fields that don't exist on the right" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (runPlan
+                                (Join
+                                    { left = Read "mascots"
+                                    , leftFields = [ 0 ]
+                                    , right = Read "teams"
+                                    , rightFields = [ 3 ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal (Err (UnknownFields [ 3 ]))
+            , test "joins on attributes in order" <|
                 \_ ->
                     mascotsDb
                         |> Result.andThen

@@ -1,4 +1,4 @@
-module Relational exposing (Constant(..), Database, FieldOrConstant(..), FieldType(..), Op(..), Problem(..), QueryPlan(..), Relation, Schema, Selection(..), empty, insert, runPlan)
+module Database exposing (Constant(..), Database, FieldOrConstant(..), FieldType(..), Op(..), Problem(..), QueryPlan(..), Relation, Schema, Selection(..), empty, insert, runPlan)
 
 {-| Some relational algebra stuff.
 

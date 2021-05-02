@@ -1,8 +1,8 @@
-module RelationalTests exposing (..)
+module DatabaseTests exposing (..)
 
 import Array exposing (Array)
+import Database exposing (..)
 import Expect
-import Relational exposing (..)
 import Test exposing (..)
 
 

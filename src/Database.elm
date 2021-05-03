@@ -200,41 +200,50 @@ runPlan plan ((Database db) as db_) =
             in
             Result.map2
                 (\left right ->
-                    -- TODO: validate that the left and right fields result in
-                    -- matching key schemas
-                    let
-                        leftIndex =
-                            List.foldl
-                                (\row ->
-                                    Sort.Dict.update (takeFields config.leftFields row)
-                                        (\maybeRows ->
-                                            case maybeRows of
-                                                Just rows ->
-                                                    Just (row :: rows)
-
-                                                Nothing ->
-                                                    Just [ row ]
-                                        )
-                                )
-                                (Sort.Dict.empty (arraySorter constantSorter))
-                                left.rows
-                    in
-                    { schema = Array.append left.schema right.schema
-                    , rows =
-                        List.concatMap
-                            (\rightRow ->
-                                case Sort.Dict.get (takeFields config.rightFields rightRow) leftIndex of
-                                    Just rows ->
-                                        List.map (\leftRow -> Array.append leftRow rightRow) rows
-
-                                    Nothing ->
-                                        []
+                    if takeFields config.leftFields left.schema /= takeFields config.rightFields right.schema then
+                        Err
+                            (SchemaMismatch
+                                { wanted = takeFields config.leftFields left.schema
+                                , got = takeFields config.rightFields right.schema
+                                }
                             )
-                            right.rows
-                    }
+
+                    else
+                        let
+                            leftIndex =
+                                List.foldl
+                                    (\row ->
+                                        Sort.Dict.update (takeFields config.leftFields row)
+                                            (\maybeRows ->
+                                                case maybeRows of
+                                                    Just rows ->
+                                                        Just (row :: rows)
+
+                                                    Nothing ->
+                                                        Just [ row ]
+                                            )
+                                    )
+                                    (Sort.Dict.empty (arraySorter constantSorter))
+                                    left.rows
+                        in
+                        Ok
+                            { schema = Array.append left.schema right.schema
+                            , rows =
+                                List.concatMap
+                                    (\rightRow ->
+                                        case Sort.Dict.get (takeFields config.rightFields rightRow) leftIndex of
+                                            Just rows ->
+                                                List.map (\leftRow -> Array.append leftRow rightRow) rows
+
+                                            Nothing ->
+                                                []
+                                    )
+                                    right.rows
+                            }
                 )
                 (runInput config.left config.leftFields)
                 (runInput config.right config.rightFields)
+                |> Result.andThen identity
 
 
 validateFieldsAreInSchema : Schema -> List Int -> Result Problem ()

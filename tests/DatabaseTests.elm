@@ -212,6 +212,27 @@ runPlanTests =
                                 )
                             )
                         |> Expect.equal (Err (UnknownFields [ 4 ]))
+            , test "it's an error if you join on incompatible types" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (runPlan
+                                (Join
+                                    { left = Read "mascots"
+                                    , leftFields = [ 0 ]
+                                    , right = Read "teams"
+                                    , rightFields = [ 3 ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal
+                            (Err
+                                (SchemaMismatch
+                                    { wanted = Array.fromList [ StringType ]
+                                    , got = Array.fromList [ IntType ]
+                                    }
+                                )
+                            )
             , test "joins on fields in order" <|
                 \_ ->
                     mascotsDb

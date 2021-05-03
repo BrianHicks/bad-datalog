@@ -207,11 +207,11 @@ runPlanTests =
                                     { left = Read "mascots"
                                     , leftFields = [ 0 ]
                                     , right = Read "teams"
-                                    , rightFields = [ 3 ]
+                                    , rightFields = [ 4 ]
                                     }
                                 )
                             )
-                        |> Expect.equal (Err (UnknownFields [ 3 ]))
+                        |> Expect.equal (Err (UnknownFields [ 4 ]))
             , test "joins on fields in order" <|
                 \_ ->
                     mascotsDb
@@ -227,7 +227,7 @@ runPlanTests =
                             )
                         |> Expect.equal
                             (Ok
-                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType ]
+                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType, IntType ]
                                 , rows =
                                     [ Array.append gritty flyers
                                     , Array.append louie blues
@@ -250,7 +250,7 @@ runPlanTests =
                             )
                         |> Expect.equal
                             (Ok
-                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType ]
+                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType, IntType ]
                                 , rows =
                                     [ Array.append fredbird flyers
                                     , Array.append louie flyers
@@ -335,14 +335,14 @@ gritty =
 
 cardinals : Array Constant
 cardinals =
-    Array.fromList [ String "Cardinals", String "MLB", String "St. Louis, MO" ]
+    Array.fromList [ String "Cardinals", String "MLB", String "St. Louis, MO", Int 1882 ]
 
 
 blues : Array Constant
 blues =
-    Array.fromList [ String "Blues", String "NHL", String "St. Louis, MO" ]
+    Array.fromList [ String "Blues", String "NHL", String "St. Louis, MO", Int 1967 ]
 
 
 flyers : Array Constant
 flyers =
-    Array.fromList [ String "Flyers", String "NHL", String "Philadelphia, PA" ]
+    Array.fromList [ String "Flyers", String "NHL", String "Philadelphia, PA", Int 1967 ]

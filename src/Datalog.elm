@@ -12,9 +12,5 @@ type Atom
 
 
 type Term
-    = Variable Variable
-    | Constant Constant
-
-
-type Variable
     = Variable String
+    | Constant Constant

@@ -183,29 +183,6 @@ runPlanTests =
                                 }
                             )
             ]
-        , describe "cross-product"
-            [ test "combines all the rows on the left and right" <|
-                \_ ->
-                    mascotsDb
-                        |> Result.andThen
-                            (runPlan (CrossProduct (Read "mascots") (Read "teams")))
-                        |> Expect.equal
-                            (Ok
-                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType ]
-                                , rows =
-                                    [ Array.append gritty flyers
-                                    , Array.append gritty blues
-                                    , Array.append gritty cardinals
-                                    , Array.append louie flyers
-                                    , Array.append louie blues
-                                    , Array.append louie cardinals
-                                    , Array.append fredbird flyers
-                                    , Array.append fredbird blues
-                                    , Array.append fredbird cardinals
-                                    ]
-                                }
-                            )
-            ]
         , describe "join"
             [ test "it's an error if you choose fields that don't exist on the left" <|
                 \_ ->

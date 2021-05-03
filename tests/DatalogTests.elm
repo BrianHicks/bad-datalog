@@ -16,5 +16,15 @@ datalogTests =
                     rule (atom "mortal" [ var "who" ]) [ atom "greek" [ var "who" ] ]
                         |> ruleToPlan
                         |> Expect.equal (Ok (Database.Project [ 0 ] (Database.Read "greek")))
+            , test "a filtered read turns into a Select" <|
+                \_ ->
+                    rule (atom "mortal" [ var "first name" ]) [ atom "greek" [ var "first name", string "of Athens" ] ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.Read "greek"
+                                |> Database.Select (Database.Predicate 1 Database.Eq (Database.Constant (Database.String "of Athens")))
+                                |> Database.Project [ 0 ]
+                                |> Ok
+                            )
             ]
         ]

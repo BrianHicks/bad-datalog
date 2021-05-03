@@ -1,4 +1,4 @@
-module Datalog exposing (Atom, Rule, Term, atom, rule, ruleToPlan, var)
+module Datalog exposing (Atom, Rule, Term, atom, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 
@@ -91,8 +91,16 @@ atomToPlan (Atom name terms) =
                     Variable var_ ->
                         ( var_ :: termNames, plan )
 
-                    Constant _ ->
-                        Debug.todo "constant"
+                    Constant constant ->
+                        ( "_" :: termNames
+                        , plan
+                            |> Database.Select
+                                (Database.Predicate
+                                    fieldNum
+                                    Database.Eq
+                                    (Database.Constant constant)
+                                )
+                        )
             )
             ( [], Database.Read name )
 
@@ -105,3 +113,8 @@ type Term
 var : String -> Term
 var =
     Variable
+
+
+string : String -> Term
+string =
+    Constant << Database.String

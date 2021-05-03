@@ -26,5 +26,23 @@ datalogTests =
                                 |> Database.Project [ 0 ]
                                 |> Ok
                             )
+            , test "sharing a variable between two atoms results in a join" <|
+                \_ ->
+                    rule
+                        (atom "reachable" [ var "a", var "c" ])
+                        [ atom "link" [ var "a", var "b" ]
+                        , atom "reachable" [ var "b", var "c" ]
+                        ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.Join
+                                { left = Database.Read "reachable"
+                                , leftFields = [ 0 ]
+                                , right = Database.Read "link"
+                                , rightFields = [ 1 ]
+                                }
+                                |> Database.Project [ 2, 1 ]
+                                |> Ok
+                            )
             ]
         ]

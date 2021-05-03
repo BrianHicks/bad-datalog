@@ -1,6 +1,7 @@
 module Datalog exposing (Atom, Rule, Term, atom, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
+import Dict
 
 
 type Problem
@@ -28,7 +29,33 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                     Ok (atomToPlan only)
 
                 first :: rest ->
-                    Debug.todo "combine more than one atom"
+                    List.foldl
+                        (\nextAtom ( rightNames, rightPlan ) ->
+                            let
+                                ( leftNames, leftPlan ) =
+                                    atomToPlan nextAtom
+
+                                fields =
+                                    Dict.merge
+                                        (\_ _ soFar -> soFar)
+                                        (\_ left right soFar -> ( left, right ) :: soFar)
+                                        (\_ _ soFar -> soFar)
+                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) leftNames))
+                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) rightNames))
+                                        []
+                            in
+                            ( leftNames ++ rightNames
+                            , Database.Join
+                                { left = leftPlan
+                                , leftFields = List.map Tuple.first fields
+                                , right = rightPlan
+                                , rightFields = List.map Tuple.second fields
+                                }
+                            )
+                        )
+                        (atomToPlan first)
+                        rest
+                        |> Ok
     in
     planned
         |> Result.map

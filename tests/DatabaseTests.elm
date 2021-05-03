@@ -233,6 +233,27 @@ runPlanTests =
                                     }
                                 )
                             )
+            , test "it's an error if you join on different numbers of keys" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (runPlan
+                                (Join
+                                    { left = Read "mascots"
+                                    , leftFields = [ 0, 1 ]
+                                    , right = Read "teams"
+                                    , rightFields = [ 0 ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal
+                            (Err
+                                (SchemaMismatch
+                                    { wanted = Array.fromList [ StringType, StringType ]
+                                    , got = Array.fromList [ StringType ]
+                                    }
+                                )
+                            )
             , test "joins on fields in order" <|
                 \_ ->
                     mascotsDb

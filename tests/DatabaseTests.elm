@@ -212,7 +212,7 @@ runPlanTests =
                                 )
                             )
                         |> Expect.equal (Err (UnknownFields [ 3 ]))
-            , test "joins on attributes in order" <|
+            , test "joins on fields in order" <|
                 \_ ->
                     mascotsDb
                         |> Result.andThen
@@ -232,6 +232,35 @@ runPlanTests =
                                     [ Array.append gritty flyers
                                     , Array.append louie blues
                                     , Array.append fredbird cardinals
+                                    ]
+                                }
+                            )
+            , test "if you specify no columns, it works the same as a cross-product" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (runPlan
+                                (Join
+                                    { left = Read "mascots"
+                                    , leftFields = []
+                                    , right = Read "teams"
+                                    , rightFields = []
+                                    }
+                                )
+                            )
+                        |> Expect.equal
+                            (Ok
+                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType ]
+                                , rows =
+                                    [ Array.append fredbird flyers
+                                    , Array.append louie flyers
+                                    , Array.append gritty flyers
+                                    , Array.append fredbird blues
+                                    , Array.append louie blues
+                                    , Array.append gritty blues
+                                    , Array.append fredbird cardinals
+                                    , Array.append louie cardinals
+                                    , Array.append gritty cardinals
                                     ]
                                 }
                             )

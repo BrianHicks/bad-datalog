@@ -184,6 +184,20 @@ runPlan plan ((Database db) as db_) =
                 (runPlan inputPlan db_)
 
         Join config ->
+            let
+                runInput : QueryPlan -> List Field -> Result Problem Relation
+                runInput input fields =
+                    runPlan input db_
+                        |> Result.andThen
+                            (\relation ->
+                                case validateFieldsAreInSchema relation.schema fields of
+                                    Ok _ ->
+                                        Ok relation
+
+                                    Err err ->
+                                        Err err
+                            )
+            in
             Result.map2
                 (\left right ->
                     -- TODO: validate that the left and right fields result in
@@ -219,28 +233,8 @@ runPlan plan ((Database db) as db_) =
                             right.rows
                     }
                 )
-                (runPlan config.left db_
-                    |> Result.andThen
-                        (\relation ->
-                            case validateFieldsAreInSchema relation.schema config.leftFields of
-                                Ok _ ->
-                                    Ok relation
-
-                                Err err ->
-                                    Err err
-                        )
-                )
-                (runPlan config.right db_
-                    |> Result.andThen
-                        (\relation ->
-                            case validateFieldsAreInSchema relation.schema config.rightFields of
-                                Ok _ ->
-                                    Ok relation
-
-                                Err err ->
-                                    Err err
-                        )
-                )
+                (runInput config.left config.leftFields)
+                (runInput config.right config.rightFields)
 
 
 validateFieldsAreInSchema : Schema -> List Int -> Result Problem ()

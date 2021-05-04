@@ -1,4 +1,4 @@
-module Datalog exposing (Atom, Rule, Term, atom, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, Rule, Term, atom, headAtom, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 import Dict
@@ -9,10 +9,14 @@ type Problem
 
 
 type Rule
-    = Rule Atom (List Atom)
+    = Rule Atom (List BodyAtom)
 
 
-rule : Atom -> List Atom -> Rule
+type BodyAtom
+    = BodyAtom Atom
+
+
+rule : Atom -> List BodyAtom -> Rule
 rule =
     Rule
 
@@ -25,15 +29,12 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                 [] ->
                     Err CannotPlanFact
 
-                [ only ] ->
-                    Ok (atomToPlan only)
-
                 first :: rest ->
                     List.foldl
                         (\nextAtom ( rightNames, rightPlan ) ->
                             let
                                 ( leftNames, leftPlan ) =
-                                    atomToPlan nextAtom
+                                    bodyAtomToPlan nextAtom
                             in
                             ( leftNames ++ rightNames
                             , Database.Join
@@ -50,7 +51,7 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                                 }
                             )
                         )
-                        (atomToPlan first)
+                        (bodyAtomToPlan first)
                         rest
                         |> Ok
     in
@@ -77,6 +78,13 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
             )
 
 
+bodyAtomToPlan : BodyAtom -> ( List String, Database.QueryPlan )
+bodyAtomToPlan bodyAtom =
+    case bodyAtom of
+        BodyAtom atom_ ->
+            atomToPlan atom_
+
+
 indexOf : a -> List a -> Maybe Int
 indexOf =
     indexOfHelp 0
@@ -100,9 +108,14 @@ type Atom
     = Atom String (List Term)
 
 
-atom : String -> List Term -> Atom
-atom =
-    Atom
+atom : String -> List Term -> BodyAtom
+atom name terms =
+    BodyAtom (Atom name terms)
+
+
+headAtom : String -> List String -> Atom
+headAtom name vars =
+    Atom name (List.map Variable vars)
 
 
 atomToPlan : Atom -> ( List String, Database.QueryPlan )

@@ -13,12 +13,12 @@ datalogTests =
         [ describe "ruleToPlan"
             [ test "a simple read turns into a Read -> Project" <|
                 \_ ->
-                    rule (atom "mortal" [ var "who" ]) [ atom "greek" [ var "who" ] ]
+                    rule (headAtom "mortal" [ "who" ]) [ atom "greek" [ var "who" ] ]
                         |> ruleToPlan
                         |> Expect.equal (Ok (Database.Project [ 0 ] (Database.Read "greek")))
             , test "a filtered read turns into a Select" <|
                 \_ ->
-                    rule (atom "mortal" [ var "first name" ]) [ atom "greek" [ var "first name", string "of Athens" ] ]
+                    rule (headAtom "mortal" [ "first name" ]) [ atom "greek" [ var "first name", string "of Athens" ] ]
                         |> ruleToPlan
                         |> Expect.equal
                             (Database.Read "greek"
@@ -29,7 +29,7 @@ datalogTests =
             , test "sharing a variable between two atoms results in a join" <|
                 \_ ->
                     rule
-                        (atom "reachable" [ var "a", var "c" ])
+                        (headAtom "reachable" [ "a", "c" ])
                         [ atom "link" [ var "a", var "b" ]
                         , atom "reachable" [ var "b", var "c" ]
                         ]

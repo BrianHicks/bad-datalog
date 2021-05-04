@@ -37,9 +37,8 @@ datalogTests =
                         |> Expect.equal
                             (Database.Join
                                 { left = Database.Read "reachable"
-                                , leftFields = [ 0 ]
                                 , right = Database.Read "link"
-                                , rightFields = [ 1 ]
+                                , fields = [ ( 0, 1 ) ]
                                 }
                                 |> Database.Project [ 2, 1 ]
                                 |> Ok

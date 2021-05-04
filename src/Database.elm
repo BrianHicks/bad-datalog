@@ -147,7 +147,7 @@ type QueryPlan
     = Read String
     | Select Selection QueryPlan
     | Project (List Field) QueryPlan
-    | Join { left : QueryPlan, leftFields : List Field, right : QueryPlan, rightFields : List Field }
+    | Join { left : QueryPlan, right : QueryPlan, fields : List ( Field, Field ) }
 
 
 runPlan : QueryPlan -> Database -> Result Problem Relation
@@ -197,14 +197,20 @@ runPlan plan ((Database db) as db_) =
                                     Err err ->
                                         Err err
                             )
+
+                leftFields =
+                    List.map Tuple.first config.fields
+
+                rightFields =
+                    List.map Tuple.second config.fields
             in
             Result.map2
                 (\left right ->
-                    if takeFields config.leftFields left.schema /= takeFields config.rightFields right.schema then
+                    if takeFields leftFields left.schema /= takeFields rightFields right.schema then
                         Err
                             (SchemaMismatch
-                                { wanted = takeFields config.leftFields left.schema
-                                , got = takeFields config.rightFields right.schema
+                                { wanted = takeFields leftFields left.schema
+                                , got = takeFields rightFields right.schema
                                 }
                             )
 
@@ -213,7 +219,7 @@ runPlan plan ((Database db) as db_) =
                             leftIndex =
                                 List.foldl
                                     (\row ->
-                                        Sort.Dict.update (takeFields config.leftFields row)
+                                        Sort.Dict.update (takeFields leftFields row)
                                             (\maybeRows ->
                                                 case maybeRows of
                                                     Just rows ->
@@ -231,7 +237,7 @@ runPlan plan ((Database db) as db_) =
                             , rows =
                                 List.concatMap
                                     (\rightRow ->
-                                        case Sort.Dict.get (takeFields config.rightFields rightRow) leftIndex of
+                                        case Sort.Dict.get (takeFields rightFields rightRow) leftIndex of
                                             Just rows ->
                                                 List.map (\leftRow -> Array.append leftRow rightRow) rows
 
@@ -241,8 +247,8 @@ runPlan plan ((Database db) as db_) =
                                     right.rows
                             }
                 )
-                (runInput config.left config.leftFields)
-                (runInput config.right config.rightFields)
+                (runInput config.left leftFields)
+                (runInput config.right rightFields)
                 |> Result.andThen identity
 
 

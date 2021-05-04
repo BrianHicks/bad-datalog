@@ -191,9 +191,8 @@ runPlanTests =
                             (runPlan
                                 (Join
                                     { left = Read "mascots"
-                                    , leftFields = [ 3 ]
                                     , right = Read "teams"
-                                    , rightFields = [ 0 ]
+                                    , fields = [ ( 3, 0 ) ]
                                     }
                                 )
                             )
@@ -205,9 +204,8 @@ runPlanTests =
                             (runPlan
                                 (Join
                                     { left = Read "mascots"
-                                    , leftFields = [ 0 ]
                                     , right = Read "teams"
-                                    , rightFields = [ 4 ]
+                                    , fields = [ ( 0, 4 ) ]
                                     }
                                 )
                             )
@@ -219,9 +217,8 @@ runPlanTests =
                             (runPlan
                                 (Join
                                     { left = Read "mascots"
-                                    , leftFields = [ 0 ]
                                     , right = Read "teams"
-                                    , rightFields = [ 3 ]
+                                    , fields = [ ( 0, 3 ) ]
                                     }
                                 )
                             )
@@ -233,27 +230,6 @@ runPlanTests =
                                     }
                                 )
                             )
-            , test "it's an error if you join on different numbers of keys" <|
-                \_ ->
-                    mascotsDb
-                        |> Result.andThen
-                            (runPlan
-                                (Join
-                                    { left = Read "mascots"
-                                    , leftFields = [ 0, 1 ]
-                                    , right = Read "teams"
-                                    , rightFields = [ 0 ]
-                                    }
-                                )
-                            )
-                        |> Expect.equal
-                            (Err
-                                (SchemaMismatch
-                                    { wanted = Array.fromList [ StringType, StringType ]
-                                    , got = Array.fromList [ StringType ]
-                                    }
-                                )
-                            )
             , test "joins on fields in order" <|
                 \_ ->
                     mascotsDb
@@ -261,9 +237,8 @@ runPlanTests =
                             (runPlan
                                 (Join
                                     { left = Read "mascots"
-                                    , leftFields = [ 1 ]
                                     , right = Read "teams"
-                                    , rightFields = [ 0 ]
+                                    , fields = [ ( 1, 0 ) ]
                                     }
                                 )
                             )
@@ -284,9 +259,8 @@ runPlanTests =
                             (runPlan
                                 (Join
                                     { left = Read "mascots"
-                                    , leftFields = []
                                     , right = Read "teams"
-                                    , rightFields = []
+                                    , fields = []
                                     }
                                 )
                             )

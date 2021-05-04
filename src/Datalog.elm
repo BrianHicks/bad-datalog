@@ -34,8 +34,12 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                             let
                                 ( leftNames, leftPlan ) =
                                     atomToPlan nextAtom
-
-                                fields =
+                            in
+                            ( leftNames ++ rightNames
+                            , Database.Join
+                                { left = leftPlan
+                                , right = rightPlan
+                                , fields =
                                     Dict.merge
                                         (\_ _ soFar -> soFar)
                                         (\_ left right soFar -> ( left, right ) :: soFar)
@@ -43,13 +47,6 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                                         (Dict.fromList (List.indexedMap (\i field -> ( field, i )) leftNames))
                                         (Dict.fromList (List.indexedMap (\i field -> ( field, i )) rightNames))
                                         []
-                            in
-                            ( leftNames ++ rightNames
-                            , Database.Join
-                                { left = leftPlan
-                                , leftFields = List.map Tuple.first fields
-                                , right = rightPlan
-                                , rightFields = List.map Tuple.second fields
                                 }
                             )
                         )

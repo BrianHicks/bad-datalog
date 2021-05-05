@@ -1,4 +1,4 @@
-module List.Extra exposing (foldrResult)
+module List.Extra exposing (foldrResult, indexOf)
 
 
 foldrResult : (a -> b -> Result x b) -> b -> List a -> Result x b
@@ -19,3 +19,22 @@ foldrResultHelp fn soFar items =
 
                 Err problem ->
                     Err problem
+
+
+indexOf : a -> List a -> Maybe Int
+indexOf =
+    indexOfHelp 0
+
+
+indexOfHelp : Int -> a -> List a -> Maybe Int
+indexOfHelp idx item items =
+    case items of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            if first == item then
+                Just idx
+
+            else
+                indexOfHelp (idx + 1) item rest

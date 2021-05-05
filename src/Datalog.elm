@@ -2,7 +2,7 @@ module Datalog exposing (Atom, Problem(..), Rule, Term, atom, headAtom, rule, ru
 
 import Database exposing (Constant)
 import Dict
-import List.Extra exposing (foldrResult)
+import List.Extra exposing (foldrResult, indexOf)
 
 
 type Problem
@@ -89,25 +89,6 @@ bodyAtomToPlan bodyAtom =
     case bodyAtom of
         BodyAtom atom_ ->
             atomToPlan atom_
-
-
-indexOf : a -> List a -> Maybe Int
-indexOf =
-    indexOfHelp 0
-
-
-indexOfHelp : Int -> a -> List a -> Maybe Int
-indexOfHelp idx item items =
-    case items of
-        [] ->
-            Nothing
-
-        first :: rest ->
-            if first == item then
-                Just idx
-
-            else
-                indexOfHelp (idx + 1) item rest
 
 
 type Atom

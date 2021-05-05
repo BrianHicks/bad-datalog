@@ -43,5 +43,23 @@ datalogTests =
                                 |> Database.Project [ 2, 1 ]
                                 |> Ok
                             )
+            , describe "safety"
+                [ test "rules are required to have bodies" <|
+                    \_ ->
+                        rule
+                            (headAtom "noBody" [ "a" ])
+                            []
+                            |> ruleToPlan
+                            |> Expect.equal
+                                (Err CannotPlanFact)
+                , test "all terms in the head must appear in the body" <|
+                    \_ ->
+                        rule
+                            (headAtom "bad" [ "a", "b" ])
+                            [ atom "fine" [ var "a" ] ]
+                            |> ruleToPlan
+                            |> Expect.equal
+                                (Err (VariableDoesNotAppearInBody "b"))
+                ]
             ]
         ]

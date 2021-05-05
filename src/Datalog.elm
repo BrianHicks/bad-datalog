@@ -1,11 +1,13 @@
-module Datalog exposing (Atom, Rule, Term, atom, headAtom, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, Problem(..), Rule, Term, atom, headAtom, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 import Dict
+import List.Extra exposing (foldrResult)
 
 
 type Problem
     = CannotPlanFact
+    | VariableDoesNotAppearInBody String
 
 
 type Rule
@@ -55,27 +57,31 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                         rest
                         |> Ok
     in
-    planned
-        |> Result.map
-            (\( names, plan ) ->
-                Database.Project
-                    (List.filterMap
-                        (\term ->
-                            case term of
-                                Variable name ->
-                                    -- TODO: validate that all atoms in the head appear in
-                                    -- the body
-                                    indexOf name names
+    Result.andThen
+        (\( names, plan ) ->
+            headTerms
+                |> foldrResult
+                    (\term soFar ->
+                        case term of
+                            Variable name ->
+                                case indexOf name names of
+                                    Just idx ->
+                                        Ok (idx :: soFar)
 
-                                Constant _ ->
-                                    -- TODO: validate that constant terms don't appear in the
-                                    -- head, or deal with them somehow.
-                                    Nothing
-                        )
-                        headTerms
+                                    Nothing ->
+                                        Err (VariableDoesNotAppearInBody name)
+
+                            Constant _ ->
+                                -- It's fine to just ignore this, since
+                                -- we disallow rules having constants by
+                                -- construction. This will be an unfortunate
+                                -- bug if we ever change that, though! :\
+                                Ok soFar
                     )
-                    plan
-            )
+                    []
+                |> Result.map (\indexes -> Database.Project indexes plan)
+        )
+        planned
 
 
 bodyAtomToPlan : BodyAtom -> ( List String, Database.QueryPlan )

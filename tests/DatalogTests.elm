@@ -62,4 +62,11 @@ datalogTests =
                                 (Err (VariableDoesNotAppearInBody "b"))
                 ]
             ]
+        , describe "running a program"
+            [ test "I can insert data" <|
+                \_ ->
+                    empty
+                        |> insert "greek" [ Database.String "Socrates" ]
+                        |> Expect.ok
+            ]
         ]

@@ -1,13 +1,30 @@
-module Datalog exposing (Atom, Problem(..), Rule, Term, atom, headAtom, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 import Dict
 import List.Extra exposing (foldrResult, indexOf)
 
 
+type Database
+    = Database Database.Database
+
+
+empty : Database
+empty =
+    Database Database.empty
+
+
+insert : String -> List Database.Constant -> Database -> Result Problem Database
+insert name body (Database db) =
+    Database.insert name body db
+        |> Result.mapError DatabaseProblem
+        |> Result.map Database
+
+
 type Problem
     = CannotPlanFact
     | VariableDoesNotAppearInBody String
+    | DatabaseProblem Database.Problem
 
 
 type Rule

@@ -14,6 +14,8 @@ type Rule
     = Rule Atom (List BodyAtom)
 
 
+{-| TODO: predicates
+-}
 type BodyAtom
     = BodyAtom Atom
 

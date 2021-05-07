@@ -14,16 +14,31 @@ empty =
     Database Database.empty
 
 
-insert : String -> List Database.Constant -> Database -> Result Problem Database
+insert : String -> List Term -> Database -> Result Problem Database
 insert name body (Database db) =
-    Database.insert name body db
-        |> Result.mapError DatabaseProblem
+    body
+        |> foldrResult
+            (\term soFar ->
+                case term of
+                    Constant constant ->
+                        Ok (constant :: soFar)
+
+                    Variable name_ ->
+                        Err (CannotInsertVariable name_)
+            )
+            []
+        |> Result.andThen
+            (\constants ->
+                Database.insert name constants db
+                    |> Result.mapError DatabaseProblem
+            )
         |> Result.map Database
 
 
 type Problem
     = CannotPlanFact
     | VariableDoesNotAppearInBody String
+    | CannotInsertVariable String
     | DatabaseProblem Database.Problem
 
 

@@ -66,7 +66,12 @@ datalogTests =
             [ test "I can insert data" <|
                 \_ ->
                     empty
-                        |> insert "greek" [ Database.String "Socrates" ]
+                        |> insert "greek" [ string "Socrates" ]
                         |> Expect.ok
+            , test "I can't insert variables" <|
+                \_ ->
+                    empty
+                        |> insert "greek" [ var "who?" ]
+                        |> Expect.equal (Err (CannotInsertVariable "who?"))
             ]
         ]

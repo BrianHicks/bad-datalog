@@ -1,4 +1,4 @@
-module Datalog exposing (Atom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, query, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 import Dict
@@ -33,6 +33,15 @@ insert name body (Database db) =
                     |> Result.mapError DatabaseProblem
             )
         |> Result.map Database
+
+
+query : Rule -> List Rule -> Database -> Result Problem Database.Relation
+query queryRule bodyRules (Database db) =
+    -- 1. get a topological sort of the body rules starting from the query rule
+    -- 2. exclude any body rules that end up unused
+    -- 3. starting from the leafmost dependencies, perform naive (or semi-naive) evaluation, continually inserting the new rows into the database
+    -- 4. read the final name of `queryRule` once everything's done
+    Debug.todo "query"
 
 
 type Problem

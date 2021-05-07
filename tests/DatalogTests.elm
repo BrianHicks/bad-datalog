@@ -73,5 +73,19 @@ datalogTests =
                     empty
                         |> insert "greek" [ var "who?" ]
                         |> Expect.equal (Err (CannotInsertVariable "who?"))
+            , test "I can read the data I wrote back" <|
+                \_ ->
+                    empty
+                        |> insert "greek" [ string "Socrates" ]
+                        |> Result.andThen
+                            (query
+                                (rule (headAtom "query" [ "who" ])
+                                    [ atom "greek" [ var "who" ] ]
+                                )
+                                []
+                            )
+                        |> Result.map .rows
+                        |> Expect.equal
+                            (Ok [ Array.fromList [ Database.String "Socrates" ] ])
             ]
         ]

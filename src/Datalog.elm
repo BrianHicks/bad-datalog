@@ -2,7 +2,10 @@ module Datalog exposing (Atom, Database, Problem(..), Rule, Term, atom, empty, h
 
 import Database exposing (Constant)
 import Dict
+import Graph exposing (Edge, Node)
 import List.Extra exposing (foldrResult, indexOf)
+import Murmur3
+import Set
 
 
 type Database
@@ -37,11 +40,62 @@ insert name body (Database db) =
 
 query : List Rule -> Database -> Result Problem Database.Database
 query rules (Database db) =
+    let
+        nodes =
+            rules
+                |> List.foldl
+                    (\(Rule (Atom headName _) bodyAtoms) soFar ->
+                        List.foldl
+                            (\bodyAtom soFar_ ->
+                                case bodyAtom of
+                                    BodyAtom (Atom bodyName _) ->
+                                        Set.insert bodyName soFar_
+                            )
+                            (Set.insert headName soFar)
+                            bodyAtoms
+                    )
+                    Set.empty
+                |> Set.foldl
+                    (\name soFar ->
+                        Node
+                            (Murmur3.hashString 0 name)
+                            name
+                            :: soFar
+                    )
+                    []
+
+        edges =
+            List.concatMap
+                (\(Rule (Atom headName _) bodyAtoms) ->
+                    List.map
+                        (\bodyAtom ->
+                            case bodyAtom of
+                                BodyAtom (Atom bodyName _) ->
+                                    Edge
+                                        (Murmur3.hashString 0 headName)
+                                        (Murmur3.hashString 0 bodyName)
+                                        ()
+                        )
+                        bodyAtoms
+                )
+                rules
+
+        graph =
+            Graph.fromNodesAndEdges nodes edges
+
+        strata =
+            case Graph.stronglyConnectedComponents graph of
+                Ok acyclic ->
+                    [ graph ]
+
+                Err stronglyConnectedComponents ->
+                    stronglyConnectedComponents
+    in
     -- 1. get a topological sort of the body rules starting from the query rule
     -- 2. exclude any body rules that end up unused
     -- 3. starting from the leafmost dependencies, perform naive (or semi-naive) evaluation, continually inserting the new rows into the database
     -- 4. read the final name of `queryRule` once everything's done
-    Debug.todo "query"
+    Debug.todo (Debug.toString strata)
 
 
 type Problem

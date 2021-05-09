@@ -35,8 +35,8 @@ insert name body (Database db) =
         |> Result.map Database
 
 
-query : Rule -> List Rule -> Database -> Result Problem Database.Relation
-query queryRule bodyRules (Database db) =
+query : List Rule -> Database -> Result Problem Database.Database
+query rules (Database db) =
     -- 1. get a topological sort of the body rules starting from the query rule
     -- 2. exclude any body rules that end up unused
     -- 3. starting from the leafmost dependencies, perform naive (or semi-naive) evaluation, continually inserting the new rows into the database

@@ -1,7 +1,7 @@
 module DatalogTests exposing (..)
 
 import Array
-import Database
+import Database exposing (Relation)
 import Datalog exposing (..)
 import Expect
 import Test exposing (..)
@@ -79,13 +79,19 @@ datalogTests =
                         |> insert "greek" [ string "Socrates" ]
                         |> Result.andThen
                             (query
-                                (rule (headAtom "query" [ "who" ])
+                                [ rule (headAtom "query" [ "who" ])
                                     [ atom "greek" [ var "who" ] ]
-                                )
-                                []
+                                ]
                             )
+                        |> Result.andThen (readError "query")
                         |> Result.map .rows
                         |> Expect.equal
                             (Ok [ Array.fromList [ Database.String "Socrates" ] ])
             ]
         ]
+
+
+readError : String -> Database.Database -> Result Problem Relation
+readError name db =
+    Database.read name db
+        |> Result.fromMaybe (DatabaseProblem (Database.RelationNotFound name))

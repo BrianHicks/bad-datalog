@@ -43,6 +43,30 @@ insertTests =
         ]
 
 
+readTests : Test
+readTests =
+    describe "read"
+        [ test "cannot read a relation that does not exist" <|
+            \_ ->
+                empty
+                    |> read "human"
+                    |> Expect.equal Nothing
+        , test "can read a relation that does exist" <|
+            \_ ->
+                empty
+                    |> insert "human" [ String "Socrates" ]
+                    |> Result.map (read "human")
+                    |> Expect.equal
+                        (Ok
+                            (Just
+                                { schema = Array.fromList [ StringType ]
+                                , rows = [ Array.fromList [ String "Socrates" ] ]
+                                }
+                            )
+                        )
+        ]
+
+
 runPlanTests : Test
 runPlanTests =
     describe "runPlan"

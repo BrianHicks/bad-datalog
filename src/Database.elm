@@ -2,6 +2,7 @@ module Database exposing
     ( Database, Relation, empty
     , Schema, FieldType(..)
     , Constant(..), insert, Problem(..)
+    , read
     , QueryPlan(..), runPlan
     , Selection(..), Op(..), FieldOrConstant(..)
     )
@@ -19,6 +20,8 @@ Resources:
 @docs Schema, FieldType
 
 @docs Constant, insert, Problem
+
+@docs read
 
 @docs QueryPlan, runPlan
 
@@ -141,6 +144,12 @@ insert relationName row (Database db) =
                         , got = rowToSchema row
                         }
                     )
+
+
+{-| -}
+read : String -> Database -> Maybe Relation
+read relationName (Database db) =
+    Dict.get relationName db
 
 
 type QueryPlan

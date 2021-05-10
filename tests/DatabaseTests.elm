@@ -40,6 +40,13 @@ insertTests =
                                 }
                             )
                         )
+        , test "inserting a duplicate row is a no-op" <|
+            \_ ->
+                empty
+                    |> insert "human" [ String "Socrates" ]
+                    |> Result.andThen (insert "human" [ String "Socrates" ])
+                    |> Result.map (read "human")
+                    |> Expect.equal (Ok (Just [ Array.fromList [ String "Socrates" ] ]))
         ]
 
 

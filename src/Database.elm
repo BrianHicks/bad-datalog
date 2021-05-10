@@ -139,7 +139,12 @@ insert relationName row (Database db) =
                     |> Dict.insert relationName
                         (Relation
                             schema
-                            (Array.fromList row :: rows_)
+                            (if List.member (Array.fromList row) rows_ then
+                                rows_
+
+                             else
+                                Array.fromList row :: rows_
+                            )
                         )
                     |> Database
                     |> Ok

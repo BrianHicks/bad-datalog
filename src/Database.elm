@@ -370,6 +370,7 @@ filterWithResultHelp done filter todo =
 rowMatchesSelection : Selection -> Row -> Result Problem Bool
 rowMatchesSelection selection row =
     let
+        lookup : Field -> Result Problem Constant
         lookup field =
             case Array.get field row of
                 Just constant ->
@@ -378,6 +379,7 @@ rowMatchesSelection selection row =
                 Nothing ->
                     Err (UnknownFields [ field ])
 
+        resolve : FieldOrConstant -> Result Problem Constant
         resolve fieldOrConstant =
             case fieldOrConstant of
                 Field field ->

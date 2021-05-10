@@ -2,7 +2,7 @@ module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom
 
 import Database exposing (Constant)
 import Dict exposing (Dict)
-import Graph exposing (Edge, Node)
+import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
 import Set
@@ -99,9 +99,11 @@ query rules (Database db) =
                 )
                 rules
 
+        graph : Graph String ()
         graph =
             Graph.fromNodesAndEdges nodes edges
 
+        strata : List (Graph String ())
         strata =
             case Graph.stronglyConnectedComponents graph of
                 Ok _ ->
@@ -164,6 +166,7 @@ rule =
 ruleToPlan : Rule -> Result Problem Database.QueryPlan
 ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
     let
+        planned : Result Problem ( List String, Database.QueryPlan )
         planned =
             case bodyAtoms of
                 [] ->

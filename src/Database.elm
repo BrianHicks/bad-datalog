@@ -1,9 +1,8 @@
 module Database exposing
-    ( Database, empty
-    , Relation, rows
+    ( Database, empty, replaceRelation
+    , Relation, read, rows
     , Schema, FieldType(..)
     , Constant(..), insert, Problem(..)
-    , read
     , QueryPlan(..), runPlan
     , Selection(..), Op(..), FieldOrConstant(..)
     )
@@ -16,9 +15,9 @@ Resources:
   - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
   - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
 
-@docs Database, empty
+@docs Database, empty, replaceRelation
 
-@docs Relation, rows
+@docs Relation, read, rows
 
 @docs Schema, FieldType
 
@@ -152,6 +151,12 @@ insert relationName row (Database db) =
                         , got = rowToSchema row
                         }
                     )
+
+
+{-| -}
+replaceRelation : String -> Relation -> Database -> Database
+replaceRelation relationName relation (Database db) =
+    Database (Dict.insert relationName relation db)
 
 
 {-| -}

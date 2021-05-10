@@ -50,6 +50,81 @@ insertTests =
         ]
 
 
+insertRelationTests : Test
+insertRelationTests =
+    let
+        unwrapOrCrash : Result x a -> a
+        unwrapOrCrash result =
+            case result of
+                Ok ok ->
+                    ok
+
+                Err problem ->
+                    Debug.todo (Debug.toString problem)
+
+        nhlMascots : Relation
+        nhlMascots =
+            mascotsDb
+                |> Result.andThen
+                    (runPlan
+                        (Select
+                            (Or
+                                (Predicate 1 Eq (Constant (String "Blues")))
+                                (Predicate 1 Eq (Constant (String "Flyers")))
+                            )
+                            (Read "mascots")
+                        )
+                    )
+                |> unwrapOrCrash
+
+        mlbMascots : Relation
+        mlbMascots =
+            mascotsDb
+                |> Result.andThen
+                    (runPlan
+                        (Select
+                            (Predicate 1 Eq (Constant (String "Cardinals")))
+                            (Read "mascots")
+                        )
+                    )
+                |> unwrapOrCrash
+
+        teams : Relation
+        teams =
+            mascotsDb
+                |> Result.andThen (runPlan (Read "teams"))
+                |> unwrapOrCrash
+    in
+    describe "insertRelation"
+        [ test "if the relation is not in the database, insertRelation works like a bulk insert" <|
+            \_ ->
+                empty
+                    |> insertRelation "mascots" nhlMascots
+                    |> Result.map (read "mascots")
+                    |> Expect.equal (Ok (Just (rows nhlMascots)))
+        , test "if the relation is already in the database, insertRelation merges rows" <|
+            \_ ->
+                empty
+                    |> insertRelation "mascots" nhlMascots
+                    |> Result.andThen (insertRelation "mascots" mlbMascots)
+                    |> Result.map (read "mascots")
+                    |> Expect.equal (Ok (Just (rows mlbMascots ++ rows nhlMascots)))
+        , test "if the new relation's schema doesn't match the name, return an error" <|
+            \_ ->
+                empty
+                    |> insertRelation "mascots" nhlMascots
+                    |> Result.andThen (insertRelation "mascots" teams)
+                    |> Expect.equal
+                        (Err
+                            (SchemaMismatch
+                                { wanted = Array.fromList [ StringType, StringType ]
+                                , got = Array.fromList [ StringType, StringType, StringType, IntType ]
+                                }
+                            )
+                        )
+        ]
+
+
 readTests : Test
 readTests =
     describe "read"

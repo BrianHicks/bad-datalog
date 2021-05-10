@@ -1,8 +1,8 @@
 module Database exposing
-    ( Database, empty, replaceRelation
+    ( Database, empty, insert, insertRelation
     , Relation, read, rows
     , Schema, FieldType(..)
-    , Constant(..), insert, Problem(..)
+    , Constant(..), Problem(..)
     , QueryPlan(..), runPlan
     , Selection(..), Op(..), FieldOrConstant(..)
     )
@@ -15,13 +15,13 @@ Resources:
   - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
   - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
 
-@docs Database, empty, replaceRelation
+@docs Database, empty, insert, insertRelation
 
 @docs Relation, read, rows
 
 @docs Schema, FieldType
 
-@docs Constant, insert, Problem
+@docs Constant, Problem
 
 @docs read
 
@@ -159,9 +159,35 @@ insert relationName row (Database db) =
 
 
 {-| -}
-replaceRelation : String -> Relation -> Database -> Database
-replaceRelation relationName relation (Database db) =
-    Database (Dict.insert relationName relation db)
+insertRelation : String -> Relation -> Database -> Result Problem Database
+insertRelation relationName (Relation schema newRows) (Database db) =
+    case Dict.get relationName db of
+        Just (Relation existingSchema existingRows) ->
+            if schema /= existingSchema then
+                Err (SchemaMismatch { wanted = existingSchema, got = schema })
+
+            else
+                Dict.insert relationName
+                    (Relation schema
+                        -- TODO: WOOF this is gonna be slow, and we're
+                        -- doing it all the time in the datalog query
+                        -- implementation. Benchmark and see if a `Set` gives
+                        -- a huge speed boost!
+                        (List.filter
+                            (\row -> not (List.member row existingRows))
+                            newRows
+                            ++ existingRows
+                        )
+                    )
+                    db
+                    |> Database
+                    |> Ok
+
+        Nothing ->
+            db
+                |> Dict.insert relationName (Relation schema newRows)
+                |> Database
+                |> Ok
 
 
 {-| -}

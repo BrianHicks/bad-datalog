@@ -1,7 +1,7 @@
 module DatalogTests exposing (..)
 
 import Array exposing (Array)
-import Database exposing (Relation)
+import Database
 import Datalog exposing (..)
 import Expect
 import Test exposing (..)

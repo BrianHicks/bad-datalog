@@ -5,6 +5,7 @@ module Database exposing
     , Constant(..), Problem(..)
     , QueryPlan(..), query
     , Selection(..), Op(..), FieldOrConstant(..)
+    , Field, Row
     )
 
 {-| Some relational algebra stuff.

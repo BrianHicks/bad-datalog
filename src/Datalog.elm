@@ -1,4 +1,4 @@
-module Datalog exposing (Atom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, query, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, query, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 import Dict exposing (Dict)
@@ -104,7 +104,7 @@ query rules (Database db) =
 
         strata =
             case Graph.stronglyConnectedComponents graph of
-                Ok acyclic ->
+                Ok _ ->
                     [ graph ]
 
                 Err stronglyConnectedComponents ->
@@ -150,22 +150,10 @@ type Rule
     = Rule Atom (List BodyAtom)
 
 
-ruleToString : Rule -> String
-ruleToString (Rule head body) =
-    atomToString head ++ " :- " ++ String.join ", " (List.map bodyAtomToString body)
-
-
 {-| TODO: predicates
 -}
 type BodyAtom
     = BodyAtom Atom
-
-
-bodyAtomToString : BodyAtom -> String
-bodyAtomToString bodyAtom =
-    case bodyAtom of
-        BodyAtom atom_ ->
-            atomToString atom_
 
 
 rule : Atom -> List BodyAtom -> Rule
@@ -279,11 +267,6 @@ atomToPlan (Atom name terms) =
             ( [], Database.Read name )
 
 
-atomToString : Atom -> String
-atomToString (Atom name terms) =
-    name ++ "(" ++ String.join ", " (List.map termToString terms) ++ ")"
-
-
 type Term
     = Variable String
     | Constant Constant
@@ -297,16 +280,3 @@ var =
 string : String -> Term
 string =
     Constant << Database.String
-
-
-termToString : Term -> String
-termToString term =
-    case term of
-        Variable var_ ->
-            var_
-
-        Constant (Database.String string_) ->
-            "\"" ++ string_ ++ "\""
-
-        Constant (Database.Int int_) ->
-            String.fromInt int_

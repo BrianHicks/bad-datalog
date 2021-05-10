@@ -126,14 +126,16 @@ query rules (Database db) =
                         |> List.concat
                         |> foldrResult
                             (\( name, plan ) soFar ->
-                                case Database.runPlan plan soFar of
+                                case Database.runPlan plan preStratumDb of
                                     Ok relation ->
-                                        Debug.todo (Debug.toString relation)
+                                        Ok (Database.replaceRelation name relation soFar)
 
                                     Err problem ->
                                         Err (DatabaseProblem problem)
                             )
-                            preStratumDb
+                            Database.empty
+                        |> Debug.toString
+                        |> Debug.todo
                 )
                 db
                 strata

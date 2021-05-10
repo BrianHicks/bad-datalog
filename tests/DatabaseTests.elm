@@ -57,13 +57,7 @@ readTests =
                     |> insert "human" [ String "Socrates" ]
                     |> Result.map (read "human")
                     |> Expect.equal
-                        (Ok
-                            (Just
-                                { schema = Array.fromList [ StringType ]
-                                , rows = [ Array.fromList [ String "Socrates" ] ]
-                                }
-                            )
-                        )
+                        (Ok (Just [ Array.fromList [ String "Socrates" ] ]))
         ]
 
 

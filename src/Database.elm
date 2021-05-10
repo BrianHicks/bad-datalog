@@ -147,9 +147,10 @@ insert relationName row (Database db) =
 
 
 {-| -}
-read : String -> Database -> Maybe Relation
+read : String -> Database -> Maybe (List (Array Constant))
 read relationName (Database db) =
     Dict.get relationName db
+        |> Maybe.map .rows
 
 
 type QueryPlan

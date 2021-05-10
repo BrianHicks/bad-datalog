@@ -1,6 +1,6 @@
 module DatalogTests exposing (..)
 
-import Array
+import Array exposing (Array)
 import Database exposing (Relation)
 import Datalog exposing (..)
 import Expect
@@ -84,14 +84,13 @@ datalogTests =
                                 ]
                             )
                         |> Result.andThen (readError "query")
-                        |> Result.map .rows
                         |> Expect.equal
                             (Ok [ Array.fromList [ Database.String "Socrates" ] ])
             ]
         ]
 
 
-readError : String -> Database.Database -> Result Problem Relation
+readError : String -> Database.Database -> Result Problem (List (Array Database.Constant))
 readError name db =
     Database.read name db
         |> Result.fromMaybe (DatabaseProblem (Database.RelationNotFound name))

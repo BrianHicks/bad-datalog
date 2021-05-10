@@ -70,7 +70,7 @@ runPlanTests =
                     empty
                         |> insert "human" [ String "Socrates" ]
                         |> Result.andThen (runPlan (Read "human"))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ Array.fromList [ String "Socrates" ] ])
             , test "cannot read a relation that doesn't exist" <|
                 \_ ->
@@ -102,49 +102,49 @@ runPlanTests =
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 1 Eq (Constant (String "Bear"))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ cloudBear ])
             , test "can select on integer equality" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 3 Eq (Constant (Int 16))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ axel ])
             , test "can select on string greater-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 0 Gt (Constant (String "Cloud Bear"))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ hampton, humphrey ])
             , test "can select on integer greater-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 3 Gt (Constant (Int 20))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ humphrey, cloudBear ])
             , test "can select on string less-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 0 Lt (Constant (String "Cloud Bear"))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ axel ])
             , test "can select on integer less-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Predicate 3 Lt (Constant (Int 20))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ hampton, axel ])
             , test "can not-ify a selection" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (runPlan (Select (Not (Predicate 0 Eq (Constant (String "Humphrey")))) (Read "toys")))
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ hampton, cloudBear, axel ])
             , test "can and-ify two selections" <|
                 \_ ->
@@ -159,7 +159,7 @@ runPlanTests =
                                     (Read "toys")
                                 )
                             )
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ humphrey ])
             , test "can or-ify two selections" <|
                 \_ ->
@@ -174,7 +174,7 @@ runPlanTests =
                                     (Read "toys")
                                 )
                             )
-                        |> Result.map .rows
+                        |> Result.map rows
                         |> Expect.equal (Ok [ hampton, axel ])
             ]
         , describe "project"
@@ -189,16 +189,14 @@ runPlanTests =
                     toysDb
                         |> Result.andThen
                             (runPlan (Project [ 0, 2 ] (Read "toys")))
+                        |> Result.map rows
                         |> Expect.equal
                             (Ok
-                                { schema = Array.fromList [ StringType, StringType ]
-                                , rows =
-                                    [ Array.fromList [ String "Hampton", String "USA" ]
-                                    , Array.fromList [ String "Humphrey", String "USA" ]
-                                    , Array.fromList [ String "Cloud Bear", String "USA" ]
-                                    , Array.fromList [ String "Axel", String "Iceland" ]
-                                    ]
-                                }
+                                [ Array.fromList [ String "Hampton", String "USA" ]
+                                , Array.fromList [ String "Humphrey", String "USA" ]
+                                , Array.fromList [ String "Cloud Bear", String "USA" ]
+                                , Array.fromList [ String "Axel", String "Iceland" ]
+                                ]
                             )
             ]
         , describe "join"
@@ -260,15 +258,13 @@ runPlanTests =
                                     }
                                 )
                             )
+                        |> Result.map rows
                         |> Expect.equal
                             (Ok
-                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType, IntType ]
-                                , rows =
-                                    [ Array.append gritty flyers
-                                    , Array.append louie blues
-                                    , Array.append fredbird cardinals
-                                    ]
-                                }
+                                [ Array.append gritty flyers
+                                , Array.append louie blues
+                                , Array.append fredbird cardinals
+                                ]
                             )
             , test "if you specify no columns, it works the same as a cross-product" <|
                 \_ ->
@@ -282,21 +278,19 @@ runPlanTests =
                                     }
                                 )
                             )
+                        |> Result.map rows
                         |> Expect.equal
                             (Ok
-                                { schema = Array.fromList [ StringType, StringType, StringType, StringType, StringType, IntType ]
-                                , rows =
-                                    [ Array.append fredbird flyers
-                                    , Array.append louie flyers
-                                    , Array.append gritty flyers
-                                    , Array.append fredbird blues
-                                    , Array.append louie blues
-                                    , Array.append gritty blues
-                                    , Array.append fredbird cardinals
-                                    , Array.append louie cardinals
-                                    , Array.append gritty cardinals
-                                    ]
-                                }
+                                [ Array.append fredbird flyers
+                                , Array.append louie flyers
+                                , Array.append gritty flyers
+                                , Array.append fredbird blues
+                                , Array.append louie blues
+                                , Array.append gritty blues
+                                , Array.append fredbird cardinals
+                                , Array.append louie cardinals
+                                , Array.append gritty cardinals
+                                ]
                             )
             ]
         ]

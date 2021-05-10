@@ -1,5 +1,6 @@
 module Database exposing
-    ( Database, Relation, empty
+    ( Database, empty
+    , Relation, rows
     , Schema, FieldType(..)
     , Constant(..), insert, Problem(..)
     , read
@@ -15,7 +16,9 @@ Resources:
   - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
   - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
 
-@docs Database, Relation, empty
+@docs Database, empty
+
+@docs Relation, rows
 
 @docs Schema, FieldType
 
@@ -68,10 +71,13 @@ type alias Row =
     Array Constant
 
 
-type alias Relation =
-    { schema : Schema
-    , rows : List Row
-    }
+type Relation
+    = Relation Schema (List Row)
+
+
+rows : Relation -> List Row
+rows (Relation _ rows_) =
+    rows_
 
 
 type alias Schema =
@@ -121,26 +127,28 @@ insert relationName row (Database db) =
         Nothing ->
             db
                 |> Dict.insert relationName
-                    { schema = rowToSchema row
-                    , rows = [ Array.fromList row ]
-                    }
+                    (Relation
+                        (rowToSchema row)
+                        [ Array.fromList row ]
+                    )
                 |> Database
                 |> Ok
 
-        Just relation ->
-            if relation.schema == rowToSchema row then
+        Just (Relation schema rows_) ->
+            if schema == rowToSchema row then
                 db
                     |> Dict.insert relationName
-                        { schema = relation.schema
-                        , rows = Array.fromList row :: relation.rows
-                        }
+                        (Relation
+                            schema
+                            (Array.fromList row :: rows_)
+                        )
                     |> Database
                     |> Ok
 
             else
                 Err
                     (SchemaMismatch
-                        { wanted = relation.schema
+                        { wanted = schema
                         , got = rowToSchema row
                         }
                     )
@@ -150,7 +158,7 @@ insert relationName row (Database db) =
 read : String -> Database -> Maybe (List (Array Constant))
 read relationName (Database db) =
     Dict.get relationName db
-        |> Maybe.map .rows
+        |> Maybe.map rows
 
 
 type QueryPlan
@@ -173,23 +181,23 @@ runPlan plan ((Database db) as db_) =
 
         Select selection inputPlan ->
             Result.andThen
-                (\input ->
-                    input.rows
+                (\(Relation schema rows_) ->
+                    rows_
                         |> filterWithResult (rowMatchesSelection selection)
-                        |> Result.map (Relation input.schema)
+                        |> Result.map (Relation schema)
                 )
                 (runPlan inputPlan db_)
 
         Project fields inputPlan ->
             Result.andThen
-                (\input ->
+                (\(Relation schema rows_) ->
                     Result.map
                         (\() ->
-                            { schema = takeFields fields input.schema
-                            , rows = List.map (takeFields fields) input.rows
-                            }
+                            Relation
+                                (takeFields fields schema)
+                                (List.map (takeFields fields) rows_)
                         )
-                        (validateFieldsAreInSchema input.schema fields)
+                        (validateFieldsAreInSchema schema fields)
                 )
                 (runPlan inputPlan db_)
 
@@ -199,8 +207,8 @@ runPlan plan ((Database db) as db_) =
                 runInput input fields =
                     runPlan input db_
                         |> Result.andThen
-                            (\relation ->
-                                case validateFieldsAreInSchema relation.schema fields of
+                            (\((Relation schema _) as relation) ->
+                                case validateFieldsAreInSchema schema fields of
                                     Ok _ ->
                                         Ok relation
 
@@ -215,12 +223,12 @@ runPlan plan ((Database db) as db_) =
                     List.map Tuple.second config.fields
             in
             Result.map2
-                (\left right ->
-                    if takeFields leftFields left.schema /= takeFields rightFields right.schema then
+                (\(Relation leftSchema leftRows) (Relation rightSchema rightRows) ->
+                    if takeFields leftFields leftSchema /= takeFields rightFields rightSchema then
                         Err
                             (SchemaMismatch
-                                { wanted = takeFields leftFields left.schema
-                                , got = takeFields rightFields right.schema
+                                { wanted = takeFields leftFields leftSchema
+                                , got = takeFields rightFields rightSchema
                                 }
                             )
 
@@ -232,30 +240,31 @@ runPlan plan ((Database db) as db_) =
                                         Sort.Dict.update (takeFields leftFields row)
                                             (\maybeRows ->
                                                 case maybeRows of
-                                                    Just rows ->
-                                                        Just (row :: rows)
+                                                    Just rows_ ->
+                                                        Just (row :: rows_)
 
                                                     Nothing ->
                                                         Just [ row ]
                                             )
                                     )
                                     (Sort.Dict.empty (arraySorter constantSorter))
-                                    left.rows
+                                    leftRows
                         in
                         Ok
-                            { schema = Array.append left.schema right.schema
-                            , rows =
-                                List.concatMap
+                            (Relation
+                                (Array.append leftSchema rightSchema)
+                                (List.concatMap
                                     (\rightRow ->
                                         case Sort.Dict.get (takeFields rightFields rightRow) leftIndex of
-                                            Just rows ->
-                                                List.map (\leftRow -> Array.append leftRow rightRow) rows
+                                            Just rows_ ->
+                                                List.map (\leftRow -> Array.append leftRow rightRow) rows_
 
                                             Nothing ->
                                                 []
                                     )
-                                    right.rows
-                            }
+                                    rightRows
+                                )
+                            )
                 )
                 (runInput config.left leftFields)
                 (runInput config.right rightFields)

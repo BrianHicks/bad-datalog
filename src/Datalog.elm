@@ -1,7 +1,7 @@
 module Datalog exposing (Atom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, query, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
-import Dict
+import Dict exposing (Dict)
 import Graph exposing (Edge, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
@@ -41,6 +41,24 @@ insert name body (Database db) =
 query : List Rule -> Database -> Result Problem Database.Database
 query rules (Database db) =
     let
+        namesToPlansResult : Result Problem (Dict String (List Database.QueryPlan))
+        namesToPlansResult =
+            foldrResult
+                (\((Rule (Atom name _) _) as rule_) soFar ->
+                    case ( ruleToPlan rule_, Dict.get name soFar ) of
+                        ( Ok plan, Just rulesSoFar ) ->
+                            Ok (Dict.insert name (plan :: rulesSoFar) soFar)
+
+                        ( Ok plan, Nothing ) ->
+                            Ok (Dict.insert name [ plan ] soFar)
+
+                        ( Err problem, _ ) ->
+                            Err problem
+                )
+                Dict.empty
+                rules
+
+        nodes : List (Node String)
         nodes =
             rules
                 |> List.foldl
@@ -64,6 +82,7 @@ query rules (Database db) =
                     )
                     []
 
+        edges : List (Edge ())
         edges =
             List.concatMap
                 (\(Rule (Atom headName _) bodyAtoms) ->
@@ -91,11 +110,35 @@ query rules (Database db) =
                 Err stronglyConnectedComponents ->
                     stronglyConnectedComponents
     in
-    -- 1. get a topological sort of the body rules starting from the query rule
-    -- 2. exclude any body rules that end up unused
-    -- 3. starting from the leafmost dependencies, perform naive (or semi-naive) evaluation, continually inserting the new rows into the database
-    -- 4. read the final name of `queryRule` once everything's done
-    Debug.todo (Debug.toString strata)
+    Result.andThen
+        (\namesToPlans ->
+            foldrResult
+                (\stratum preStratumDb ->
+                    stratum
+                        |> Graph.nodes
+                        |> List.filterMap
+                            (\{ label } ->
+                                -- TODO: should a Nothing produce an error value here?
+                                Maybe.map
+                                    (List.map (Tuple.pair label))
+                                    (Dict.get label namesToPlans)
+                            )
+                        |> List.concat
+                        |> foldrResult
+                            (\( name, plan ) soFar ->
+                                case Database.runPlan plan soFar of
+                                    Ok relation ->
+                                        Debug.todo (Debug.toString relation)
+
+                                    Err problem ->
+                                        Err (DatabaseProblem problem)
+                            )
+                            preStratumDb
+                )
+                db
+                strata
+        )
+        namesToPlansResult
 
 
 type Problem

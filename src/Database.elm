@@ -251,11 +251,8 @@ query plan ((Database db) as db_) =
                                         Err err
                             )
 
-                leftFields =
-                    List.map Tuple.first config.fields
-
-                rightFields =
-                    List.map Tuple.second config.fields
+                ( leftFields, rightFields ) =
+                    List.unzip config.fields
             in
             Result.map2
                 (\(Relation leftSchema leftRows) (Relation rightSchema rightRows) ->
@@ -269,6 +266,7 @@ query plan ((Database db) as db_) =
 
                     else
                         let
+                            leftIndex : Sort.Dict.Dict (Array Constant) (List Row)
                             leftIndex =
                                 List.foldl
                                     (\row ->

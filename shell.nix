@@ -12,5 +12,6 @@ in pkgs.mkShell {
     pkgs.elmPackages.elm-test
     pkgs.elmPackages.elm-format
     pkgs.elmPackages.elm-json
+    pkgs.elmPackages.elm-review
   ];
 }

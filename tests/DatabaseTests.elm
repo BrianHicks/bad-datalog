@@ -67,7 +67,7 @@ insertRelationTests =
         nhlMascots =
             mascotsDb
                 |> Result.andThen
-                    (runPlan
+                    (query
                         (Select
                             (Or
                                 (Predicate 1 Eq (Constant (String "Blues")))
@@ -82,7 +82,7 @@ insertRelationTests =
         mlbMascots =
             mascotsDb
                 |> Result.andThen
-                    (runPlan
+                    (query
                         (Select
                             (Predicate 1 Eq (Constant (String "Cardinals")))
                             (Read "mascots")
@@ -93,7 +93,7 @@ insertRelationTests =
         teams : Relation
         teams =
             mascotsDb
-                |> Result.andThen (runPlan (Read "teams"))
+                |> Result.andThen (query (Read "teams"))
                 |> unwrapOrCrash
     in
     describe "insertRelation"
@@ -147,21 +147,21 @@ readTests =
         ]
 
 
-runPlanTests : Test
-runPlanTests =
-    describe "runPlan"
+queryTests : Test
+queryTests =
+    describe "query"
         [ describe "read"
             [ test "can read a relation" <|
                 \_ ->
                     empty
                         |> insert "human" [ String "Socrates" ]
-                        |> Result.andThen (runPlan (Read "human"))
+                        |> Result.andThen (query (Read "human"))
                         |> Result.map rows
                         |> Expect.equal (Ok [ Array.fromList [ String "Socrates" ] ])
             , test "cannot read a relation that doesn't exist" <|
                 \_ ->
                     empty
-                        |> runPlan (Read "human")
+                        |> query (Read "human")
                         |> Expect.equal (Err (RelationNotFound "human"))
             ]
         , describe "select"
@@ -169,74 +169,74 @@ runPlanTests =
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 5 Eq (Constant (Int 0))) (Read "toys")))
+                            (query (Select (Predicate 5 Eq (Constant (Int 0))) (Read "toys")))
                         |> Expect.equal (Err (UnknownFields [ 5 ]))
             , test "doesn't let you select a field that doesn't exist on the right-hand side" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 0 Eq (Field 5)) (Read "toys")))
+                            (query (Select (Predicate 0 Eq (Field 5)) (Read "toys")))
                         |> Expect.equal (Err (UnknownFields [ 5 ]))
             , test "doesn't let you make comparisons against unlike types" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 0 Eq (Constant (Int 0))) (Read "toys")))
+                            (query (Select (Predicate 0 Eq (Constant (Int 0))) (Read "toys")))
                         |> Expect.equal (Err (IncompatibleComparison StringType IntType))
             , test "can select on string equality" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 1 Eq (Constant (String "Bear"))) (Read "toys")))
+                            (query (Select (Predicate 1 Eq (Constant (String "Bear"))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ cloudBear ])
             , test "can select on integer equality" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 3 Eq (Constant (Int 16))) (Read "toys")))
+                            (query (Select (Predicate 3 Eq (Constant (Int 16))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ axel ])
             , test "can select on string greater-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 0 Gt (Constant (String "Cloud Bear"))) (Read "toys")))
+                            (query (Select (Predicate 0 Gt (Constant (String "Cloud Bear"))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ hampton, humphrey ])
             , test "can select on integer greater-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 3 Gt (Constant (Int 20))) (Read "toys")))
+                            (query (Select (Predicate 3 Gt (Constant (Int 20))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ humphrey, cloudBear ])
             , test "can select on string less-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 0 Lt (Constant (String "Cloud Bear"))) (Read "toys")))
+                            (query (Select (Predicate 0 Lt (Constant (String "Cloud Bear"))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ axel ])
             , test "can select on integer less-than" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Predicate 3 Lt (Constant (Int 20))) (Read "toys")))
+                            (query (Select (Predicate 3 Lt (Constant (Int 20))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ hampton, axel ])
             , test "can not-ify a selection" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Select (Not (Predicate 0 Eq (Constant (String "Humphrey")))) (Read "toys")))
+                            (query (Select (Not (Predicate 0 Eq (Constant (String "Humphrey")))) (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal (Ok [ hampton, cloudBear, axel ])
             , test "can and-ify two selections" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Select
                                     (And
                                         (Predicate 2 Eq (Constant (String "USA")))
@@ -251,7 +251,7 @@ runPlanTests =
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Select
                                     (Or
                                         (Predicate 3 Lt (Constant (Int 16)))
@@ -268,13 +268,13 @@ runPlanTests =
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Project [ 5 ] (Read "toys")))
+                            (query (Project [ 5 ] (Read "toys")))
                         |> Expect.equal (Err (UnknownFields [ 5 ]))
             , test "can project a set of fields" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
-                            (runPlan (Project [ 0, 2 ] (Read "toys")))
+                            (query (Project [ 0, 2 ] (Read "toys")))
                         |> Result.map rows
                         |> Expect.equal
                             (Ok
@@ -290,7 +290,7 @@ runPlanTests =
                 \_ ->
                     mascotsDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Join
                                     { left = Read "mascots"
                                     , right = Read "teams"
@@ -303,7 +303,7 @@ runPlanTests =
                 \_ ->
                     mascotsDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Join
                                     { left = Read "mascots"
                                     , right = Read "teams"
@@ -316,7 +316,7 @@ runPlanTests =
                 \_ ->
                     mascotsDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Join
                                     { left = Read "mascots"
                                     , right = Read "teams"
@@ -336,7 +336,7 @@ runPlanTests =
                 \_ ->
                     mascotsDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Join
                                     { left = Read "mascots"
                                     , right = Read "teams"
@@ -356,7 +356,7 @@ runPlanTests =
                 \_ ->
                     mascotsDb
                         |> Result.andThen
-                            (runPlan
+                            (query
                                 (Join
                                     { left = Read "mascots"
                                     , right = Read "teams"

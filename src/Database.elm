@@ -3,7 +3,7 @@ module Database exposing
     , Relation, read, rows
     , Schema, FieldType(..)
     , Constant(..), Problem(..)
-    , QueryPlan(..), runPlan
+    , QueryPlan(..), query
     , Selection(..), Op(..), FieldOrConstant(..)
     )
 
@@ -25,7 +25,7 @@ Resources:
 
 @docs read
 
-@docs QueryPlan, runPlan
+@docs QueryPlan, query
 
 @docs Selection, Op, FieldOrConstant
 
@@ -193,7 +193,7 @@ insertRelation relationName (Relation schema newRows) (Database db) =
 {-| -}
 read : String -> Database -> Result Problem Relation
 read relationName db =
-    runPlan (Read relationName) db
+    query (Read relationName) db
 
 
 type QueryPlan
@@ -203,8 +203,8 @@ type QueryPlan
     | Join { left : QueryPlan, right : QueryPlan, fields : List ( Field, Field ) }
 
 
-runPlan : QueryPlan -> Database -> Result Problem Relation
-runPlan plan ((Database db) as db_) =
+query : QueryPlan -> Database -> Result Problem Relation
+query plan ((Database db) as db_) =
     case plan of
         Read relationName ->
             case Dict.get relationName db of
@@ -221,7 +221,7 @@ runPlan plan ((Database db) as db_) =
                         |> filterWithResult (rowMatchesSelection selection)
                         |> Result.map (Relation schema)
                 )
-                (runPlan inputPlan db_)
+                (query inputPlan db_)
 
         Project fields inputPlan ->
             Result.andThen
@@ -234,13 +234,13 @@ runPlan plan ((Database db) as db_) =
                         )
                         (validateFieldsAreInSchema schema fields)
                 )
-                (runPlan inputPlan db_)
+                (query inputPlan db_)
 
         Join config ->
             let
                 runInput : QueryPlan -> List Field -> Result Problem Relation
                 runInput input fields =
-                    runPlan input db_
+                    query input db_
                         |> Result.andThen
                             (\((Relation schema _) as relation) ->
                                 case validateFieldsAreInSchema schema fields of

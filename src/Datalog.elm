@@ -127,7 +127,7 @@ query rules (Database db) =
                         |> foldrResult
                             (\( name, plan ) soFar ->
                                 soFar
-                                    |> Database.runPlan plan
+                                    |> Database.query plan
                                     |> Result.andThen (\relation -> Database.insertRelation name relation soFar)
                                     |> Result.mapError DatabaseProblem
                             )

@@ -45,8 +45,9 @@ insertTests =
                 empty
                     |> insert "human" [ String "Socrates" ]
                     |> Result.andThen (insert "human" [ String "Socrates" ])
-                    |> Result.map (read "human")
-                    |> Expect.equal (Ok (Just [ Array.fromList [ String "Socrates" ] ]))
+                    |> Result.andThen (read "human")
+                    |> Result.map rows
+                    |> Expect.equal (Ok [ Array.fromList [ String "Socrates" ] ])
         ]
 
 
@@ -100,15 +101,17 @@ insertRelationTests =
             \_ ->
                 empty
                     |> insertRelation "mascots" nhlMascots
-                    |> Result.map (read "mascots")
-                    |> Expect.equal (Ok (Just (rows nhlMascots)))
+                    |> Result.andThen (read "mascots")
+                    |> Result.map rows
+                    |> Expect.equal (Ok (rows nhlMascots))
         , test "if the relation is already in the database, insertRelation merges rows" <|
             \_ ->
                 empty
                     |> insertRelation "mascots" nhlMascots
                     |> Result.andThen (insertRelation "mascots" mlbMascots)
-                    |> Result.map (read "mascots")
-                    |> Expect.equal (Ok (Just (rows mlbMascots ++ rows nhlMascots)))
+                    |> Result.andThen (read "mascots")
+                    |> Result.map rows
+                    |> Expect.equal (Ok (rows mlbMascots ++ rows nhlMascots))
         , test "if the new relation's schema doesn't match the name, return an error" <|
             \_ ->
                 empty
@@ -132,14 +135,15 @@ readTests =
             \_ ->
                 empty
                     |> read "human"
-                    |> Expect.equal Nothing
+                    |> Expect.equal (Err (RelationNotFound "human"))
         , test "can read a relation that does exist" <|
             \_ ->
                 empty
                     |> insert "human" [ String "Socrates" ]
-                    |> Result.map (read "human")
+                    |> Result.andThen (read "human")
+                    |> Result.map rows
                     |> Expect.equal
-                        (Ok (Just [ Array.fromList [ String "Socrates" ] ]))
+                        (Ok [ Array.fromList [ String "Socrates" ] ])
         ]
 
 

@@ -93,4 +93,5 @@ datalogTests =
 readError : String -> Database.Database -> Result Problem (List (Array Database.Constant))
 readError name db =
     Database.read name db
-        |> Result.fromMaybe (DatabaseProblem (Database.RelationNotFound name))
+        |> Result.map Database.rows
+        |> Result.mapError DatabaseProblem

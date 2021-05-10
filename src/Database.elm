@@ -191,10 +191,9 @@ insertRelation relationName (Relation schema newRows) (Database db) =
 
 
 {-| -}
-read : String -> Database -> Maybe (List (Array Constant))
-read relationName (Database db) =
-    Dict.get relationName db
-        |> Maybe.map rows
+read : String -> Database -> Result Problem Relation
+read relationName db =
+    runPlan (Read relationName) db
 
 
 type QueryPlan

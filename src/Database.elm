@@ -1,5 +1,5 @@
 module Database exposing
-    ( Database, empty, insert, mergeRelations
+    ( Database, empty, insert, mergeRelations, replaceRelation
     , Relation, read, rows
     , Schema, FieldType(..)
     , Constant(..), Problem(..)
@@ -16,7 +16,7 @@ Resources:
   - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
   - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
 
-@docs Database, empty, insert, mergeRelations
+@docs Database, empty, insert, mergeRelations, replaceRelation
 
 @docs Relation, read, rows
 
@@ -178,6 +178,11 @@ mergeRelations relationName (Relation schema newRows) (Database db) =
                 |> Dict.insert relationName (Relation schema newRows)
                 |> Database
                 |> Ok
+
+
+replaceRelation : String -> Relation -> Database -> Database
+replaceRelation relationName relation (Database db) =
+    Database (Dict.insert relationName relation db)
 
 
 {-| -}

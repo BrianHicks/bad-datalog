@@ -123,6 +123,32 @@ datalogTests =
                                 , link 1 4
                                 ]
                             )
+            , test "I can make a joining query" <|
+                \_ ->
+                    empty
+                        |> insert "mascot" [ string "Fredbird", string "Cardinals" ]
+                        |> Result.andThen (insert "mascot" [ string "Louie", string "Blues" ])
+                        |> Result.andThen (insert "mascot" [ string "Gritty", string "Flyers" ])
+                        |> Result.andThen (insert "team" [ string "Cardinals", string "St. Louis" ])
+                        |> Result.andThen (insert "team" [ string "Blues", string "St. Louis" ])
+                        |> Result.andThen (insert "team" [ string "Flyers", string "Philadelphia" ])
+                        |> Result.andThen
+                            (query
+                                [ rule (headAtom "hometown" [ "name", "hometown" ])
+                                    [ atom "mascot" [ var "name", var "team" ]
+                                    , atom "team" [ var "team", var "hometown" ]
+                                    ]
+                                ]
+                            )
+                        |> Result.andThen (readError "hometown")
+                        |> Result.map List.reverse
+                        |> Expect.equal
+                            (Ok
+                                [ Array.fromList [ Database.String "Fredbird", Database.String "St. Louis" ]
+                                , Array.fromList [ Database.String "Louie", Database.String "St. Louis" ]
+                                , Array.fromList [ Database.String "Gritty", Database.String "Philadelphia" ]
+                                ]
+                            )
             ]
         ]
 

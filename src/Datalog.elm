@@ -156,9 +156,11 @@ query rules (Database db) =
         strataResult
 
 
+runUntilExhausted : Graph ( String, Maybe Database.QueryPlan ) () -> Database.Database -> Result Problem Database.Database
 runUntilExhausted stratum db =
     let
-        newResult =
+        nextDbResult : Result Problem Database.Database
+        nextDbResult =
             foldrResult
                 (\{ label } soFar ->
                     let
@@ -178,16 +180,16 @@ runUntilExhausted stratum db =
                 db
                 (Graph.nodes stratum)
     in
-    case newResult of
-        Ok new ->
-            if new == db then
-                newResult
+    case nextDbResult of
+        Ok nextDb ->
+            if nextDb == db then
+                nextDbResult
 
             else
-                runUntilExhausted stratum new
+                runUntilExhausted stratum nextDb
 
         Err _ ->
-            newResult
+            nextDbResult
 
 
 type Rule

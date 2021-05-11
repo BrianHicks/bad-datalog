@@ -379,6 +379,82 @@ queryTests =
                                 ]
                             )
             ]
+        , describe "outer join"
+            [ test "removes fields from `keep` that are also in `drop`" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoin
+                                    { keep = Read "mascots"
+                                    , drop =
+                                        Read "mascots"
+                                            |> Select (Predicate 0 Eq (Constant (String "Louie")))
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal (Ok [ fredbird, gritty ])
+            , test "removes everything if `keep` and `drop` are the same" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoin
+                                    { keep = Read "mascots"
+                                    , drop = Read "mascots"
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal (Ok [])
+            , test "keeps all of `keep` if `drop` is empty" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoin
+                                    { keep = Read "mascots"
+                                    , drop = Read "mascots" |> Select (Predicate 0 Eq (Constant (String "NOBODY")))
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal (Ok [ fredbird, gritty, louie ])
+            , test "is empty if `keep` is empty" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoin
+                                    { keep = Read "mascots" |> Select (Predicate 0 Eq (Constant (String "NOBODY")))
+                                    , drop = Read "mascots"
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal (Ok [])
+            , test "returns an error if the two sides have different schemas" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoin
+                                    { keep = Read "mascots"
+                                    , drop = Read "teams"
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal
+                            (Err
+                                (SchemaMismatch
+                                    { wanted = Array.fromList [ StringType, StringType ]
+                                    , got = Array.fromList [ StringType, StringType, StringType, IntType ]
+                                    }
+                                )
+                            )
+            ]
         ]
 
 

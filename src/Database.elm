@@ -196,6 +196,7 @@ type QueryPlan
     | Select Selection QueryPlan
     | Project (List Field) QueryPlan
     | Join { left : QueryPlan, right : QueryPlan, fields : List ( Field, Field ) }
+    | OuterJoin { keep : QueryPlan, drop : QueryPlan }
 
 
 query : QueryPlan -> Database -> Result Problem Relation
@@ -301,6 +302,24 @@ query plan ((Database db) as db_) =
                 )
                 (runInput config.left leftFields)
                 (runInput config.right rightFields)
+                |> Result.andThen identity
+
+        OuterJoin { keep, drop } ->
+            Result.map2
+                (\(Relation keepSchema keepRows) (Relation dropSchema dropRows) ->
+                    if keepSchema /= dropSchema then
+                        Err
+                            (SchemaMismatch
+                                { wanted = keepSchema
+                                , got = dropSchema
+                                }
+                            )
+
+                    else
+                        Ok (Relation keepSchema (Set.dropIf (Set.memberOf dropRows) keepRows))
+                )
+                (query keep db_)
+                (query drop db_)
                 |> Result.andThen identity
 
 

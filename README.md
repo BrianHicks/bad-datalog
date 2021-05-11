@@ -18,6 +18,7 @@ It still needs some stuff before it's "good":
 - Any level of query plan optimization (in fact right now we definitely have the worst possible performance in a lot of cases.)
 - A DSL to parse from a string to a datalog program (this would make it way easier to introdice new variables, among other things.)
 - Named fields instead of just using positional semantics.
+- Indexes or primary keys of any kind for faster queries
 
 ## History
 

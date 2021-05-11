@@ -28,6 +28,7 @@ import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
+import Sort.Set
 
 
 type Database
@@ -162,38 +163,75 @@ runUntilExhausted :
     -> Database.Database
     -> Result Problem Database.Database
 runUntilExhausted stratum db =
-    let
-        nextDbResult : Result Problem Database.Database
-        nextDbResult =
-            foldrResult
-                (\{ label } soFar ->
-                    let
-                        ( name, maybePlan ) =
-                            label
-                    in
-                    case maybePlan of
-                        Just plan ->
-                            soFar
-                                |> Database.query plan
-                                |> Result.andThen (\relation -> Database.mergeRelations name relation soFar)
-                                |> Result.mapError DatabaseProblem
+    runUntilExhaustedHelp stratum db db
 
-                        Nothing ->
-                            Ok soFar
-                )
-                db
-                (Graph.nodes stratum)
+
+runUntilExhaustedHelp :
+    Graph ( String, Maybe Database.QueryPlan ) ()
+    -> Database.Database
+    -> Database.Database
+    -> Result Problem Database.Database
+runUntilExhaustedHelp stratum db finalDb =
+    -- the goal of semi-naive evaluation is to only read "new" tuples on each
+    -- iteration towards exhaustion (which is what I'm calling the state of
+    -- having found all the tuples.) This helps with performance: instead of
+    -- having to do joins over the entire data set plus new tuples, you only
+    -- have to do new tuples. This is safe because you've already evaluated the
+    -- "old" tuples in previous iterations.
+    --
+    -- The mental model here is that we're keeping track of a stack of relations
+    -- for each name instead of merging them all immediately. In practice,
+    -- we actually only need to keep track of a "new" database and the final
+    -- database. Once we don't get any new tuples in the database, we can
+    -- quit looping.
+    let
+        iterationResult : Result Problem ( Database.Database, Database.Database )
+        iterationResult =
+            Graph.nodes stratum
+                |> List.filterMap
+                    (\{ label } ->
+                        case label of
+                            ( name, Just plan ) ->
+                                Just ( name, plan )
+
+                            ( _, Nothing ) ->
+                                Nothing
+                    )
+                |> foldrResult
+                    (\( name, plan ) ( dbSoFar, finalDbSoFar ) ->
+                        dbSoFar
+                            |> Database.query plan
+                            |> Result.andThen
+                                (\relation ->
+                                    -- TODO: right now the query gets all the
+                                    -- tuples every time. This is great! But
+                                    -- it's not the way semi-naive evalatuation
+                                    -- is supposed to work: we ought to be
+                                    -- continuing on with only the net-new
+                                    -- tuples. I'm gonna come back to this
+                                    -- after implementing outer joins.
+                                    Result.map
+                                        (\merged ->
+                                            ( Database.replaceRelation name relation dbSoFar
+                                            , merged
+                                            )
+                                        )
+                                        (Database.mergeRelations name relation finalDbSoFar)
+                                )
+                            |> Result.mapError DatabaseProblem
+                    )
+                    ( db, finalDb )
     in
-    case nextDbResult of
-        Ok nextDb ->
-            if nextDb == db then
-                nextDbResult
+    case iterationResult of
+        Ok ( nextDb, newFinalDb ) ->
+            if newFinalDb == finalDb then
+                Ok newFinalDb
 
             else
-                runUntilExhausted stratum nextDb
+                runUntilExhaustedHelp stratum nextDb newFinalDb
 
-        Err _ ->
-            nextDbResult
+        Err problem ->
+            Err problem
 
 
 type Rule

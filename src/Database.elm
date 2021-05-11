@@ -174,11 +174,7 @@ insertRelation relationName (Relation schema newRows) (Database db) =
                         -- doing it all the time in the datalog query
                         -- implementation. Benchmark and see if a `Set` gives
                         -- a huge speed boost!
-                        (List.filter
-                            (\row -> not (List.member row existingRows))
-                            newRows
-                            ++ existingRows
-                        )
+                        (dedupe (newRows ++ existingRows))
                     )
                     db
                     |> Database
@@ -189,6 +185,24 @@ insertRelation relationName (Relation schema newRows) (Database db) =
                 |> Dict.insert relationName (Relation schema newRows)
                 |> Database
                 |> Ok
+
+
+{-| warning: absolutely HORRIBLE perf charactersistics here, and it doesn't
+even fully solve the problem (duplicate rows can be created via joins
+too.) Better move this stuff into sets ASAP.
+-}
+dedupe : List a -> List a
+dedupe items =
+    List.foldr
+        (\item soFar ->
+            if not (List.member item soFar) then
+                item :: soFar
+
+            else
+                soFar
+        )
+        []
+        items
 
 
 {-| -}

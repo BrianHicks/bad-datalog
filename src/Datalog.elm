@@ -1,11 +1,10 @@
-module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, query, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, int, query, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
-import Dict exposing (Dict)
+import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
-import Set
 
 
 type Database
@@ -41,104 +40,114 @@ insert name body (Database db) =
 query : List Rule -> Database -> Result Problem Database.Database
 query rules (Database db) =
     let
-        namesToPlansResult : Result Problem (Dict String (List Database.QueryPlan))
-        namesToPlansResult =
-            foldrResult
-                (\((Rule (Atom name _) _) as rule_) soFar ->
-                    case ( ruleToPlan rule_, Dict.get name soFar ) of
-                        ( Ok plan, Just rulesSoFar ) ->
-                            Ok (Dict.insert name (plan :: rulesSoFar) soFar)
-
-                        ( Ok plan, Nothing ) ->
-                            Ok (Dict.insert name [ plan ] soFar)
-
-                        ( Err problem, _ ) ->
-                            Err problem
-                )
-                Dict.empty
-                rules
-
-        nodes : List (Node String)
+        nodes : Result Problem (List (Node ( String, Maybe Database.QueryPlan )))
         nodes =
             rules
-                |> List.foldl
-                    (\(Rule (Atom headName _) bodyAtoms) soFar ->
-                        List.foldl
-                            (\bodyAtom soFar_ ->
-                                case bodyAtom of
-                                    BodyAtom (Atom bodyName _) ->
-                                        Set.insert bodyName soFar_
-                            )
-                            (Set.insert headName soFar)
-                            bodyAtoms
+                |> foldrResult
+                    (\((Rule (Atom name _) _) as rule_) soFar ->
+                        case ruleToPlan rule_ of
+                            Ok plan ->
+                                soFar
+                                    |> Dict.insert
+                                        (Murmur3.hashString 0 name)
+                                        ( name, Nothing )
+                                    |> Dict.insert
+                                        (Murmur3.hashString 0 (ruleToString rule_))
+                                        ( name, Just plan )
+                                    |> Ok
+
+                            Err problem ->
+                                Err problem
                     )
-                    Set.empty
-                |> Set.foldl
-                    (\name soFar ->
-                        Node
-                            (Murmur3.hashString 0 name)
-                            name
-                            :: soFar
+                    Dict.empty
+                |> Result.map
+                    (Dict.foldr
+                        (\id maybePlan soFar ->
+                            Node id maybePlan :: soFar
+                        )
+                        []
                     )
-                    []
 
         edges : List (Edge ())
         edges =
             List.concatMap
-                (\(Rule (Atom headName _) bodyAtoms) ->
-                    List.map
-                        (\bodyAtom ->
-                            case bodyAtom of
-                                BodyAtom (Atom bodyName _) ->
-                                    Edge
-                                        (Murmur3.hashString 0 headName)
-                                        (Murmur3.hashString 0 bodyName)
-                                        ()
-                        )
-                        bodyAtoms
+                (\((Rule (Atom headName _) bodyAtoms) as rule_) ->
+                    Edge
+                        (Murmur3.hashString 0 headName)
+                        (Murmur3.hashString 0 (ruleToString rule_))
+                        ()
+                        :: List.map
+                            (\bodyAtom ->
+                                case bodyAtom of
+                                    BodyAtom (Atom bodyName _) ->
+                                        Edge
+                                            (Murmur3.hashString 0 (ruleToString rule_))
+                                            (Murmur3.hashString 0 bodyName)
+                                            ()
+                            )
+                            bodyAtoms
                 )
                 rules
 
-        graph : Graph String ()
-        graph =
-            Graph.fromNodesAndEdges nodes edges
+        strataResult : Result Problem (List (Graph ( String, Maybe Database.QueryPlan ) ()))
+        strataResult =
+            Result.map
+                (\nodes_ ->
+                    let
+                        graph : Graph ( String, Maybe Database.QueryPlan ) ()
+                        graph =
+                            Graph.fromNodesAndEdges nodes_ edges
+                    in
+                    case Graph.stronglyConnectedComponents graph of
+                        Ok _ ->
+                            [ graph ]
 
-        strata : List (Graph String ())
-        strata =
-            case Graph.stronglyConnectedComponents graph of
-                Ok _ ->
-                    [ graph ]
-
-                Err stronglyConnectedComponents ->
-                    stronglyConnectedComponents
+                        Err stronglyConnectedComponents ->
+                            stronglyConnectedComponents
+                )
+                nodes
     in
     Result.andThen
-        (\namesToPlans ->
-            foldrResult
-                (\stratum preStratumDb ->
-                    stratum
-                        |> Graph.nodes
-                        |> List.filterMap
-                            (\{ label } ->
-                                -- TODO: should a Nothing produce an error value here?
-                                Maybe.map
-                                    (List.map (Tuple.pair label))
-                                    (Dict.get label namesToPlans)
-                            )
-                        |> List.concat
-                        |> foldrResult
-                            (\( name, plan ) soFar ->
-                                soFar
-                                    |> Database.query plan
-                                    |> Result.andThen (\relation -> Database.insertRelation name relation soFar)
-                                    |> Result.mapError DatabaseProblem
-                            )
-                            preStratumDb
-                )
+        (\strata ->
+            foldrResult runUntilExhausted
                 db
                 strata
         )
-        namesToPlansResult
+        strataResult
+
+
+runUntilExhausted stratum db =
+    let
+        newResult =
+            foldrResult
+                (\{ label } soFar ->
+                    let
+                        ( name, maybePlan ) =
+                            label
+                    in
+                    case maybePlan of
+                        Just plan ->
+                            soFar
+                                |> Database.query plan
+                                |> Result.andThen (\relation -> Database.insertRelation name relation soFar)
+                                |> Result.mapError DatabaseProblem
+
+                        Nothing ->
+                            Ok soFar
+                )
+                db
+                (Graph.nodes stratum)
+    in
+    case newResult of
+        Ok new ->
+            if new == db then
+                newResult
+
+            else
+                runUntilExhausted stratum new
+
+        Err _ ->
+            newResult
 
 
 type Problem
@@ -152,10 +161,22 @@ type Rule
     = Rule Atom (List BodyAtom)
 
 
+ruleToString : Rule -> String
+ruleToString (Rule head body) =
+    atomToString head ++ " :- " ++ String.join ", " (List.map bodyAtomToString body)
+
+
 {-| TODO: predicates
 -}
 type BodyAtom
     = BodyAtom Atom
+
+
+bodyAtomToString : BodyAtom -> String
+bodyAtomToString bodyAtom =
+    case bodyAtom of
+        BodyAtom atom_ ->
+            atomToString atom_
 
 
 rule : Atom -> List BodyAtom -> Rule
@@ -236,6 +257,11 @@ type Atom
     = Atom String (List Term)
 
 
+atomToString : Atom -> String
+atomToString (Atom name terms) =
+    name ++ "(" ++ String.join ", " (List.map termToString terms) ++ ")"
+
+
 atom : String -> List Term -> BodyAtom
 atom name terms =
     BodyAtom (Atom name terms)
@@ -275,6 +301,19 @@ type Term
     | Constant Constant
 
 
+termToString : Term -> String
+termToString term =
+    case term of
+        Variable var_ ->
+            var_
+
+        Constant (Database.String string_) ->
+            "\"" ++ string_ ++ "\""
+
+        Constant (Database.Int int_) ->
+            String.fromInt int_
+
+
 var : String -> Term
 var =
     Variable
@@ -283,3 +322,8 @@ var =
 string : String -> Term
 string =
     Constant << Database.String
+
+
+int : Int -> Term
+int =
+    Constant << Database.Int

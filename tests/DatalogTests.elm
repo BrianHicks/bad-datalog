@@ -86,6 +86,43 @@ datalogTests =
                         |> Result.andThen (readError "query")
                         |> Expect.equal
                             (Ok [ Array.fromList [ Database.String "Socrates" ] ])
+            , test "I can make a recursive query" <|
+                \_ ->
+                    empty
+                        |> insert "link" [ int 1, int 2 ]
+                        |> Result.andThen (insert "link" [ int 2, int 3 ])
+                        |> Result.andThen (insert "link" [ int 3, int 3 ])
+                        |> Result.andThen (insert "link" [ int 3, int 4 ])
+                        |> Result.andThen
+                            (query
+                                [ rule
+                                    (headAtom "reachable" [ "a", "b" ])
+                                    [ atom "link" [ var "a", var "b" ] ]
+                                , rule
+                                    (headAtom "reachable" [ "a", "c" ])
+                                    [ atom "reachable" [ var "a", var "b" ]
+                                    , atom "reachable" [ var "b", var "c" ]
+                                    ]
+                                ]
+                            )
+                        |> Result.andThen (readError "reachable")
+                        |> Result.map List.reverse
+                        |> Expect.equal
+                            (let
+                                link : Int -> Int -> Array Database.Constant
+                                link a b =
+                                    Array.fromList [ Database.Int a, Database.Int b ]
+                             in
+                             Ok
+                                [ link 1 2
+                                , link 2 3
+                                , link 3 3
+                                , link 3 4
+                                , link 1 3
+                                , link 2 4
+                                , link 1 4
+                                ]
+                            )
             ]
         ]
 

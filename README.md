@@ -10,16 +10,19 @@ It's got some stuff in it:
 
 It still needs some stuff before it's "good":
 
-- Negation
+- Set semantics for the database (it uses lists internally now, which creates some issues)
 - Filters in the datalog frontend (but the relational logic can do them)
 - Semi-naive evalution (it's fully naive right now, which means redoing all the joins every time. Yikes.)
-- Set semantics for the database (it uses lists internally now, which creates some issues)
-- Aggregation of any kind
+- Negation
+- A DSL to parse from a string to a datalog program (this would make it way easier to introduce new variables, among other things.)
 - Any level of query plan optimization (in fact right now we definitely have the worst possible performance in a lot of cases.)
-- A DSL to parse from a string to a datalog program (this would make it way easier to introdice new variables, among other things.)
+- A sample app
+- Aggregation of any kind
 - Named fields instead of just using positional semantics.
 - Indexes or primary keys of any kind for faster queries
-- A sample app to show you how to build stuff using it
+
+I plan to implement those things in roughly that order (maybe adding or dropping a few as I go) and releasing this as an Elm package when it's ready.
+The rankings are in `next-features.json` in the root of this repo, and can be fed into [elo.bytes.zone](https://elo.bytes.zone) for further ranking.
 
 ## History
 

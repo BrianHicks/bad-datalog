@@ -10,7 +10,6 @@ It's got some stuff in it:
 
 It still needs some stuff before it's "good":
 
-- Set semantics for the database (it uses lists internally now, which creates some issues)
 - Filters in the datalog frontend (but the relational logic can do them)
 - Semi-naive evalution (it's fully naive right now, which means redoing all the joins every time. Yikes.)
 - Negation
@@ -20,6 +19,7 @@ It still needs some stuff before it's "good":
 - Aggregation of any kind
 - Named fields instead of just using positional semantics.
 - Indexes or primary keys of any kind for faster queries
+- It might not be safe to store databases in the model (that is, it will break the Elm debugger because the Set implementation we use embeds a comparison function. It would be possible to take this out, but would require more effort than I want to make at the moment I'm writing this README.)
 
 I plan to implement those things in roughly that order (maybe adding or dropping a few as I go) and releasing this as an Elm package when it's ready.
 The rankings are in `next-features.json` in the root of this repo, and can be fed into [elo.bytes.zone](https://elo.bytes.zone) for further ranking.

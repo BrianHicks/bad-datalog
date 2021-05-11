@@ -210,7 +210,7 @@ queryTests =
                         |> Result.andThen
                             (query (Select (Predicate 3 Gt (Constant (Int 20))) (Read "toys")))
                         |> Result.map rows
-                        |> Expect.equal (Ok [ humphrey, cloudBear ])
+                        |> Expect.equal (Ok [ cloudBear, humphrey ])
             , test "can select on string less-than" <|
                 \_ ->
                     toysDb
@@ -224,14 +224,14 @@ queryTests =
                         |> Result.andThen
                             (query (Select (Predicate 3 Lt (Constant (Int 20))) (Read "toys")))
                         |> Result.map rows
-                        |> Expect.equal (Ok [ hampton, axel ])
+                        |> Expect.equal (Ok [ axel, hampton ])
             , test "can not-ify a selection" <|
                 \_ ->
                     toysDb
                         |> Result.andThen
                             (query (Select (Not (Predicate 0 Eq (Constant (String "Humphrey")))) (Read "toys")))
                         |> Result.map rows
-                        |> Expect.equal (Ok [ hampton, cloudBear, axel ])
+                        |> Expect.equal (Ok [ axel, cloudBear, hampton ])
             , test "can and-ify two selections" <|
                 \_ ->
                     toysDb
@@ -261,7 +261,7 @@ queryTests =
                                 )
                             )
                         |> Result.map rows
-                        |> Expect.equal (Ok [ hampton, axel ])
+                        |> Expect.equal (Ok [ axel, hampton ])
             ]
         , describe "project"
             [ test "does not allow selecting non-existent fields" <|
@@ -278,10 +278,10 @@ queryTests =
                         |> Result.map rows
                         |> Expect.equal
                             (Ok
-                                [ Array.fromList [ String "Hampton", String "USA" ]
-                                , Array.fromList [ String "Humphrey", String "USA" ]
+                                [ Array.fromList [ String "Axel", String "Iceland" ]
                                 , Array.fromList [ String "Cloud Bear", String "USA" ]
-                                , Array.fromList [ String "Axel", String "Iceland" ]
+                                , Array.fromList [ String "Hampton", String "USA" ]
+                                , Array.fromList [ String "Humphrey", String "USA" ]
                                 ]
                             )
             ]
@@ -347,9 +347,9 @@ queryTests =
                         |> Result.map rows
                         |> Expect.equal
                             (Ok
-                                [ Array.append gritty flyers
+                                [ Array.append fredbird cardinals
+                                , Array.append gritty flyers
                                 , Array.append louie blues
-                                , Array.append fredbird cardinals
                                 ]
                             )
             , test "if you specify no columns, it works the same as a cross-product" <|
@@ -367,15 +367,15 @@ queryTests =
                         |> Result.map rows
                         |> Expect.equal
                             (Ok
-                                [ Array.append fredbird flyers
-                                , Array.append louie flyers
-                                , Array.append gritty flyers
-                                , Array.append fredbird blues
-                                , Array.append louie blues
-                                , Array.append gritty blues
+                                [ Array.append fredbird blues
                                 , Array.append fredbird cardinals
-                                , Array.append louie cardinals
+                                , Array.append fredbird flyers
+                                , Array.append gritty blues
                                 , Array.append gritty cardinals
+                                , Array.append gritty flyers
+                                , Array.append louie blues
+                                , Array.append louie cardinals
+                                , Array.append louie flyers
                                 ]
                             )
             ]

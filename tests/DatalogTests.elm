@@ -106,7 +106,6 @@ datalogTests =
                                 ]
                             )
                         |> Result.andThen (readError "reachable")
-                        |> Result.map List.reverse
                         |> Expect.equal
                             (let
                                 link : Int -> Int -> Array Database.Constant
@@ -115,12 +114,12 @@ datalogTests =
                              in
                              Ok
                                 [ link 1 2
+                                , link 1 3
+                                , link 1 4
                                 , link 2 3
+                                , link 2 4
                                 , link 3 3
                                 , link 3 4
-                                , link 1 3
-                                , link 2 4
-                                , link 1 4
                                 ]
                             )
             , test "I can make a joining query" <|
@@ -141,12 +140,11 @@ datalogTests =
                                 ]
                             )
                         |> Result.andThen (readError "hometown")
-                        |> Result.map List.reverse
                         |> Expect.equal
                             (Ok
                                 [ Array.fromList [ Database.String "Fredbird", Database.String "St. Louis" ]
-                                , Array.fromList [ Database.String "Louie", Database.String "St. Louis" ]
                                 , Array.fromList [ Database.String "Gritty", Database.String "Philadelphia" ]
+                                , Array.fromList [ Database.String "Louie", Database.String "St. Louis" ]
                                 ]
                             )
             ]

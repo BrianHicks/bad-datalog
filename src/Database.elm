@@ -36,6 +36,7 @@ import Array exposing (Array)
 import Dict exposing (Dict)
 import Sort exposing (Sorter)
 import Sort.Dict
+import Sort.Set as Set exposing (Set)
 
 
 type Constant
@@ -71,13 +72,18 @@ type alias Row =
     Array Constant
 
 
+rowSorter : Sorter Row
+rowSorter =
+    arraySorter constantSorter
+
+
 type Relation
-    = Relation Schema (List Row)
+    = Relation Schema (Set Row)
 
 
 rows : Relation -> List Row
 rows (Relation _ rows_) =
-    rows_
+    Set.toList rows_
 
 
 type alias Schema =
@@ -129,7 +135,7 @@ insert relationName row (Database db) =
                 |> Dict.insert relationName
                     (Relation
                         (rowToSchema row)
-                        [ Array.fromList row ]
+                        (Set.singleton rowSorter (Array.fromList row))
                     )
                 |> Database
                 |> Ok
@@ -138,15 +144,7 @@ insert relationName row (Database db) =
             if schema == rowToSchema row then
                 db
                     |> Dict.insert relationName
-                        (Relation
-                            schema
-                            (if List.member (Array.fromList row) rows_ then
-                                rows_
-
-                             else
-                                Array.fromList row :: rows_
-                            )
-                        )
+                        (Relation schema (Set.insert (Array.fromList row) rows_))
                     |> Database
                     |> Ok
 
@@ -168,14 +166,9 @@ insertRelation relationName (Relation schema newRows) (Database db) =
                 Err (SchemaMismatch { wanted = existingSchema, got = schema })
 
             else
-                Dict.insert relationName
-                    (Relation schema
-                        -- TODO: WOOF this is gonna be slow, and we're
-                        -- doing it all the time in the datalog query
-                        -- implementation. Benchmark and see if a `Set` gives
-                        -- a huge speed boost!
-                        (dedupe (newRows ++ existingRows))
-                    )
+                Dict.insert
+                    relationName
+                    (Relation schema (Set.union rowSorter newRows existingRows))
                     db
                     |> Database
                     |> Ok
@@ -185,24 +178,6 @@ insertRelation relationName (Relation schema newRows) (Database db) =
                 |> Dict.insert relationName (Relation schema newRows)
                 |> Database
                 |> Ok
-
-
-{-| warning: absolutely HORRIBLE perf charactersistics here, and it doesn't
-even fully solve the problem (duplicate rows can be created via joins
-too.) Better move this stuff into sets ASAP.
--}
-dedupe : List a -> List a
-dedupe items =
-    List.foldr
-        (\item soFar ->
-            if not (List.member item soFar) then
-                item :: soFar
-
-            else
-                soFar
-        )
-        []
-        items
 
 
 {-| -}
@@ -233,7 +208,7 @@ query plan ((Database db) as db_) =
             Result.andThen
                 (\(Relation schema rows_) ->
                     rows_
-                        |> filterWithResult (rowMatchesSelection selection)
+                        |> filterWithResult rowSorter (rowMatchesSelection selection)
                         |> Result.map (Relation schema)
                 )
                 (query inputPlan db_)
@@ -245,7 +220,7 @@ query plan ((Database db) as db_) =
                         (\() ->
                             Relation
                                 (takeFields fields schema)
-                                (List.map (takeFields fields) rows_)
+                                (Set.map rowSorter (takeFields fields) rows_)
                         )
                         (validateFieldsAreInSchema schema fields)
                 )
@@ -281,35 +256,40 @@ query plan ((Database db) as db_) =
 
                     else
                         let
-                            leftIndex : Sort.Dict.Dict (Array Constant) (List Row)
+                            leftIndex : Sort.Dict.Dict (Array Constant) (Set Row)
                             leftIndex =
-                                List.foldl
-                                    (\row ->
+                                Set.foldl
+                                    (\row soFar ->
                                         Sort.Dict.update (takeFields leftFields row)
                                             (\maybeRows ->
                                                 case maybeRows of
                                                     Just rows_ ->
-                                                        Just (row :: rows_)
+                                                        Just (Set.insert row rows_)
 
                                                     Nothing ->
-                                                        Just [ row ]
+                                                        Just (Set.singleton rowSorter row)
                                             )
+                                            soFar
                                     )
-                                    (Sort.Dict.empty (arraySorter constantSorter))
+                                    (Sort.Dict.empty rowSorter)
                                     leftRows
                         in
                         Ok
                             (Relation
                                 (Array.append leftSchema rightSchema)
-                                (List.concatMap
-                                    (\rightRow ->
+                                (Set.foldl
+                                    (\rightRow soFar ->
                                         case Sort.Dict.get (takeFields rightFields rightRow) leftIndex of
                                             Just rows_ ->
-                                                List.map (\leftRow -> Array.append leftRow rightRow) rows_
+                                                Set.foldl
+                                                    (\leftRow soFarInner -> Set.insert (Array.append leftRow rightRow) soFarInner)
+                                                    soFar
+                                                    rows_
 
                                             Nothing ->
-                                                []
+                                                soFar
                                     )
+                                    (Set.empty rowSorter)
                                     rightRows
                                 )
                             )
@@ -358,21 +338,21 @@ type Op
     | Lt
 
 
-filterWithResult : (a -> Result problem Bool) -> List a -> Result problem (List a)
-filterWithResult =
-    filterWithResultHelp []
+filterWithResult : Sorter a -> (a -> Result problem Bool) -> Set a -> Result problem (Set a)
+filterWithResult sorter filter input =
+    filterWithResultHelp (Set.empty sorter) filter (Set.toList input)
 
 
-filterWithResultHelp : List a -> (a -> Result problem Bool) -> List a -> Result problem (List a)
+filterWithResultHelp : Set a -> (a -> Result problem Bool) -> List a -> Result problem (Set a)
 filterWithResultHelp done filter todo =
     case todo of
         [] ->
-            Ok (List.reverse done)
+            Ok done
 
         next :: rest ->
             case filter next of
                 Ok True ->
-                    filterWithResultHelp (next :: done) filter rest
+                    filterWithResultHelp (Set.insert next done) filter rest
 
                 Ok False ->
                     filterWithResultHelp done filter rest

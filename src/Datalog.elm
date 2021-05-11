@@ -149,14 +149,18 @@ query rules (Database db) =
     in
     Result.andThen
         (\strata ->
-            foldrResult runUntilExhausted
+            foldrResult
+                runUntilExhausted
                 db
                 strata
         )
         strataResult
 
 
-runUntilExhausted : Graph ( String, Maybe Database.QueryPlan ) () -> Database.Database -> Result Problem Database.Database
+runUntilExhausted :
+    Graph ( String, Maybe Database.QueryPlan ) ()
+    -> Database.Database
+    -> Result Problem Database.Database
 runUntilExhausted stratum db =
     let
         nextDbResult : Result Problem Database.Database

@@ -1,4 +1,27 @@
-module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom, empty, eq, filter, gt, headAtom, insert, int, lt, not_, or, query, rule, ruleToPlan, string, var)
+module Datalog exposing
+    ( Database, empty, Problem(..), insert, query
+    , Rule, rule, ruleToPlan
+    , BodyAtom, atom
+    , Atom, headAtom
+    , Filter, filter, eq, gt, lt, not_, or
+    , Term, var, int, string
+    )
+
+{-|
+
+@docs Database, empty, Problem, insert, query
+
+@docs Rule, rule, ruleToPlan
+
+@docs BodyAtom, atom
+
+@docs Atom, headAtom
+
+@docs Filter, filter, eq, gt, lt, not_, or
+
+@docs Term, var, int, string
+
+-}
 
 import Database exposing (Constant)
 import Dict
@@ -14,6 +37,13 @@ type Database
 empty : Database
 empty =
     Database Database.empty
+
+
+type Problem
+    = NeedAtLeastOneAtom
+    | VariableDoesNotAppearInBody String
+    | CannotInsertVariable String
+    | DatabaseProblem Database.Problem
 
 
 insert : String -> List Term -> Database -> Result Problem Database
@@ -160,15 +190,13 @@ runUntilExhausted stratum db =
             newResult
 
 
-type Problem
-    = NeedAtLeastOneAtom
-    | VariableDoesNotAppearInBody String
-    | CannotInsertVariable String
-    | DatabaseProblem Database.Problem
-
-
 type Rule
     = Rule Atom (List BodyAtom)
+
+
+rule : Atom -> List BodyAtom -> Rule
+rule =
+    Rule
 
 
 ruleToString : Rule -> String
@@ -176,11 +204,104 @@ ruleToString (Rule head body) =
     atomToString head ++ " :- " ++ String.join ", " (List.map bodyAtomToString body)
 
 
-{-| TODO: predicates
--}
+ruleToPlan : Rule -> Result Problem Database.QueryPlan
+ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
+    let
+        ( atoms, filters ) =
+            List.foldl
+                (\bodyAtom ( atomsSoFar, filtersSoFar ) ->
+                    case bodyAtom of
+                        BodyAtom atom_ ->
+                            ( atom_ :: atomsSoFar, filtersSoFar )
+
+                        Filter filter_ ->
+                            ( atomsSoFar, filter_ :: filtersSoFar )
+                )
+                ( [], [] )
+                bodyAtoms
+
+        plannedAtoms : Result Problem ( List String, Database.QueryPlan )
+        plannedAtoms =
+            case atoms of
+                [] ->
+                    Err NeedAtLeastOneAtom
+
+                first :: rest ->
+                    List.foldl
+                        (\nextAtom ( rightNames, rightPlan ) ->
+                            let
+                                ( leftNames, leftPlan ) =
+                                    atomToPlan nextAtom
+                            in
+                            ( leftNames ++ rightNames
+                            , Database.Join
+                                { left = leftPlan
+                                , right = rightPlan
+                                , fields =
+                                    Dict.merge
+                                        (\_ _ soFar -> soFar)
+                                        (\_ left right soFar -> ( left, right ) :: soFar)
+                                        (\_ _ soFar -> soFar)
+                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) leftNames))
+                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) rightNames))
+                                        []
+                                }
+                            )
+                        )
+                        (atomToPlan first)
+                        rest
+                        |> Ok
+
+        planned : Result Problem ( List String, Database.QueryPlan )
+        planned =
+            case ( filters, plannedAtoms ) of
+                ( [], _ ) ->
+                    plannedAtoms
+
+                ( _, Err _ ) ->
+                    plannedAtoms
+
+                ( _, Ok starter ) ->
+                    foldrResult
+                        (\nextFilter ( names, plan ) -> filterToPlan nextFilter names plan)
+                        starter
+                        filters
+    in
+    Result.andThen
+        (\( names, plan ) ->
+            headTerms
+                |> foldrResult
+                    (\term soFar ->
+                        case term of
+                            Variable name ->
+                                case indexOf name names of
+                                    Just idx ->
+                                        Ok (idx :: soFar)
+
+                                    Nothing ->
+                                        Err (VariableDoesNotAppearInBody name)
+
+                            Constant _ ->
+                                -- It's fine to just ignore this, since
+                                -- we disallow rules having constants by
+                                -- construction. This will be an unfortunate
+                                -- bug if we ever change that, though! :\
+                                Ok soFar
+                    )
+                    []
+                |> Result.map (\indexes -> Database.Project indexes plan)
+        )
+        planned
+
+
 type BodyAtom
     = BodyAtom Atom
     | Filter Filter
+
+
+atom : String -> List Term -> BodyAtom
+atom name terms =
+    BodyAtom (Atom name terms)
 
 
 bodyAtomToString : BodyAtom -> String
@@ -191,6 +312,44 @@ bodyAtomToString bodyAtom =
 
         Filter filter_ ->
             filterToString filter_
+
+
+type Atom
+    = Atom String (List Term)
+
+
+headAtom : String -> List String -> Atom
+headAtom name vars =
+    Atom name (List.map Variable vars)
+
+
+atomToString : Atom -> String
+atomToString (Atom name terms) =
+    name ++ "(" ++ String.join ", " (List.map termToString terms) ++ ")"
+
+
+atomToPlan : Atom -> ( List String, Database.QueryPlan )
+atomToPlan (Atom name terms) =
+    terms
+        |> List.indexedMap Tuple.pair
+        |> List.foldr
+            (\( fieldNum, term ) ( termNames, plan ) ->
+                case term of
+                    Variable var_ ->
+                        ( var_ :: termNames, plan )
+
+                    Constant constant ->
+                        ( "_" :: termNames
+                        , plan
+                            |> Database.Select
+                                (Database.Predicate
+                                    fieldNum
+                                    Database.Eq
+                                    (Database.Constant constant)
+                                )
+                        )
+            )
+            ( [], Database.Read name )
 
 
 {-| Note: we don't need AND here because it's implicit in the list of
@@ -319,160 +478,9 @@ opToString op =
             ">"
 
 
-rule : Atom -> List BodyAtom -> Rule
-rule =
-    Rule
-
-
-ruleToPlan : Rule -> Result Problem Database.QueryPlan
-ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
-    let
-        ( atoms, filters ) =
-            List.foldl
-                (\bodyAtom ( atomsSoFar, filtersSoFar ) ->
-                    case bodyAtom of
-                        BodyAtom atom_ ->
-                            ( atom_ :: atomsSoFar, filtersSoFar )
-
-                        Filter filter_ ->
-                            ( atomsSoFar, filter_ :: filtersSoFar )
-                )
-                ( [], [] )
-                bodyAtoms
-
-        plannedAtoms : Result Problem ( List String, Database.QueryPlan )
-        plannedAtoms =
-            case atoms of
-                [] ->
-                    Err NeedAtLeastOneAtom
-
-                first :: rest ->
-                    List.foldl
-                        (\nextAtom ( rightNames, rightPlan ) ->
-                            let
-                                ( leftNames, leftPlan ) =
-                                    atomToPlan nextAtom
-                            in
-                            ( leftNames ++ rightNames
-                            , Database.Join
-                                { left = leftPlan
-                                , right = rightPlan
-                                , fields =
-                                    Dict.merge
-                                        (\_ _ soFar -> soFar)
-                                        (\_ left right soFar -> ( left, right ) :: soFar)
-                                        (\_ _ soFar -> soFar)
-                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) leftNames))
-                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) rightNames))
-                                        []
-                                }
-                            )
-                        )
-                        (atomToPlan first)
-                        rest
-                        |> Ok
-
-        planned : Result Problem ( List String, Database.QueryPlan )
-        planned =
-            case ( filters, plannedAtoms ) of
-                ( [], _ ) ->
-                    plannedAtoms
-
-                ( _, Err _ ) ->
-                    plannedAtoms
-
-                ( _, Ok starter ) ->
-                    foldrResult
-                        (\nextFilter ( names, plan ) -> filterToPlan nextFilter names plan)
-                        starter
-                        filters
-    in
-    Result.andThen
-        (\( names, plan ) ->
-            headTerms
-                |> foldrResult
-                    (\term soFar ->
-                        case term of
-                            Variable name ->
-                                case indexOf name names of
-                                    Just idx ->
-                                        Ok (idx :: soFar)
-
-                                    Nothing ->
-                                        Err (VariableDoesNotAppearInBody name)
-
-                            Constant _ ->
-                                -- It's fine to just ignore this, since
-                                -- we disallow rules having constants by
-                                -- construction. This will be an unfortunate
-                                -- bug if we ever change that, though! :\
-                                Ok soFar
-                    )
-                    []
-                |> Result.map (\indexes -> Database.Project indexes plan)
-        )
-        planned
-
-
-type Atom
-    = Atom String (List Term)
-
-
-atomToString : Atom -> String
-atomToString (Atom name terms) =
-    name ++ "(" ++ String.join ", " (List.map termToString terms) ++ ")"
-
-
-atom : String -> List Term -> BodyAtom
-atom name terms =
-    BodyAtom (Atom name terms)
-
-
-headAtom : String -> List String -> Atom
-headAtom name vars =
-    Atom name (List.map Variable vars)
-
-
-atomToPlan : Atom -> ( List String, Database.QueryPlan )
-atomToPlan (Atom name terms) =
-    terms
-        |> List.indexedMap Tuple.pair
-        |> List.foldr
-            (\( fieldNum, term ) ( termNames, plan ) ->
-                case term of
-                    Variable var_ ->
-                        ( var_ :: termNames, plan )
-
-                    Constant constant ->
-                        ( "_" :: termNames
-                        , plan
-                            |> Database.Select
-                                (Database.Predicate
-                                    fieldNum
-                                    Database.Eq
-                                    (Database.Constant constant)
-                                )
-                        )
-            )
-            ( [], Database.Read name )
-
-
 type Term
     = Variable String
     | Constant Constant
-
-
-termToString : Term -> String
-termToString term =
-    case term of
-        Variable var_ ->
-            var_
-
-        Constant (Database.String string_) ->
-            "\"" ++ string_ ++ "\""
-
-        Constant (Database.Int int_) ->
-            String.fromInt int_
 
 
 var : String -> Term
@@ -488,3 +496,16 @@ string =
 int : Int -> Term
 int =
     Constant << Database.Int
+
+
+termToString : Term -> String
+termToString term =
+    case term of
+        Variable var_ ->
+            var_
+
+        Constant (Database.String string_) ->
+            "\"" ++ string_ ++ "\""
+
+        Constant (Database.Int int_) ->
+            String.fromInt int_

@@ -40,11 +40,14 @@ config =
 
     -- unused
     , NoUnused.CustomTypeConstructors.rule []
-    , NoUnused.CustomTypeConstructorArgs.rule
     , NoUnused.Dependencies.rule
     , NoUnused.Exports.rule
     , NoUnused.Modules.rule
     , NoUnused.Parameters.rule
     , NoUnused.Patterns.rule
     , NoUnused.Variables.rule
+
+    -- I'd like to use this, but it doesn't detect uses through `Expect.equal`,
+    -- only pattern matching.
+    -- , NoUnused.CustomTypeConstructorArgs.rule
     ]

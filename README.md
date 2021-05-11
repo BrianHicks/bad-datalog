@@ -19,6 +19,7 @@ It still needs some stuff before it's "good":
 - A DSL to parse from a string to a datalog program (this would make it way easier to introdice new variables, among other things.)
 - Named fields instead of just using positional semantics.
 - Indexes or primary keys of any kind for faster queries
+- A sample app to show you how to build stuff using it
 
 ## History
 

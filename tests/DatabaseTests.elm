@@ -51,8 +51,8 @@ insertTests =
         ]
 
 
-insertRelationTests : Test
-insertRelationTests =
+mergeRelationsTests : Test
+mergeRelationsTests =
     let
         unwrapOrCrash : Result x a -> a
         unwrapOrCrash result =
@@ -96,27 +96,27 @@ insertRelationTests =
                 |> Result.andThen (query (Read "teams"))
                 |> unwrapOrCrash
     in
-    describe "insertRelation"
-        [ test "if the relation is not in the database, insertRelation works like a bulk insert" <|
+    describe "mergeRelations"
+        [ test "if the relation is not in the database, mergeRelations works like a bulk insert" <|
             \_ ->
                 empty
-                    |> insertRelation "mascots" nhlMascots
+                    |> mergeRelations "mascots" nhlMascots
                     |> Result.andThen (read "mascots")
                     |> Result.map rows
                     |> Expect.equal (Ok (rows nhlMascots))
-        , test "if the relation is already in the database, insertRelation merges rows" <|
+        , test "if the relation is already in the database, mergeRelations merges rows" <|
             \_ ->
                 empty
-                    |> insertRelation "mascots" nhlMascots
-                    |> Result.andThen (insertRelation "mascots" mlbMascots)
+                    |> mergeRelations "mascots" nhlMascots
+                    |> Result.andThen (mergeRelations "mascots" mlbMascots)
                     |> Result.andThen (read "mascots")
                     |> Result.map rows
                     |> Expect.equal (Ok (rows mlbMascots ++ rows nhlMascots))
         , test "if the new relation's schema doesn't match the name, return an error" <|
             \_ ->
                 empty
-                    |> insertRelation "mascots" nhlMascots
-                    |> Result.andThen (insertRelation "mascots" teams)
+                    |> mergeRelations "mascots" nhlMascots
+                    |> Result.andThen (mergeRelations "mascots" teams)
                     |> Expect.equal
                         (Err
                             (SchemaMismatch

@@ -171,7 +171,7 @@ runUntilExhausted stratum db =
                         Just plan ->
                             soFar
                                 |> Database.query plan
-                                |> Result.andThen (\relation -> Database.insertRelation name relation soFar)
+                                |> Result.andThen (\relation -> Database.mergeRelations name relation soFar)
                                 |> Result.mapError DatabaseProblem
 
                         Nothing ->

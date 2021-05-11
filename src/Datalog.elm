@@ -1,4 +1,4 @@
-module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom, empty, headAtom, insert, int, query, rule, ruleToPlan, string, var)
+module Datalog exposing (Atom, BodyAtom, Database, Problem(..), Rule, Term, atom, empty, eq, filter, gt, headAtom, insert, int, lt, not_, or, query, rule, ruleToPlan, string, var)
 
 import Database exposing (Constant)
 import Dict
@@ -76,14 +76,24 @@ query rules (Database db) =
                         (Murmur3.hashString 0 headName)
                         (Murmur3.hashString 0 (ruleToString rule_))
                         ()
-                        :: List.map
+                        :: List.filterMap
                             (\bodyAtom ->
                                 case bodyAtom of
                                     BodyAtom (Atom bodyName _) ->
-                                        Edge
-                                            (Murmur3.hashString 0 (ruleToString rule_))
-                                            (Murmur3.hashString 0 bodyName)
-                                            ()
+                                        Just
+                                            (Edge
+                                                (Murmur3.hashString 0 (ruleToString rule_))
+                                                (Murmur3.hashString 0 bodyName)
+                                                ()
+                                            )
+
+                                    Filter _ ->
+                                        -- filters don't actually create
+                                        -- dependencies between atoms; they only
+                                        -- filter on names that have already been
+                                        -- bound from those dependencies. So we're
+                                        -- good to just drop them at this stage.
+                                        Nothing
                             )
                             bodyAtoms
                 )
@@ -151,7 +161,7 @@ runUntilExhausted stratum db =
 
 
 type Problem
-    = CannotPlanFact
+    = NeedAtLeastOneAtom
     | VariableDoesNotAppearInBody String
     | CannotInsertVariable String
     | DatabaseProblem Database.Problem
@@ -170,6 +180,7 @@ ruleToString (Rule head body) =
 -}
 type BodyAtom
     = BodyAtom Atom
+    | Filter Filter
 
 
 bodyAtomToString : BodyAtom -> String
@@ -177,6 +188,135 @@ bodyAtomToString bodyAtom =
     case bodyAtom of
         BodyAtom atom_ ->
             atomToString atom_
+
+        Filter filter_ ->
+            filterToString filter_
+
+
+{-| Note: we don't need AND here because it's implicit in the list of
+conditions in a rule.
+-}
+type Filter
+    = Predicate String Op Term
+    | Not Filter
+    | Or Filter Filter
+
+
+type Op
+    = Eq
+    | Gt
+    | Lt
+
+
+filter : Filter -> BodyAtom
+filter =
+    Filter
+
+
+eq : String -> Term -> Filter
+eq lhs rhs =
+    Predicate lhs Eq rhs
+
+
+gt : String -> Term -> Filter
+gt lhs rhs =
+    Predicate lhs Gt rhs
+
+
+lt : String -> Term -> Filter
+lt lhs rhs =
+    Predicate lhs Lt rhs
+
+
+not_ : Filter -> Filter
+not_ =
+    Not
+
+
+or : Filter -> Filter -> Filter
+or =
+    Or
+
+
+filterToPlan : Filter -> List String -> Database.QueryPlan -> Result Problem ( List String, Database.QueryPlan )
+filterToPlan topFilter names plan =
+    let
+        convertField : String -> Result Problem Database.Field
+        convertField name =
+            case indexOf name names of
+                Just idx ->
+                    Ok idx
+
+                Nothing ->
+                    Err (VariableDoesNotAppearInBody name)
+
+        convertTerm : Term -> Result Problem Database.FieldOrConstant
+        convertTerm term =
+            case term of
+                Variable name ->
+                    Result.map Database.Field (convertField name)
+
+                Constant constant ->
+                    Ok (Database.Constant constant)
+
+        convertOp : Op -> Database.Op
+        convertOp op =
+            case op of
+                Eq ->
+                    Database.Eq
+
+                Lt ->
+                    Database.Lt
+
+                Gt ->
+                    Database.Gt
+
+        toSelection : Filter -> Result Problem Database.Selection
+        toSelection filter_ =
+            case filter_ of
+                Predicate lhs op rhs ->
+                    Result.map3 Database.Predicate
+                        (convertField lhs)
+                        (Ok (convertOp op))
+                        (convertTerm rhs)
+
+                Not inner ->
+                    Result.map Database.Not (toSelection inner)
+
+                Or left right ->
+                    Result.map2 Database.Or
+                        (toSelection left)
+                        (toSelection right)
+    in
+    Result.map
+        (\selection -> ( names, Database.Select selection plan ))
+        (toSelection topFilter)
+
+
+filterToString : Filter -> String
+filterToString filter_ =
+    case filter_ of
+        Predicate lhs op rhs ->
+            lhs ++ " " ++ opToString op ++ " " ++ termToString rhs
+
+        Not notFilter ->
+            "not " ++ filterToString notFilter
+
+        Or left right ->
+            filterToString left ++ " or " ++ filterToString right
+
+
+opToString : Op -> String
+opToString op =
+    case op of
+        Eq ->
+            "="
+
+        Lt ->
+            "<"
+
+        Gt ->
+            ">"
 
 
 rule : Atom -> List BodyAtom -> Rule
@@ -187,18 +327,31 @@ rule =
 ruleToPlan : Rule -> Result Problem Database.QueryPlan
 ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
     let
-        planned : Result Problem ( List String, Database.QueryPlan )
-        planned =
-            case bodyAtoms of
+        ( atoms, filters ) =
+            List.foldl
+                (\bodyAtom ( atomsSoFar, filtersSoFar ) ->
+                    case bodyAtom of
+                        BodyAtom atom_ ->
+                            ( atom_ :: atomsSoFar, filtersSoFar )
+
+                        Filter filter_ ->
+                            ( atomsSoFar, filter_ :: filtersSoFar )
+                )
+                ( [], [] )
+                bodyAtoms
+
+        plannedAtoms : Result Problem ( List String, Database.QueryPlan )
+        plannedAtoms =
+            case atoms of
                 [] ->
-                    Err CannotPlanFact
+                    Err NeedAtLeastOneAtom
 
                 first :: rest ->
                     List.foldl
                         (\nextAtom ( rightNames, rightPlan ) ->
                             let
                                 ( leftNames, leftPlan ) =
-                                    bodyAtomToPlan nextAtom
+                                    atomToPlan nextAtom
                             in
                             ( leftNames ++ rightNames
                             , Database.Join
@@ -215,9 +368,24 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                                 }
                             )
                         )
-                        (bodyAtomToPlan first)
+                        (atomToPlan first)
                         rest
                         |> Ok
+
+        planned : Result Problem ( List String, Database.QueryPlan )
+        planned =
+            case ( filters, plannedAtoms ) of
+                ( [], _ ) ->
+                    plannedAtoms
+
+                ( _, Err _ ) ->
+                    plannedAtoms
+
+                ( _, Ok starter ) ->
+                    foldrResult
+                        (\nextFilter ( names, plan ) -> filterToPlan nextFilter names plan)
+                        starter
+                        filters
     in
     Result.andThen
         (\( names, plan ) ->
@@ -244,13 +412,6 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                 |> Result.map (\indexes -> Database.Project indexes plan)
         )
         planned
-
-
-bodyAtomToPlan : BodyAtom -> ( List String, Database.QueryPlan )
-bodyAtomToPlan bodyAtom =
-    case bodyAtom of
-        BodyAtom atom_ ->
-            atomToPlan atom_
 
 
 type Atom

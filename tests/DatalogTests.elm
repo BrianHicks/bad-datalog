@@ -36,11 +36,82 @@ datalogTests =
                         |> ruleToPlan
                         |> Expect.equal
                             (Database.Join
-                                { left = Database.Read "reachable"
-                                , right = Database.Read "link"
-                                , fields = [ ( 0, 1 ) ]
+                                { left = Database.Read "link"
+                                , right = Database.Read "reachable"
+                                , fields = [ ( 1, 0 ) ]
                                 }
-                                |> Database.Project [ 2, 1 ]
+                                |> Database.Project [ 0, 3 ]
+                                |> Ok
+                            )
+            , test "filtering adds a predicate" <|
+                \_ ->
+                    rule
+                        (headAtom "adult" [ "name" ])
+                        [ atom "person" [ var "name", var "age" ]
+                        , filter (gt "age" (int 20))
+                        ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.Read "person"
+                                |> Database.Select (Database.Predicate 1 Database.Gt (Database.Constant (Database.Int 20)))
+                                |> Database.Project [ 0 ]
+                                |> Ok
+                            )
+            , test "filtering using negation adds a predicate" <|
+                \_ ->
+                    rule
+                        (headAtom "sibling" [ "a", "b" ])
+                        [ atom "parent" [ var "parent", var "a" ]
+                        , atom "parent" [ var "parent", var "b" ]
+                        , filter (not_ (eq "a" (var "b")))
+                        ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.Join
+                                { left = Database.Read "parent"
+                                , right = Database.Read "parent"
+                                , fields = [ ( 0, 0 ) ]
+                                }
+                                |> Database.Select (Database.Not (Database.Predicate 1 Database.Eq (Database.Field 3)))
+                                |> Database.Project [ 1, 3 ]
+                                |> Ok
+                            )
+            , test "filtering using or adds a predicate" <|
+                \_ ->
+                    rule
+                        (headAtom "teen" [ "name" ])
+                        [ atom "person" [ var "name", var "age" ]
+                        , filter
+                            (or
+                                (gt "age" (int 12))
+                                (lt "age" (int 20))
+                            )
+                        ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.Read "person"
+                                |> Database.Select
+                                    (Database.Or
+                                        (Database.Predicate 1 Database.Gt (Database.Constant (Database.Int 12)))
+                                        (Database.Predicate 1 Database.Lt (Database.Constant (Database.Int 20)))
+                                    )
+                                |> Database.Project [ 0 ]
+                                |> Ok
+                            )
+            , test "filtering using separate filters adds two filters" <|
+                \_ ->
+                    rule
+                        (headAtom "oldHockeyTeam" [ "name" ])
+                        [ atom "team" [ var "name", var "league", var "age" ]
+                        , filter (eq "league" (string "NHL"))
+                        , filter (gt "age" (int 50))
+                        ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.Read "team"
+                                |> Database.Select (Database.Predicate 1 Database.Eq (Database.Constant (Database.String "NHL")))
+                                |> Database.Select (Database.Predicate 2 Database.Gt (Database.Constant (Database.Int 50)))
+                                |> Database.Project [ 0 ]
                                 |> Ok
                             )
             , describe "safety"
@@ -50,16 +121,30 @@ datalogTests =
                             (headAtom "noBody" [ "a" ])
                             []
                             |> ruleToPlan
-                            |> Expect.equal
-                                (Err CannotPlanFact)
+                            |> Expect.equal (Err NeedAtLeastOneAtom)
                 , test "all terms in the head must appear in the body" <|
                     \_ ->
                         rule
                             (headAtom "bad" [ "a", "b" ])
                             [ atom "fine" [ var "a" ] ]
                             |> ruleToPlan
-                            |> Expect.equal
-                                (Err (VariableDoesNotAppearInBody "b"))
+                            |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
+                , test "you can't have just filters" <|
+                    \_ ->
+                        rule
+                            (headAtom "bad" [ "a" ])
+                            [ filter (eq "a" (string "no")) ]
+                            |> ruleToPlan
+                            |> Expect.equal (Err NeedAtLeastOneAtom)
+                , test "you can't filter on an unbound name" <|
+                    \_ ->
+                        rule
+                            (headAtom "bad" [ "a" ])
+                            [ atom "fine" [ var "a" ]
+                            , filter (eq "b" (string "no"))
+                            ]
+                            |> ruleToPlan
+                            |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 ]
             ]
         , describe "running a program"

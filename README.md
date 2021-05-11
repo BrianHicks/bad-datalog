@@ -10,7 +10,6 @@ It's got some stuff in it:
 
 It still needs some stuff before it's "good":
 
-- Filters in the datalog frontend (but the relational logic can do them)
 - Semi-naive evalution (it's fully naive right now, which means redoing all the joins every time. Yikes.)
 - Negation
 - A DSL to parse from a string to a datalog program (this would make it way easier to introduce new variables, among other things.)

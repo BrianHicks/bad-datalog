@@ -199,17 +199,30 @@ runUntilExhaustedHelp stratum db finalDb =
                     )
                 |> foldrResult
                     (\( name, plan ) ( dbSoFar, finalDbSoFar ) ->
+                        let
+                            -- We only want to get the new rows in order to avoid
+                            -- recomputing previous tuples, so we want an outer
+                            -- join on the existing rows! But, the relation
+                            -- we're joining on might not be in the database
+                            -- yet. So we try to look up the relation first
+                            -- (which is pretty quick.) If it exists, we know
+                            -- that our join is at least feasible, but if the
+                            -- lookup fails for any reason we'd better not try it!
+                            finalPlan =
+                                case Database.read name dbSoFar of
+                                    Ok _ ->
+                                        Database.OuterJoin
+                                            { keep = plan
+                                            , drop = Database.Read name
+                                            }
+
+                                    Err _ ->
+                                        plan
+                        in
                         dbSoFar
-                            |> Database.query plan
+                            |> Database.query finalPlan
                             |> Result.andThen
                                 (\relation ->
-                                    -- TODO: right now the query gets all the
-                                    -- tuples every time. This is great! But
-                                    -- it's not the way semi-naive evalatuation
-                                    -- is supposed to work: we ought to be
-                                    -- continuing on with only the net-new
-                                    -- tuples. I'm gonna come back to this
-                                    -- after implementing outer joins.
                                     Result.map
                                         (\merged ->
                                             ( Database.replaceRelation name relation dbSoFar

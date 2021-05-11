@@ -185,7 +185,7 @@ datalogTests =
                                     [ atom "link" [ var "a", var "b" ] ]
                                 , rule
                                     (headAtom "reachable" [ "a", "c" ])
-                                    [ atom "reachable" [ var "a", var "b" ]
+                                    [ atom "link" [ var "a", var "b" ]
                                     , atom "reachable" [ var "b", var "c" ]
                                     ]
                                 ]

@@ -10,7 +10,6 @@ It's got some stuff in it:
 
 It still needs some stuff before it's "good":
 
-- Semi-naive evalution (it's fully naive right now, which means redoing all the joins every time. Yikes.)
 - Negation
 - A DSL to parse from a string to a datalog program (this would make it way easier to introduce new variables, among other things.)
 - Any level of query plan optimization (in fact right now we definitely have the worst possible performance in a lot of cases.)
@@ -19,6 +18,7 @@ It still needs some stuff before it's "good":
 - Named fields instead of just using positional semantics.
 - Indexes or primary keys of any kind for faster queries
 - It might not be safe to store databases in the model (that is, it will break the Elm debugger because the Set implementation we use embeds a comparison function. It would be possible to take this out, but would require more effort than I want to make at the moment I'm writing this README.)
+- Warnings for situations where queries might not work the way you expect (e.g. doing `reachable(a, c) :- reachable(a, b), reachable(b, c).` instead of `reachable(a, c) :- link(a, b), reachable(b, c).`)
 
 I plan to implement those things in roughly that order (maybe adding or dropping a few as I go) and releasing this as an Elm package when it's ready.
 The rankings are in `next-features.json` in the root of this repo, and can be fed into [elo.bytes.zone](https://elo.bytes.zone) for further ranking.

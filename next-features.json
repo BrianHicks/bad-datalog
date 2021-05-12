@@ -3,62 +3,56 @@
     {
       "id": 232705142,
       "name": "primary keys and indexes",
-      "rating": 1025,
+      "rating": 1054,
+      "matches": 15
+    },
+    {
+      "id": 245104970,
+      "name": "nicer errors that pinpoint issue location",
+      "rating": 1145,
       "matches": 10
     },
     {
       "id": 797886670,
       "name": "query plan optimization",
-      "rating": 1183,
-      "matches": 11
+      "rating": 1198,
+      "matches": 12
+    },
+    {
+      "id": 1193371350,
+      "name": "warnings in odd querying situations",
+      "rating": 1080,
+      "matches": 10
     },
     {
       "id": 1519967533,
       "name": "named fields",
-      "rating": 1056,
+      "rating": 995,
+      "matches": 15
+    },
+    {
+      "id": 1524275694,
+      "name": "model safety",
+      "rating": 1156,
       "matches": 10
     },
     {
       "id": 1633470887,
       "name": "aggregation",
-      "rating": 1143,
-      "matches": 10
-    },
-    {
-      "id": 1705325885,
-      "name": "negation",
-      "rating": 1215,
-      "matches": 10
+      "rating": 1202,
+      "matches": 15
     },
     {
       "id": 1916244794,
       "name": "string DSL",
-      "rating": 1197,
-      "matches": 11
+      "rating": 1122,
+      "matches": 15
     },
     {
       "id": 3318043609,
       "name": "sample app",
-      "rating": 1175,
-      "matches": 10
-    },
-    {
-      "id": 3492608027,
-      "name": "semi-naive evaluation",
-      "rating": 1320,
-      "matches": 10
-    },
-    {
-      "id": 3731542928,
-      "name": "filters in the frontend",
-      "rating": 1329,
-      "matches": 10
-    },
-    {
-      "id": 4223280004,
-      "name": "set semantics",
-      "rating": 1357,
-      "matches": 10
+      "rating": 1214,
+      "matches": 14
     }
   ]
 }

@@ -1,9 +1,8 @@
 module Database.Datalog exposing
     ( Database, empty, Problem(..), insert, query
-    , Rule, rule, ruleToPlan
+    , Rule, rule, withMatching, withoutMatching, filter, planRule
     , BodyAtom, atom, notAtom
-    , Atom, headAtom
-    , Filter, filter, eq, gt, lt, not_, or
+    , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
     )
 
@@ -11,13 +10,11 @@ module Database.Datalog exposing
 
 @docs Database, empty, Problem, insert, query
 
-@docs Rule, rule, ruleToPlan
+@docs Rule, rule, withMatching, withoutMatching, filter, planRule
 
 @docs BodyAtom, atom, notAtom
 
-@docs Atom, headAtom
-
-@docs Filter, filter, eq, gt, lt, not_, or
+@docs Filter, eq, gt, lt, not_, or
 
 @docs Term, var, int, string
 
@@ -77,7 +74,7 @@ query rules (Database db) =
             rules
                 |> foldrResult
                     (\((Rule (Atom name _) _) as rule_) soFar ->
-                        case ruleToPlan rule_ of
+                        case planRule rule_ of
                             Ok plan ->
                                 soFar
                                     |> Dict.insert
@@ -262,18 +259,23 @@ type Rule
     = Rule Atom (List BodyAtom)
 
 
-rule : Atom -> List BodyAtom -> Rule
-rule =
-    Rule
+rule : String -> List String -> Rule
+rule name headVars =
+    Rule (Atom name (List.map Variable headVars)) []
 
 
-ruleToString : Rule -> String
-ruleToString (Rule head body) =
-    atomToString head ++ " :- " ++ String.join ", " (List.map bodyAtomToString body)
+withMatching : String -> List Term -> Rule -> Rule
+withMatching name terms (Rule head body) =
+    Rule head (BodyAtom Positive (Atom name terms) :: body)
 
 
-ruleToPlan : Rule -> Result Problem Database.QueryPlan
-ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
+withoutMatching : String -> List Term -> Rule -> Rule
+withoutMatching name terms (Rule head body) =
+    Rule head (BodyAtom Negative (Atom name terms) :: body)
+
+
+planRule : Rule -> Result Problem Database.QueryPlan
+planRule (Rule (Atom _ headTerms) bodyAtoms) =
     let
         ( positiveAtoms, negativeAtoms, filters ) =
             List.foldl
@@ -407,6 +409,11 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
         planned
 
 
+ruleToString : Rule -> String
+ruleToString (Rule head body) =
+    atomToString head ++ " :- " ++ String.join ", " (List.map bodyAtomToString body)
+
+
 type Negation
     = Positive
     | Negative
@@ -449,11 +456,6 @@ bodyAtomToString bodyAtom =
 
 type Atom
     = Atom String (List Term)
-
-
-headAtom : String -> List String -> Atom
-headAtom name vars =
-    Atom name (List.map Variable vars)
 
 
 atomToString : Atom -> String
@@ -500,9 +502,9 @@ type Op
     | Lt
 
 
-filter : Filter -> BodyAtom
-filter =
-    Filter
+filter : Filter -> Rule -> Rule
+filter filter_ (Rule head body) =
+    Rule head (Filter filter_ :: body)
 
 
 eq : String -> Term -> Filter

@@ -10,16 +10,18 @@ import Test exposing (..)
 datalogTests : Test
 datalogTests =
     describe "Datalog"
-        [ describe "ruleToPlan"
+        [ describe "planRule"
             [ test "a simple read turns into a Read -> Project" <|
                 \_ ->
-                    rule (headAtom "mortal" [ "who" ]) [ atom "greek" [ var "who" ] ]
-                        |> ruleToPlan
+                    rule "mortal" [ "who" ]
+                        |> withMatching "greek" [ var "who" ]
+                        |> planRule
                         |> Expect.equal (Ok (Database.Project [ 0 ] (Database.Read "greek")))
             , test "a filtered read turns into a Select" <|
                 \_ ->
-                    rule (headAtom "mortal" [ "first name" ]) [ atom "greek" [ var "first name", string "of Athens" ] ]
-                        |> ruleToPlan
+                    rule "mortal" [ "first name" ]
+                        |> withMatching "greek" [ var "first name", string "of Athens" ]
+                        |> planRule
                         |> Expect.equal
                             (Database.Read "greek"
                                 |> Database.Select (Database.Predicate 1 Database.Eq (Database.Constant (Database.String "of Athens")))
@@ -28,29 +30,25 @@ datalogTests =
                             )
             , test "sharing a variable between two atoms results in a join" <|
                 \_ ->
-                    rule
-                        (headAtom "reachable" [ "a", "c" ])
-                        [ atom "link" [ var "a", var "b" ]
-                        , atom "reachable" [ var "b", var "c" ]
-                        ]
-                        |> ruleToPlan
+                    rule "reachable" [ "a", "c" ]
+                        |> withMatching "link" [ var "a", var "b" ]
+                        |> withMatching "reachable" [ var "b", var "c" ]
+                        |> planRule
                         |> Expect.equal
                             (Database.JoinOn
-                                { left = Database.Read "link"
-                                , right = Database.Read "reachable"
-                                , fields = [ ( 1, 0 ) ]
+                                { left = Database.Read "reachable"
+                                , right = Database.Read "link"
+                                , fields = [ ( 0, 1 ) ]
                                 }
-                                |> Database.Project [ 0, 3 ]
+                                |> Database.Project [ 2, 1 ]
                                 |> Ok
                             )
             , test "filtering adds a predicate" <|
                 \_ ->
-                    rule
-                        (headAtom "adult" [ "name" ])
-                        [ atom "person" [ var "name", var "age" ]
-                        , filter (gt "age" (int 20))
-                        ]
-                        |> ruleToPlan
+                    rule "adult" [ "name" ]
+                        |> withMatching "person" [ var "name", var "age" ]
+                        |> filter (gt "age" (int 20))
+                        |> planRule
                         |> Expect.equal
                             (Database.Read "person"
                                 |> Database.Select (Database.Predicate 1 Database.Gt (Database.Constant (Database.Int 20)))
@@ -59,35 +57,31 @@ datalogTests =
                             )
             , test "filtering using negation adds a predicate" <|
                 \_ ->
-                    rule
-                        (headAtom "sibling" [ "a", "b" ])
-                        [ atom "parent" [ var "parent", var "a" ]
-                        , atom "parent" [ var "parent", var "b" ]
-                        , filter (not_ (eq "a" (var "b")))
-                        ]
-                        |> ruleToPlan
+                    rule "sibling" [ "a", "b" ]
+                        |> withMatching "parent" [ var "parent", var "a" ]
+                        |> withMatching "parent" [ var "parent", var "b" ]
+                        |> filter (not_ (eq "a" (var "b")))
+                        |> planRule
                         |> Expect.equal
                             (Database.JoinOn
                                 { left = Database.Read "parent"
                                 , right = Database.Read "parent"
                                 , fields = [ ( 0, 0 ) ]
                                 }
-                                |> Database.Select (Database.Not (Database.Predicate 1 Database.Eq (Database.Field 3)))
-                                |> Database.Project [ 1, 3 ]
+                                |> Database.Select (Database.Not (Database.Predicate 3 Database.Eq (Database.Field 1)))
+                                |> Database.Project [ 3, 1 ]
                                 |> Ok
                             )
             , test "filtering using or adds a predicate" <|
                 \_ ->
-                    rule
-                        (headAtom "teen" [ "name" ])
-                        [ atom "person" [ var "name", var "age" ]
-                        , filter
+                    rule "teen" [ "name" ]
+                        |> withMatching "person" [ var "name", var "age" ]
+                        |> filter
                             (or
                                 (gt "age" (int 12))
                                 (lt "age" (int 20))
                             )
-                        ]
-                        |> ruleToPlan
+                        |> planRule
                         |> Expect.equal
                             (Database.Read "person"
                                 |> Database.Select
@@ -100,29 +94,25 @@ datalogTests =
                             )
             , test "filtering using separate filters adds two filters" <|
                 \_ ->
-                    rule
-                        (headAtom "oldHockeyTeam" [ "name" ])
-                        [ atom "team" [ var "name", var "league", var "age" ]
-                        , filter (eq "league" (string "NHL"))
-                        , filter (gt "age" (int 50))
-                        ]
-                        |> ruleToPlan
+                    rule "oldHockeyTeam" [ "name" ]
+                        |> withMatching "team" [ var "name", var "league", var "age" ]
+                        |> filter (eq "league" (string "NHL"))
+                        |> filter (gt "age" (int 50))
+                        |> planRule
                         |> Expect.equal
                             (Database.Read "team"
-                                |> Database.Select (Database.Predicate 1 Database.Eq (Database.Constant (Database.String "NHL")))
                                 |> Database.Select (Database.Predicate 2 Database.Gt (Database.Constant (Database.Int 50)))
+                                |> Database.Select (Database.Predicate 1 Database.Eq (Database.Constant (Database.String "NHL")))
                                 |> Database.Project [ 0 ]
                                 |> Ok
                             )
             , test "negation adds an outer join" <|
                 \_ ->
-                    rule
-                        (headAtom "unreachable" [ "a", "b" ])
-                        [ atom "node" [ var "a" ]
-                        , atom "node" [ var "b" ]
-                        , notAtom "reachable" [ var "a", var "b" ]
-                        ]
-                        |> ruleToPlan
+                    rule "unreachable" [ "a", "b" ]
+                        |> withMatching "node" [ var "a" ]
+                        |> withMatching "node" [ var "b" ]
+                        |> withoutMatching "reachable" [ var "a", var "b" ]
+                        |> planRule
                         |> Expect.equal
                             (Database.OuterJoinOn
                                 { keep =
@@ -132,50 +122,42 @@ datalogTests =
                                         , right = Database.Read "node"
                                         }
                                 , drop = Database.Read "reachable"
-                                , fields = [ ( 0, 0 ), ( 1, 1 ) ]
+                                , fields = [ ( 1, 0 ), ( 0, 1 ) ]
                                 }
-                                |> Database.Project [ 0, 1 ]
+                                |> Database.Project [ 1, 0 ]
                                 |> Ok
                             )
             , describe "safety"
                 [ test "rules are required to have bodies" <|
                     \_ ->
-                        rule
-                            (headAtom "noBody" [ "a" ])
-                            []
-                            |> ruleToPlan
+                        rule "noBody" [ "a" ]
+                            |> planRule
                             |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
                 , test "all terms in the head must appear in the body" <|
                     \_ ->
-                        rule
-                            (headAtom "bad" [ "a", "b" ])
-                            [ atom "fine" [ var "a" ] ]
-                            |> ruleToPlan
+                        rule "bad" [ "a", "b" ]
+                            |> withMatching "fine" [ var "a" ]
+                            |> planRule
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 , test "you can't have just filters" <|
                     \_ ->
-                        rule
-                            (headAtom "bad" [ "a" ])
-                            [ filter (eq "a" (string "no")) ]
-                            |> ruleToPlan
+                        rule "bad" [ "a" ]
+                            |> filter (eq "a" (string "no"))
+                            |> planRule
                             |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
                 , test "you can't filter on an unbound name" <|
                     \_ ->
-                        rule
-                            (headAtom "bad" [ "a" ])
-                            [ atom "fine" [ var "a" ]
-                            , filter (eq "b" (string "no"))
-                            ]
-                            |> ruleToPlan
+                        rule "bad" [ "a" ]
+                            |> withMatching "fine" [ var "a" ]
+                            |> filter (eq "b" (string "no"))
+                            |> planRule
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 , test "every name appearing in a negative atom must also appear in a positive atom" <|
                     \_ ->
-                        rule
-                            (headAtom "bad" [ "a" ])
-                            [ atom "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
-                            , notAtom "here's the problem" [ var "a" ]
-                            ]
-                            |> ruleToPlan
+                        rule "bad" [ "a" ]
+                            |> withMatching "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
+                            |> withoutMatching "here's the problem" [ var "a" ]
+                            |> planRule
                             |> Expect.equal (Err (VariableMustAppearInPositiveAtom "a"))
                 ]
             ]
@@ -196,8 +178,8 @@ datalogTests =
                         |> insert "greek" [ string "Socrates" ]
                         |> Result.andThen
                             (query
-                                [ rule (headAtom "query" [ "who" ])
-                                    [ atom "greek" [ var "who" ] ]
+                                [ rule "query" [ "who" ]
+                                    |> withMatching "greek" [ var "who" ]
                                 ]
                             )
                         |> Result.andThen (readError "query")
@@ -212,14 +194,11 @@ datalogTests =
                         |> Result.andThen (insert "link" [ int 3, int 4 ])
                         |> Result.andThen
                             (query
-                                [ rule
-                                    (headAtom "reachable" [ "a", "b" ])
-                                    [ atom "link" [ var "a", var "b" ] ]
-                                , rule
-                                    (headAtom "reachable" [ "a", "c" ])
-                                    [ atom "link" [ var "a", var "b" ]
-                                    , atom "reachable" [ var "b", var "c" ]
-                                    ]
+                                [ rule "reachable" [ "a", "b" ]
+                                    |> withMatching "link" [ var "a", var "b" ]
+                                , rule "reachable" [ "a", "c" ]
+                                    |> withMatching "link" [ var "a", var "b" ]
+                                    |> withMatching "reachable" [ var "b", var "c" ]
                                 ]
                             )
                         |> Result.andThen (readError "reachable")
@@ -250,10 +229,9 @@ datalogTests =
                         |> Result.andThen (insert "team" [ string "Flyers", string "Philadelphia" ])
                         |> Result.andThen
                             (query
-                                [ rule (headAtom "hometown" [ "name", "hometown" ])
-                                    [ atom "mascot" [ var "name", var "team" ]
-                                    , atom "team" [ var "team", var "hometown" ]
-                                    ]
+                                [ rule "hometown" [ "name", "hometown" ]
+                                    |> withMatching "mascot" [ var "name", var "team" ]
+                                    |> withMatching "team" [ var "team", var "hometown" ]
                                 ]
                             )
                         |> Result.andThen (readError "hometown")
@@ -273,22 +251,19 @@ datalogTests =
                         |> Result.andThen (insert "link" [ int 3, int 4 ])
                         |> Result.andThen
                             (query
-                                [ rule
-                                    (headAtom "reachable" [ "a", "b" ])
-                                    [ atom "link" [ var "a", var "b" ] ]
-                                , rule
-                                    (headAtom "reachable" [ "a", "c" ])
-                                    [ atom "link" [ var "a", var "b" ]
-                                    , atom "reachable" [ var "b", var "c" ]
-                                    ]
-                                , rule (headAtom "node" [ "a" ]) [ atom "link" [ var "a", var "b" ] ]
-                                , rule (headAtom "node" [ "b" ]) [ atom "link" [ var "a", var "b" ] ]
-                                , rule
-                                    (headAtom "unreachable" [ "a", "b" ])
-                                    [ atom "node" [ var "a" ]
-                                    , atom "node" [ var "b" ]
-                                    , notAtom "reachable" [ var "a", var "b" ]
-                                    ]
+                                [ rule "reachable" [ "a", "b" ]
+                                    |> withMatching "link" [ var "a", var "b" ]
+                                , rule "reachable" [ "a", "c" ]
+                                    |> withMatching "link" [ var "a", var "b" ]
+                                    |> withMatching "reachable" [ var "b", var "c" ]
+                                , rule "node" [ "a" ]
+                                    |> withMatching "link" [ var "a", var "b" ]
+                                , rule "node" [ "b" ]
+                                    |> withMatching "link" [ var "a", var "b" ]
+                                , rule "unreachable" [ "a", "b" ]
+                                    |> withMatching "node" [ var "a" ]
+                                    |> withMatching "node" [ var "b" ]
+                                    |> withoutMatching "reachable" [ var "a", var "b" ]
                                 ]
                             )
                         |> Result.andThen (readError "unreachable")
@@ -316,14 +291,12 @@ datalogTests =
                         |> insert "x" [ string "this doesn't matter, we just need it to trigger the rule under test" ]
                         |> Result.andThen
                             (query
-                                [ rule (headAtom "p" [ "x" ])
-                                    [ atom "x" [ var "x" ]
-                                    , notAtom "q" [ var "x" ]
-                                    ]
-                                , rule (headAtom "q" [ "x" ])
-                                    [ atom "x" [ var "x" ]
-                                    , notAtom "p" [ var "x" ]
-                                    ]
+                                [ rule "p" [ "x" ]
+                                    |> withMatching "x" [ var "x" ]
+                                    |> withoutMatching "q" [ var "x" ]
+                                , rule "q" [ "x" ]
+                                    |> withMatching "x" [ var "x" ]
+                                    |> withoutMatching "p" [ var "x" ]
                                 ]
                             )
                         |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)

@@ -114,6 +114,28 @@ datalogTests =
                                 |> Database.Project [ 0 ]
                                 |> Ok
                             )
+            , test "negation adds an outer join" <|
+                \_ ->
+                    rule
+                        (headAtom "unreachable" [ "a", "b" ])
+                        [ atom "node" [ var "a" ]
+                        , atom "node" [ var "b" ]
+                        , notAtom "reachable" [ var "a", var "b" ]
+                        ]
+                        |> ruleToPlan
+                        |> Expect.equal
+                            (Database.OuterJoin
+                                { keep =
+                                    Database.Join
+                                        { fields = []
+                                        , left = Database.Read "node"
+                                        , right = Database.Read "node"
+                                        }
+                                , drop = Database.Read "reachable"
+                                }
+                                |> Database.Project [ 0, 1 ]
+                                |> Ok
+                            )
             , describe "safety"
                 [ test "rules are required to have bodies" <|
                     \_ ->
@@ -230,6 +252,52 @@ datalogTests =
                                 [ Array.fromList [ Database.String "Fredbird", Database.String "St. Louis" ]
                                 , Array.fromList [ Database.String "Gritty", Database.String "Philadelphia" ]
                                 , Array.fromList [ Database.String "Louie", Database.String "St. Louis" ]
+                                ]
+                            )
+            , test "I can make a query with a negation" <|
+                \_ ->
+                    empty
+                        |> insert "link" [ int 1, int 2 ]
+                        |> Result.andThen (insert "link" [ int 2, int 3 ])
+                        |> Result.andThen (insert "link" [ int 3, int 3 ])
+                        |> Result.andThen (insert "link" [ int 3, int 4 ])
+                        |> Result.andThen
+                            (query
+                                [ rule
+                                    (headAtom "reachable" [ "a", "b" ])
+                                    [ atom "link" [ var "a", var "b" ] ]
+                                , rule
+                                    (headAtom "reachable" [ "a", "c" ])
+                                    [ atom "link" [ var "a", var "b" ]
+                                    , atom "reachable" [ var "b", var "c" ]
+                                    ]
+                                , rule (headAtom "node" [ "a" ]) [ atom "link" [ var "a", var "b" ] ]
+                                , rule (headAtom "node" [ "b" ]) [ atom "link" [ var "a", var "b" ] ]
+                                , rule
+                                    (headAtom "unreachable" [ "a", "b" ])
+                                    [ atom "node" [ var "a" ]
+                                    , atom "node" [ var "b" ]
+                                    , notAtom "reachable" [ var "a", var "b" ]
+                                    ]
+                                ]
+                            )
+                        |> Result.andThen (readError "unreachable")
+                        |> Expect.equal
+                            (let
+                                link : Int -> Int -> Array Database.Constant
+                                link a b =
+                                    Array.fromList [ Database.Int a, Database.Int b ]
+                             in
+                             Ok
+                                [ link 1 1
+                                , link 2 1
+                                , link 2 2
+                                , link 3 1
+                                , link 3 2
+                                , link 4 1
+                                , link 4 2
+                                , link 4 3
+                                , link 4 4
                                 ]
                             )
             ]

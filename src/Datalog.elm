@@ -1,7 +1,7 @@
 module Datalog exposing
     ( Database, empty, Problem(..), insert, query
     , Rule, rule, ruleToPlan
-    , BodyAtom, atom
+    , BodyAtom, atom, notAtom
     , Atom, headAtom
     , Filter, filter, eq, gt, lt, not_, or
     , Term, var, int, string
@@ -13,7 +13,7 @@ module Datalog exposing
 
 @docs Rule, rule, ruleToPlan
 
-@docs BodyAtom, atom
+@docs BodyAtom, atom, notAtom
 
 @docs Atom, headAtom
 
@@ -99,23 +99,23 @@ query rules (Database db) =
                         []
                     )
 
-        edges : List (Edge ())
+        edges : List (Edge Negation)
         edges =
             List.concatMap
                 (\((Rule (Atom headName _) bodyAtoms) as rule_) ->
                     Edge
                         (Murmur3.hashString 0 headName)
                         (Murmur3.hashString 0 (ruleToString rule_))
-                        ()
+                        Positive
                         :: List.filterMap
                             (\bodyAtom ->
                                 case bodyAtom of
-                                    BodyAtom (Atom bodyName _) ->
+                                    BodyAtom negation (Atom bodyName _) ->
                                         Just
                                             (Edge
                                                 (Murmur3.hashString 0 (ruleToString rule_))
                                                 (Murmur3.hashString 0 bodyName)
-                                                ()
+                                                negation
                                             )
 
                                     Filter _ ->
@@ -130,12 +130,12 @@ query rules (Database db) =
                 )
                 rules
 
-        strataResult : Result Problem (List (Graph ( String, Maybe Database.QueryPlan ) ()))
+        strataResult : Result Problem (List (Graph ( String, Maybe Database.QueryPlan ) Negation))
         strataResult =
             Result.map
                 (\nodes_ ->
                     let
-                        graph : Graph ( String, Maybe Database.QueryPlan ) ()
+                        graph : Graph ( String, Maybe Database.QueryPlan ) Negation
                         graph =
                             Graph.fromNodesAndEdges nodes_ edges
                     in
@@ -159,7 +159,7 @@ query rules (Database db) =
 
 
 runUntilExhausted :
-    Graph ( String, Maybe Database.QueryPlan ) ()
+    Graph ( String, Maybe Database.QueryPlan ) Negation
     -> Database.Database
     -> Result Problem Database.Database
 runUntilExhausted stratum db =
@@ -167,7 +167,7 @@ runUntilExhausted stratum db =
 
 
 runUntilExhaustedHelp :
-    Graph ( String, Maybe Database.QueryPlan ) ()
+    Graph ( String, Maybe Database.QueryPlan ) Negation
     -> Database.Database
     -> Database.Database
     -> Result Problem Database.Database
@@ -264,22 +264,25 @@ ruleToString (Rule head body) =
 ruleToPlan : Rule -> Result Problem Database.QueryPlan
 ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
     let
-        ( atoms, filters ) =
+        ( positiveAtoms, negativeAtoms, filters ) =
             List.foldl
-                (\bodyAtom ( atomsSoFar, filtersSoFar ) ->
+                (\bodyAtom ( positiveAtomsSoFar, negativeAtomsSoFar, filtersSoFar ) ->
                     case bodyAtom of
-                        BodyAtom atom_ ->
-                            ( atom_ :: atomsSoFar, filtersSoFar )
+                        BodyAtom Positive atom_ ->
+                            ( atom_ :: positiveAtomsSoFar, negativeAtomsSoFar, filtersSoFar )
+
+                        BodyAtom Negative atom_ ->
+                            ( positiveAtomsSoFar, atom_ :: negativeAtomsSoFar, filtersSoFar )
 
                         Filter filter_ ->
-                            ( atomsSoFar, filter_ :: filtersSoFar )
+                            ( positiveAtomsSoFar, negativeAtomsSoFar, filter_ :: filtersSoFar )
                 )
-                ( [], [] )
+                ( [], [], [] )
                 bodyAtoms
 
-        plannedAtoms : Result Problem ( List String, Database.QueryPlan )
-        plannedAtoms =
-            case atoms of
+        plannedPositiveAtoms : Result Problem ( List String, Database.QueryPlan )
+        plannedPositiveAtoms =
+            case positiveAtoms of
                 [] ->
                     Err NeedAtLeastOneAtom
 
@@ -309,14 +312,41 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                         rest
                         |> Ok
 
-        planned : Result Problem ( List String, Database.QueryPlan )
-        planned =
-            case ( filters, plannedAtoms ) of
+        plannedNegativeAtoms : Result Problem ( List String, Database.QueryPlan )
+        plannedNegativeAtoms =
+            case ( negativeAtoms, plannedPositiveAtoms ) of
                 ( [], _ ) ->
-                    plannedAtoms
+                    plannedPositiveAtoms
 
                 ( _, Err _ ) ->
-                    plannedAtoms
+                    plannedPositiveAtoms
+
+                ( _, Ok starter ) ->
+                    List.foldl
+                        (\nextAtom ( keepNames, keepPlan ) ->
+                            let
+                                ( dropNames, dropPlan ) =
+                                    atomToPlan nextAtom
+                            in
+                            ( keepNames
+                            , Database.OuterJoin
+                                { keep = keepPlan
+                                , drop = dropPlan
+                                }
+                            )
+                        )
+                        starter
+                        negativeAtoms
+                        |> Ok
+
+        planned : Result Problem ( List String, Database.QueryPlan )
+        planned =
+            case ( filters, plannedNegativeAtoms ) of
+                ( [], _ ) ->
+                    plannedNegativeAtoms
+
+                ( _, Err _ ) ->
+                    plannedNegativeAtoms
 
                 ( _, Ok starter ) ->
                     foldrResult
@@ -351,21 +381,40 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
         planned
 
 
+type Negation
+    = Positive
+    | Negative
+
+
 type BodyAtom
-    = BodyAtom Atom
+    = BodyAtom Negation Atom
     | Filter Filter
 
 
 atom : String -> List Term -> BodyAtom
 atom name terms =
-    BodyAtom (Atom name terms)
+    BodyAtom Positive (Atom name terms)
+
+
+notAtom : String -> List Term -> BodyAtom
+notAtom name terms =
+    BodyAtom Negative (Atom name terms)
 
 
 bodyAtomToString : BodyAtom -> String
 bodyAtomToString bodyAtom =
     case bodyAtom of
-        BodyAtom atom_ ->
-            atomToString atom_
+        BodyAtom negation atom_ ->
+            let
+                notString =
+                    case negation of
+                        Positive ->
+                            ""
+
+                        Negative ->
+                            "not "
+            in
+            notString ++ atomToString atom_
 
         Filter filter_ ->
             filterToString filter_

@@ -195,7 +195,7 @@ type QueryPlan
     = Read String
     | Select Selection QueryPlan
     | Project (List Field) QueryPlan
-    | Join { left : QueryPlan, right : QueryPlan, fields : List ( Field, Field ) }
+    | JoinOn { left : QueryPlan, right : QueryPlan, fields : List ( Field, Field ) }
     | OuterJoin { keep : QueryPlan, drop : QueryPlan }
 
 
@@ -232,7 +232,7 @@ query plan ((Database db) as db_) =
                 )
                 (query inputPlan db_)
 
-        Join config ->
+        JoinOn config ->
             let
                 runInput : QueryPlan -> List Field -> Result Problem Relation
                 runInput input fields =

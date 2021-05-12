@@ -35,7 +35,7 @@ datalogTests =
                         ]
                         |> ruleToPlan
                         |> Expect.equal
-                            (Database.Join
+                            (Database.JoinOn
                                 { left = Database.Read "link"
                                 , right = Database.Read "reachable"
                                 , fields = [ ( 1, 0 ) ]
@@ -67,7 +67,7 @@ datalogTests =
                         ]
                         |> ruleToPlan
                         |> Expect.equal
-                            (Database.Join
+                            (Database.JoinOn
                                 { left = Database.Read "parent"
                                 , right = Database.Read "parent"
                                 , fields = [ ( 0, 0 ) ]
@@ -126,7 +126,7 @@ datalogTests =
                         |> Expect.equal
                             (Database.OuterJoin
                                 { keep =
-                                    Database.Join
+                                    Database.JoinOn
                                         { fields = []
                                         , left = Database.Read "node"
                                         , right = Database.Read "node"

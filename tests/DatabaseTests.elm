@@ -285,13 +285,13 @@ queryTests =
                                 ]
                             )
             ]
-        , describe "join"
+        , describe "join on fields"
             [ test "it's an error if you choose fields that don't exist on the left" <|
                 \_ ->
                     mascotsDb
                         |> Result.andThen
                             (query
-                                (Join
+                                (JoinOn
                                     { left = Read "mascots"
                                     , right = Read "teams"
                                     , fields = [ ( 3, 0 ) ]
@@ -304,7 +304,7 @@ queryTests =
                     mascotsDb
                         |> Result.andThen
                             (query
-                                (Join
+                                (JoinOn
                                     { left = Read "mascots"
                                     , right = Read "teams"
                                     , fields = [ ( 0, 4 ) ]
@@ -317,7 +317,7 @@ queryTests =
                     mascotsDb
                         |> Result.andThen
                             (query
-                                (Join
+                                (JoinOn
                                     { left = Read "mascots"
                                     , right = Read "teams"
                                     , fields = [ ( 0, 3 ) ]
@@ -337,7 +337,7 @@ queryTests =
                     mascotsDb
                         |> Result.andThen
                             (query
-                                (Join
+                                (JoinOn
                                     { left = Read "mascots"
                                     , right = Read "teams"
                                     , fields = [ ( 1, 0 ) ]
@@ -357,7 +357,7 @@ queryTests =
                     mascotsDb
                         |> Result.andThen
                             (query
-                                (Join
+                                (JoinOn
                                     { left = Read "mascots"
                                     , right = Read "teams"
                                     , fields = []

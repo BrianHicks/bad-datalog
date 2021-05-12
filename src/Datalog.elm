@@ -294,7 +294,7 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                                     atomToPlan nextAtom
                             in
                             ( leftNames ++ rightNames
-                            , Database.Join
+                            , Database.JoinOn
                                 { left = leftPlan
                                 , right = rightPlan
                                 , fields =

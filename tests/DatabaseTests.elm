@@ -455,6 +455,85 @@ queryTests =
                                 )
                             )
             ]
+        , describe "outer join on fields"
+            [ test "it's an error if you choose fields that don't exist in keep" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoinOn
+                                    { keep = Read "mascots"
+                                    , drop = Read "teams"
+                                    , fields = [ ( 3, 0 ) ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal (Err (UnknownFields [ 3 ]))
+            , test "it's an error if you choose fields that don't exist in drop" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoinOn
+                                    { keep = Read "mascots"
+                                    , drop = Read "teams"
+                                    , fields = [ ( 0, 4 ) ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal (Err (UnknownFields [ 4 ]))
+            , test "it's an error if you join on incompatible types" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoinOn
+                                    { keep = Read "mascots"
+                                    , drop = Read "teams"
+                                    , fields = [ ( 0, 3 ) ]
+                                    }
+                                )
+                            )
+                        |> Expect.equal
+                            (Err
+                                (SchemaMismatch
+                                    { wanted = Array.fromList [ StringType ]
+                                    , got = Array.fromList [ IntType ]
+                                    }
+                                )
+                            )
+            , test "joins on fields in order" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoinOn
+                                    { keep = Read "teams"
+                                    , drop =
+                                        Select
+                                            (Predicate 1 Eq (Constant (String "NHL")))
+                                            (Read "teams")
+                                    , fields = [ ( 1, 1 ) ]
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal (Ok [ cardinals ])
+            , test "if you specify no columns, you just drop everything" <|
+                \_ ->
+                    mascotsDb
+                        |> Result.andThen
+                            (query
+                                (OuterJoinOn
+                                    { keep = Read "teams"
+                                    , drop = Read "teams"
+                                    , fields = []
+                                    }
+                                )
+                            )
+                        |> Result.map rows
+                        |> Expect.equal (Ok [])
+            ]
         ]
 
 

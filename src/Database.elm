@@ -197,6 +197,7 @@ type QueryPlan
     | Project (List Field) QueryPlan
     | JoinOn { left : QueryPlan, right : QueryPlan, fields : List ( Field, Field ) }
     | OuterJoin { keep : QueryPlan, drop : QueryPlan }
+    | OuterJoinOn { keep : QueryPlan, drop : QueryPlan, fields : List ( Field, Field ) }
 
 
 query : QueryPlan -> Database -> Result Problem Relation
@@ -309,6 +310,41 @@ query plan ((Database db) as db_) =
                 (query drop db_)
                 |> Result.andThen identity
 
+        OuterJoinOn config ->
+            let
+                ( keepFields, dropFields ) =
+                    List.unzip config.fields
+            in
+            Result.map2
+                (\(Relation keepSchema keepRows) (Relation dropSchema dropRows) ->
+                    if takeFields keepFields keepSchema /= takeFields dropFields dropSchema then
+                        Err
+                            (SchemaMismatch
+                                { wanted = takeFields keepFields keepSchema
+                                , got = takeFields dropFields dropSchema
+                                }
+                            )
+
+                    else
+                        let
+                            toDrop : Set (Array Constant)
+                            toDrop =
+                                Set.foldl
+                                    (\row soFar -> Set.insert (takeFields dropFields row) soFar)
+                                    (Set.empty rowSorter)
+                                    dropRows
+                        in
+                        Relation
+                            keepSchema
+                            (Set.dropIf
+                                (\keepRow -> Set.memberOf toDrop (takeFields keepFields keepRow))
+                                keepRows
+                            )
+                            |> Ok
+                )
+                (preparePlanForJoin config.keep keepFields db_)
+                (preparePlanForJoin config.drop dropFields db_)
+                |> Result.andThen identity
 
 
 preparePlanForJoin : QueryPlan -> List Field -> Database -> Result Problem Relation

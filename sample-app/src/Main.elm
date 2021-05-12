@@ -1,5 +1,6 @@
 module Main exposing (..)
 
+import AddressBook
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Navigation
 import Html.Styled as Html exposing (Html)
@@ -11,18 +12,25 @@ import Url.Parser as Parser exposing ((</>), Parser)
 type alias Model =
     { key : Navigation.Key
     , route : Route
+    , addressBook : AddressBook.Model
     }
 
 
 type Route
     = Index
+    | AddressBook
     | NotFound
 
 
 parseRoute : Url -> Route
 parseRoute url =
     url
-        |> Parser.parse (Parser.oneOf [ Parser.map Index Parser.top ])
+        |> Parser.parse
+            (Parser.oneOf
+                [ Parser.map Index Parser.top
+                , Parser.map AddressBook (Parser.top </> Parser.s "address-book")
+                ]
+            )
         |> Maybe.withDefault NotFound
 
 
@@ -32,6 +40,9 @@ pathFor route =
         Index ->
             "/"
 
+        AddressBook ->
+            "/address-book"
+
         NotFound ->
             "/404"
 
@@ -39,6 +50,7 @@ pathFor route =
 type Msg
     = UrlChanged Url
     | UrlRequested UrlRequest
+    | AddressBookMsg AddressBook.Msg
 
 
 type alias Flags =
@@ -47,10 +59,15 @@ type alias Flags =
 
 init : Flags -> Url -> Navigation.Key -> ( Model, Cmd Msg )
 init _ url key =
+    let
+        ( addressBook, addressBookCmd ) =
+            AddressBook.init
+    in
     ( { key = key
       , route = parseRoute url
+      , addressBook = addressBook
       }
-    , Cmd.none
+    , Cmd.map AddressBookMsg addressBookCmd
     )
 
 
@@ -72,10 +89,28 @@ update msg model =
             , Navigation.load url
             )
 
+        AddressBookMsg addressBookMsg ->
+            let
+                ( newAddressBook, addressBookCmd ) =
+                    AddressBook.update addressBookMsg model.addressBook
+            in
+            ( { model | addressBook = newAddressBook }
+            , Cmd.map AddressBookMsg addressBookCmd
+            )
+
 
 view : Model -> Browser.Document Msg
 view model =
-    { title = "Datalog Sample Apps"
+    { title =
+        case model.route of
+            Index ->
+                "Datalog Sample Apps"
+
+            AddressBook ->
+                "Address Book | Datalog Sample Apps"
+
+            NotFound ->
+                "Not Found | Datalog Sample Apps"
     , body =
         [ Html.div
             []
@@ -83,13 +118,19 @@ view model =
                 [ Html.nav []
                     [ Html.ol
                         []
-                        [ Html.li [] [ Html.a [ Attrs.href (pathFor Index) ] [ Html.text "Index" ] ] ]
+                        [ Html.li [] [ Html.a [ Attrs.href (pathFor Index) ] [ Html.text "Index" ] ]
+                        , Html.li [] [ Html.a [ Attrs.href (pathFor AddressBook) ] [ Html.text "Address Book" ] ]
+                        ]
                     ]
                 ]
             , Html.main_ []
                 [ case model.route of
                     Index ->
                         viewIndex model
+
+                    AddressBook ->
+                        AddressBook.view model.addressBook
+                            |> Html.map AddressBookMsg
 
                     NotFound ->
                         viewNotFound

@@ -18,6 +18,7 @@ It still needs some stuff before it's "good":
 - Indexes or primary keys of any kind for faster queries
 - It might not be safe to store databases in the model (that is, it will break the Elm debugger because the Set implementation we use embeds a comparison function. It would be possible to take this out, but would require more effort than I want to make at the moment I'm writing this README.)
 - Warnings for situations where queries might not work the way you expect (e.g. doing `reachable(a, c) :- reachable(a, b), reachable(b, c).` instead of `reachable(a, c) :- link(a, b), reachable(b, c).`)
+- Nice errors that say exactly where the problem is in the query
 
 I plan to implement those things in roughly that order (maybe adding or dropping a few as I go) and releasing this as an Elm package when it's ready.
 The rankings are in `next-features.json` in the root of this repo, and can be fed into [elo.bytes.zone](https://elo.bytes.zone) for further ranking.

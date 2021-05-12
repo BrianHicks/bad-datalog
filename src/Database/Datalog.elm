@@ -1,4 +1,4 @@
-module Datalog exposing
+module Database.Datalog exposing
     ( Database, empty, Problem(..), insert, query
     , Rule, rule, ruleToPlan
     , BodyAtom, atom, notAtom

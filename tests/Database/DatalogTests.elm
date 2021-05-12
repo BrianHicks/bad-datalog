@@ -1,8 +1,8 @@
-module DatalogTests exposing (..)
+module Database.DatalogTests exposing (..)
 
 import Array exposing (Array)
 import Database
-import Datalog exposing (..)
+import Database.Datalog exposing (..)
 import Expect
 import Test exposing (..)
 

@@ -329,9 +329,17 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                                     atomToPlan nextAtom
                             in
                             ( keepNames
-                            , Database.OuterJoin
+                            , Database.OuterJoinOn
                                 { keep = keepPlan
                                 , drop = dropPlan
+                                , fields =
+                                    Dict.merge
+                                        (\_ _ soFar -> soFar)
+                                        (\_ left right soFar -> ( left, right ) :: soFar)
+                                        (\_ _ soFar -> soFar)
+                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) keepNames))
+                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) dropNames))
+                                        []
                                 }
                             )
                         )

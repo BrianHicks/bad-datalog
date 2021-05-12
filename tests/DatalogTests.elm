@@ -124,7 +124,7 @@ datalogTests =
                         ]
                         |> ruleToPlan
                         |> Expect.equal
-                            (Database.OuterJoin
+                            (Database.OuterJoinOn
                                 { keep =
                                     Database.JoinOn
                                         { fields = []
@@ -132,6 +132,7 @@ datalogTests =
                                         , right = Database.Read "node"
                                         }
                                 , drop = Database.Read "reachable"
+                                , fields = [ ( 1, 1 ), ( 0, 0 ) ]
                                 }
                                 |> Database.Project [ 0, 1 ]
                                 |> Ok

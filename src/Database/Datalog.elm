@@ -1,7 +1,6 @@
 module Database.Datalog exposing
     ( Database, empty, Problem(..), insert, query
     , Rule, rule, withMatching, withoutMatching, filter, planRule
-    , BodyAtom, atom, notAtom
     , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
     )
@@ -11,8 +10,6 @@ module Database.Datalog exposing
 @docs Database, empty, Problem, insert, query
 
 @docs Rule, rule, withMatching, withoutMatching, filter, planRule
-
-@docs BodyAtom, atom, notAtom
 
 @docs Filter, eq, gt, lt, not_, or
 
@@ -422,16 +419,6 @@ type Negation
 type BodyAtom
     = BodyAtom Negation Atom
     | Filter Filter
-
-
-atom : String -> List Term -> BodyAtom
-atom name terms =
-    BodyAtom Positive (Atom name terms)
-
-
-notAtom : String -> List Term -> BodyAtom
-notAtom name terms =
-    BodyAtom Negative (Atom name terms)
 
 
 bodyAtomToString : BodyAtom -> String

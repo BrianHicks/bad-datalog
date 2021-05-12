@@ -28,7 +28,7 @@ The rankings are in `next-features.json` in the root of this repo, and can be fe
 A prior version of this project ([88454c3c](https://git.bytes.zone/brian/bad-datalog/commit/88454c3cf2153121384735fe5488286e724eef54) and prior) used prolog semantics internally instead of a relational algebra (think "lots of loops" instead of "query plan".)
 This turned out to be kind of a hassle, unfortunately, and I felt very stuck.
 
-Fortunately, a kind someone from the [Recurse Center](https://www.recurse.com/) helped me a lot by pointing out that industrial datalogs have gone away from prolog semantics to relational algebras, and that I should consider doing the same.
+One day I complained about this in the #alumni-checkins stream on the the [Recurse Center](https://www.recurse.com/) Zulip, and [Jamie Brandon](https://scattered-thoughts.net/) helped me a lot by pointing out that industrial datalogs have gone away from prolog semantics to relational algebras, and that I should consider doing the same.
 That got me unstuck, and now here we are!
 
 If you used [datalog.bytes.zone](https://datalog.bytes.zone) before, you'll have used the prolog-like version.

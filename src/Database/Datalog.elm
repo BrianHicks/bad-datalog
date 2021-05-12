@@ -28,7 +28,6 @@ import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
-import Sort.Set
 
 
 type Database
@@ -219,6 +218,7 @@ runUntilExhaustedHelp stratum db finalDb =
                             -- (which is pretty quick.) If it exists, we know
                             -- that our join is at least feasible, but if the
                             -- lookup fails for any reason we'd better not try it!
+                            finalPlan : Database.QueryPlan
                             finalPlan =
                                 case Database.read name dbSoFar of
                                     Ok _ ->
@@ -432,6 +432,7 @@ bodyAtomToString bodyAtom =
     case bodyAtom of
         BodyAtom negation atom_ ->
             let
+                notString : String
                 notString =
                     case negation of
                         Positive ->

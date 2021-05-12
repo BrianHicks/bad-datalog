@@ -35,6 +35,7 @@ empty =
 
 type Problem
     = NeedAtLeastOnePositiveAtom
+    | NeedAtLeastOneName
     | VariableDoesNotAppearInBody String
     | VariableMustAppearInPositiveAtom String
     | CannotInsertVariable String
@@ -453,27 +454,31 @@ planRule (Rule (Atom _ headTerms) bodyAtoms) =
     in
     Result.andThen
         (\( names, plan ) ->
-            headTerms
-                |> foldrResult
-                    (\term soFar ->
-                        case term of
-                            Variable name ->
-                                case indexOf name names of
-                                    Just idx ->
-                                        Ok (idx :: soFar)
+            if List.isEmpty headTerms then
+                Err NeedAtLeastOneName
 
-                                    Nothing ->
-                                        Err (VariableDoesNotAppearInBody name)
+            else
+                headTerms
+                    |> foldrResult
+                        (\term soFar ->
+                            case term of
+                                Variable name ->
+                                    case indexOf name names of
+                                        Just idx ->
+                                            Ok (idx :: soFar)
 
-                            Constant _ ->
-                                -- It's fine to just ignore this, since
-                                -- we disallow rules having constants by
-                                -- construction. This will be an unfortunate
-                                -- bug if we ever change that, though! :\
-                                Ok soFar
-                    )
-                    []
-                |> Result.map (\indexes -> Database.Project indexes plan)
+                                        Nothing ->
+                                            Err (VariableDoesNotAppearInBody name)
+
+                                Constant _ ->
+                                    -- It's fine to just ignore this, since
+                                    -- we disallow rules having constants by
+                                    -- construction. This will be an unfortunate
+                                    -- bug if we ever change that, though! :\
+                                    Ok soFar
+                        )
+                        []
+                    |> Result.map (\indexes -> Database.Project indexes plan)
         )
         planned
 

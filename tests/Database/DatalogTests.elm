@@ -133,6 +133,12 @@ datalogTests =
                         rule "noBody" [ "a" ]
                             |> planRule
                             |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
+                , test "rules are required to have at least one name" <|
+                    \_ ->
+                        rule "noNames" []
+                            |> with "what" [ var "a" ]
+                            |> planRule
+                            |> Expect.equal (Err NeedAtLeastOneName)
                 , test "all terms in the head must appear in the body" <|
                     \_ ->
                         rule "bad" [ "a", "b" ]

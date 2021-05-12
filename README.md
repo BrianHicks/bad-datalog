@@ -34,6 +34,8 @@ That got me unstuck, and now here we are!
 If you used [datalog.bytes.zone](https://datalog.bytes.zone) before, you'll have used the prolog-like version.
 I haven't gotten to the point where it makes sense to write the parser for the DSL for the new version, but soon the current code in this repo will live at that location too!
 
+Here are some miscellaneous ideas on the Elm Discourse which introduce what I think might be possible: [Brainstorming: relational programming in Elm](https://discourse.elm-lang.org/t/brainstorming-relational-programming-in-elm/6695/7)
+
 ## License
 
 This doesn't have a license yet.

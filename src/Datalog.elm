@@ -41,8 +41,9 @@ empty =
 
 
 type Problem
-    = NeedAtLeastOneAtom
+    = NeedAtLeastOnePositiveAtom
     | VariableDoesNotAppearInBody String
+    | VariableMustAppearInPositiveAtom String
     | CannotInsertVariable String
     | DatabaseProblem Database.Problem
 
@@ -284,7 +285,7 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
         plannedPositiveAtoms =
             case positiveAtoms of
                 [] ->
-                    Err NeedAtLeastOneAtom
+                    Err NeedAtLeastOnePositiveAtom
 
                 first :: rest ->
                     List.foldl
@@ -322,30 +323,37 @@ ruleToPlan (Rule (Atom _ headTerms) bodyAtoms) =
                     plannedPositiveAtoms
 
                 ( _, Ok starter ) ->
-                    List.foldl
+                    foldrResult
                         (\nextAtom ( keepNames, keepPlan ) ->
                             let
                                 ( dropNames, dropPlan ) =
                                     atomToPlan nextAtom
                             in
-                            ( keepNames
-                            , Database.OuterJoinOn
-                                { keep = keepPlan
-                                , drop = dropPlan
-                                , fields =
-                                    Dict.merge
-                                        (\_ _ soFar -> soFar)
-                                        (\_ left right soFar -> ( left, right ) :: soFar)
-                                        (\_ _ soFar -> soFar)
-                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) keepNames))
-                                        (Dict.fromList (List.indexedMap (\i field -> ( field, i )) dropNames))
-                                        []
-                                }
-                            )
+                            dropNames
+                                |> List.indexedMap Tuple.pair
+                                |> foldrResult
+                                    (\( dropIndex, dropName ) soFar ->
+                                        case indexOf dropName keepNames of
+                                            Just keepIndex ->
+                                                Ok (( keepIndex, dropIndex ) :: soFar)
+
+                                            Nothing ->
+                                                Err (VariableMustAppearInPositiveAtom dropName)
+                                    )
+                                    []
+                                |> Result.map
+                                    (\fields ->
+                                        ( keepNames
+                                        , Database.OuterJoinOn
+                                            { keep = keepPlan
+                                            , drop = dropPlan
+                                            , fields = fields
+                                            }
+                                        )
+                                    )
                         )
                         starter
                         negativeAtoms
-                        |> Ok
 
         planned : Result Problem ( List String, Database.QueryPlan )
         planned =

@@ -132,7 +132,7 @@ datalogTests =
                                         , right = Database.Read "node"
                                         }
                                 , drop = Database.Read "reachable"
-                                , fields = [ ( 1, 1 ), ( 0, 0 ) ]
+                                , fields = [ ( 0, 0 ), ( 1, 1 ) ]
                                 }
                                 |> Database.Project [ 0, 1 ]
                                 |> Ok
@@ -144,7 +144,7 @@ datalogTests =
                             (headAtom "noBody" [ "a" ])
                             []
                             |> ruleToPlan
-                            |> Expect.equal (Err NeedAtLeastOneAtom)
+                            |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
                 , test "all terms in the head must appear in the body" <|
                     \_ ->
                         rule
@@ -158,7 +158,7 @@ datalogTests =
                             (headAtom "bad" [ "a" ])
                             [ filter (eq "a" (string "no")) ]
                             |> ruleToPlan
-                            |> Expect.equal (Err NeedAtLeastOneAtom)
+                            |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
                 , test "you can't filter on an unbound name" <|
                     \_ ->
                         rule
@@ -168,6 +168,15 @@ datalogTests =
                             ]
                             |> ruleToPlan
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
+                , test "every name appearing in a negative atom must also appear in a positive atom" <|
+                    \_ ->
+                        rule
+                            (headAtom "bad" [ "a" ])
+                            [ atom "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
+                            , notAtom "here's the problem" [ var "a" ]
+                            ]
+                            |> ruleToPlan
+                            |> Expect.equal (Err (VariableMustAppearInPositiveAtom "a"))
                 ]
             ]
         , describe "running a program"

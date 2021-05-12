@@ -234,19 +234,6 @@ query plan ((Database db) as db_) =
 
         JoinOn config ->
             let
-                runInput : QueryPlan -> List Field -> Result Problem Relation
-                runInput input fields =
-                    query input db_
-                        |> Result.andThen
-                            (\((Relation schema _) as relation) ->
-                                case validateFieldsAreInSchema schema fields of
-                                    Ok _ ->
-                                        Ok relation
-
-                                    Err err ->
-                                        Err err
-                            )
-
                 ( leftFields, rightFields ) =
                     List.unzip config.fields
             in
@@ -300,8 +287,8 @@ query plan ((Database db) as db_) =
                                 )
                             )
                 )
-                (runInput config.left leftFields)
-                (runInput config.right rightFields)
+                (preparePlanForJoin config.left leftFields db_)
+                (preparePlanForJoin config.right rightFields db_)
                 |> Result.andThen identity
 
         OuterJoin { keep, drop } ->
@@ -321,6 +308,21 @@ query plan ((Database db) as db_) =
                 (query keep db_)
                 (query drop db_)
                 |> Result.andThen identity
+
+
+
+preparePlanForJoin : QueryPlan -> List Field -> Database -> Result Problem Relation
+preparePlanForJoin input fields db =
+    query input db
+        |> Result.andThen
+            (\((Relation schema _) as relation) ->
+                case validateFieldsAreInSchema schema fields of
+                    Ok _ ->
+                        Ok relation
+
+                    Err err ->
+                        Err err
+            )
 
 
 validateFieldsAreInSchema : Schema -> List Int -> Result Problem ()

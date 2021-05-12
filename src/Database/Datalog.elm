@@ -1,6 +1,6 @@
 module Database.Datalog exposing
     ( Database, empty, Problem(..), insert, query
-    , Rule, rule, withMatching, withoutMatching, filter, planRule
+    , Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
     )
@@ -9,7 +9,7 @@ module Database.Datalog exposing
 
 @docs Database, empty, Problem, insert, query
 
-@docs Rule, rule, withMatching, withoutMatching, filter, planRule
+@docs Rule, rule, with, without, filter, planRule
 
 @docs Filter, eq, gt, lt, not_, or
 
@@ -256,18 +256,90 @@ type Rule
     = Rule Atom (List BodyAtom)
 
 
+{-| Start making a new rule! You'll need to name it (the first argument)
+and then name the fields you'll end up exporting.
+
+Some rules to keep in mind:
+
+  - You have to provide at least one name.
+  - You have to bind every name you define using `with`.
+
+If you have multiple rules with the same name, they'll be merged together
+(for an example, see the docs for [`with`](#with).)
+
+-}
 rule : String -> List String -> Rule
 rule name headVars =
     Rule (Atom name (List.map Variable headVars)) []
 
 
-withMatching : String -> List Term -> Rule -> Rule
-withMatching name terms (Rule head body) =
+{-| Add matches from the given name (TODO: table? rule? named tuple store?)
+
+For example, if you have some greeks (Socrates, say) you can write a rule
+like this to see which of them are mortal:
+
+    rule "mortal" [ "name" ]
+        |> with "greek" [ var "name" ]
+
+It's fine to use this to set up recursive queries. For example, you could
+compute reachability for all nodes in a graph using two rules like this:
+
+    [ rule "reachable" [ "a", "b" ]
+        |> with "link" [ var "a", var "b" ]
+    , rule "reachable" [ "a", "c" ]
+        |> with "link" [ var "a", var "b" ]
+        |> with "reachable" [ var "b", var "c" ]
+    ]
+
+If you introduce a variable in a `with` like that above, it's also fine!
+
+-}
+with : String -> List Term -> Rule -> Rule
+with name terms (Rule head body) =
     Rule head (BodyAtom Positive (Atom name terms) :: body)
 
 
-withoutMatching : String -> List Term -> Rule -> Rule
-withoutMatching name terms (Rule head body) =
+{-| The opposite of [`with`](#with): remove any matching tuples based on
+these names.
+
+This has a few more rules than `with`, though:
+
+  - You can't introduce new names in a `without` (every name must be used
+    in a positive clause. If you could, we wouldn't have a way to know which
+    values are permissible and we'd have to invent stuff; a big no-no!)
+  - You can't use `without` recursively (if you could, you could get
+    inconsistent outcomes based on which rules you evaluate first.)
+
+If you've used another datalog implementation before: this is just negation,
+and the rules are more-or-less the same.
+
+Here's an example of computing all the nodes in a graph that _aren't_
+reachable from each other:
+
+    [ -- first, define `reachable` as in the example in `with`:
+      rule "reachable" [ "a", "b" ]
+        |> with "link" [ var "a", var "b" ]
+    , rule "reachable" [ "a", "c" ]
+        |> with "link" [ var "a", var "b" ]
+        |> with "reachable" [ var "b", var "c" ]
+
+    -- next, we need to know what is a valid node so we can
+    , rule "node" [ "a" ]
+        |> with "link" [ var "a", var "b" ]
+    , rule "node" [ "b" ]
+        |> with "link" [ var "a", var "b" ]
+
+    -- finally, we just say "a set of two nodes is unreachable if they're
+    -- individually in `node` but not together in `reachable`"
+    , rule "unreachable" [ "a", "b" ]
+        |> with "node" [ var "a" ]
+        |> with "node" [ var "b" ]
+        |> without "reachable" [ var "a", var "b" ]
+    ]
+
+-}
+without : String -> List Term -> Rule -> Rule
+without name terms (Rule head body) =
     Rule head (BodyAtom Negative (Atom name terms) :: body)
 
 

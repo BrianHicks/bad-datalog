@@ -14,13 +14,13 @@ datalogTests =
             [ test "a simple read turns into a Read -> Project" <|
                 \_ ->
                     rule "mortal" [ "who" ]
-                        |> withMatching "greek" [ var "who" ]
+                        |> with "greek" [ var "who" ]
                         |> planRule
                         |> Expect.equal (Ok (Database.Project [ 0 ] (Database.Read "greek")))
             , test "a filtered read turns into a Select" <|
                 \_ ->
                     rule "mortal" [ "first name" ]
-                        |> withMatching "greek" [ var "first name", string "of Athens" ]
+                        |> with "greek" [ var "first name", string "of Athens" ]
                         |> planRule
                         |> Expect.equal
                             (Database.Read "greek"
@@ -31,8 +31,8 @@ datalogTests =
             , test "sharing a variable between two atoms results in a join" <|
                 \_ ->
                     rule "reachable" [ "a", "c" ]
-                        |> withMatching "link" [ var "a", var "b" ]
-                        |> withMatching "reachable" [ var "b", var "c" ]
+                        |> with "link" [ var "a", var "b" ]
+                        |> with "reachable" [ var "b", var "c" ]
                         |> planRule
                         |> Expect.equal
                             (Database.JoinOn
@@ -46,7 +46,7 @@ datalogTests =
             , test "filtering adds a predicate" <|
                 \_ ->
                     rule "adult" [ "name" ]
-                        |> withMatching "person" [ var "name", var "age" ]
+                        |> with "person" [ var "name", var "age" ]
                         |> filter (gt "age" (int 20))
                         |> planRule
                         |> Expect.equal
@@ -58,8 +58,8 @@ datalogTests =
             , test "filtering using negation adds a predicate" <|
                 \_ ->
                     rule "sibling" [ "a", "b" ]
-                        |> withMatching "parent" [ var "parent", var "a" ]
-                        |> withMatching "parent" [ var "parent", var "b" ]
+                        |> with "parent" [ var "parent", var "a" ]
+                        |> with "parent" [ var "parent", var "b" ]
                         |> filter (not_ (eq "a" (var "b")))
                         |> planRule
                         |> Expect.equal
@@ -75,7 +75,7 @@ datalogTests =
             , test "filtering using or adds a predicate" <|
                 \_ ->
                     rule "teen" [ "name" ]
-                        |> withMatching "person" [ var "name", var "age" ]
+                        |> with "person" [ var "name", var "age" ]
                         |> filter
                             (or
                                 (gt "age" (int 12))
@@ -95,7 +95,7 @@ datalogTests =
             , test "filtering using separate filters adds two filters" <|
                 \_ ->
                     rule "oldHockeyTeam" [ "name" ]
-                        |> withMatching "team" [ var "name", var "league", var "age" ]
+                        |> with "team" [ var "name", var "league", var "age" ]
                         |> filter (eq "league" (string "NHL"))
                         |> filter (gt "age" (int 50))
                         |> planRule
@@ -109,9 +109,9 @@ datalogTests =
             , test "negation adds an outer join" <|
                 \_ ->
                     rule "unreachable" [ "a", "b" ]
-                        |> withMatching "node" [ var "a" ]
-                        |> withMatching "node" [ var "b" ]
-                        |> withoutMatching "reachable" [ var "a", var "b" ]
+                        |> with "node" [ var "a" ]
+                        |> with "node" [ var "b" ]
+                        |> without "reachable" [ var "a", var "b" ]
                         |> planRule
                         |> Expect.equal
                             (Database.OuterJoinOn
@@ -136,7 +136,7 @@ datalogTests =
                 , test "all terms in the head must appear in the body" <|
                     \_ ->
                         rule "bad" [ "a", "b" ]
-                            |> withMatching "fine" [ var "a" ]
+                            |> with "fine" [ var "a" ]
                             |> planRule
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 , test "you can't have just filters" <|
@@ -148,15 +148,15 @@ datalogTests =
                 , test "you can't filter on an unbound name" <|
                     \_ ->
                         rule "bad" [ "a" ]
-                            |> withMatching "fine" [ var "a" ]
+                            |> with "fine" [ var "a" ]
                             |> filter (eq "b" (string "no"))
                             |> planRule
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 , test "every name appearing in a negative atom must also appear in a positive atom" <|
                     \_ ->
                         rule "bad" [ "a" ]
-                            |> withMatching "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
-                            |> withoutMatching "here's the problem" [ var "a" ]
+                            |> with "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
+                            |> without "here's the problem" [ var "a" ]
                             |> planRule
                             |> Expect.equal (Err (VariableMustAppearInPositiveAtom "a"))
                 ]
@@ -179,7 +179,7 @@ datalogTests =
                         |> Result.andThen
                             (query
                                 [ rule "query" [ "who" ]
-                                    |> withMatching "greek" [ var "who" ]
+                                    |> with "greek" [ var "who" ]
                                 ]
                             )
                         |> Result.andThen (readError "query")
@@ -195,10 +195,10 @@ datalogTests =
                         |> Result.andThen
                             (query
                                 [ rule "reachable" [ "a", "b" ]
-                                    |> withMatching "link" [ var "a", var "b" ]
+                                    |> with "link" [ var "a", var "b" ]
                                 , rule "reachable" [ "a", "c" ]
-                                    |> withMatching "link" [ var "a", var "b" ]
-                                    |> withMatching "reachable" [ var "b", var "c" ]
+                                    |> with "link" [ var "a", var "b" ]
+                                    |> with "reachable" [ var "b", var "c" ]
                                 ]
                             )
                         |> Result.andThen (readError "reachable")
@@ -230,8 +230,8 @@ datalogTests =
                         |> Result.andThen
                             (query
                                 [ rule "hometown" [ "name", "hometown" ]
-                                    |> withMatching "mascot" [ var "name", var "team" ]
-                                    |> withMatching "team" [ var "team", var "hometown" ]
+                                    |> with "mascot" [ var "name", var "team" ]
+                                    |> with "team" [ var "team", var "hometown" ]
                                 ]
                             )
                         |> Result.andThen (readError "hometown")
@@ -252,18 +252,18 @@ datalogTests =
                         |> Result.andThen
                             (query
                                 [ rule "reachable" [ "a", "b" ]
-                                    |> withMatching "link" [ var "a", var "b" ]
+                                    |> with "link" [ var "a", var "b" ]
                                 , rule "reachable" [ "a", "c" ]
-                                    |> withMatching "link" [ var "a", var "b" ]
-                                    |> withMatching "reachable" [ var "b", var "c" ]
+                                    |> with "link" [ var "a", var "b" ]
+                                    |> with "reachable" [ var "b", var "c" ]
                                 , rule "node" [ "a" ]
-                                    |> withMatching "link" [ var "a", var "b" ]
+                                    |> with "link" [ var "a", var "b" ]
                                 , rule "node" [ "b" ]
-                                    |> withMatching "link" [ var "a", var "b" ]
+                                    |> with "link" [ var "a", var "b" ]
                                 , rule "unreachable" [ "a", "b" ]
-                                    |> withMatching "node" [ var "a" ]
-                                    |> withMatching "node" [ var "b" ]
-                                    |> withoutMatching "reachable" [ var "a", var "b" ]
+                                    |> with "node" [ var "a" ]
+                                    |> with "node" [ var "b" ]
+                                    |> without "reachable" [ var "a", var "b" ]
                                 ]
                             )
                         |> Result.andThen (readError "unreachable")
@@ -292,11 +292,11 @@ datalogTests =
                         |> Result.andThen
                             (query
                                 [ rule "p" [ "x" ]
-                                    |> withMatching "x" [ var "x" ]
-                                    |> withoutMatching "q" [ var "x" ]
+                                    |> with "x" [ var "x" ]
+                                    |> without "q" [ var "x" ]
                                 , rule "q" [ "x" ]
-                                    |> withMatching "x" [ var "x" ]
-                                    |> withoutMatching "p" [ var "x" ]
+                                    |> with "x" [ var "x" ]
+                                    |> without "p" [ var "x" ]
                                 ]
                             )
                         |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)

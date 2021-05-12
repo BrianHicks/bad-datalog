@@ -10,7 +10,6 @@ It's got some stuff in it:
 
 It still needs some stuff before it's "good":
 
-- Negation
 - A DSL to parse from a string to a datalog program (this would make it way easier to introduce new variables, among other things.)
 - Any level of query plan optimization (in fact right now we definitely have the worst possible performance in a lot of cases.)
 - A sample app

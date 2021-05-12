@@ -310,6 +310,23 @@ datalogTests =
                                 , link 4 4
                                 ]
                             )
+            , test "I cannot make a query with negative recursion" <|
+                \_ ->
+                    empty
+                        |> insert "x" [ string "this doesn't matter, we just need it to trigger the rule under test" ]
+                        |> Result.andThen
+                            (query
+                                [ rule (headAtom "p" [ "x" ])
+                                    [ atom "x" [ var "x" ]
+                                    , notAtom "q" [ var "x" ]
+                                    ]
+                                , rule (headAtom "q" [ "x" ])
+                                    [ atom "x" [ var "x" ]
+                                    , notAtom "p" [ var "x" ]
+                                    ]
+                                ]
+                            )
+                        |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)
             ]
         ]
 

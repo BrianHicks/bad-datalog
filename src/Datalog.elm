@@ -45,6 +45,7 @@ type Problem
     | VariableDoesNotAppearInBody String
     | VariableMustAppearInPositiveAtom String
     | CannotInsertVariable String
+    | CannotHaveNegationInRecursiveQuery
     | DatabaseProblem Database.Problem
 
 
@@ -133,7 +134,7 @@ query rules (Database db) =
 
         strataResult : Result Problem (List (Graph ( String, Maybe Database.QueryPlan ) Negation))
         strataResult =
-            Result.map
+            Result.andThen
                 (\nodes_ ->
                     let
                         graph : Graph ( String, Maybe Database.QueryPlan ) Negation
@@ -142,10 +143,19 @@ query rules (Database db) =
                     in
                     case Graph.stronglyConnectedComponents graph of
                         Ok _ ->
-                            [ graph ]
+                            Ok [ graph ]
 
-                        Err stronglyConnectedComponents ->
-                            stronglyConnectedComponents
+                        Err strata ->
+                            foldrResult
+                                (\stratum soFar ->
+                                    if List.any (\{ label } -> label == Negative) (Graph.edges stratum) then
+                                        Err CannotHaveNegationInRecursiveQuery
+
+                                    else
+                                        Ok (stratum :: soFar)
+                                )
+                                []
+                                strata
                 )
                 nodes
     in

@@ -295,7 +295,7 @@ viewPerson model personId =
     in
     Result.map5
         (\self parents children auntsAndUncles grandparents ->
-            Html.div
+            Html.section
                 []
                 (self ++ parents ++ children ++ auntsAndUncles ++ grandparents)
         )
@@ -303,8 +303,8 @@ viewPerson model personId =
             |> Result.andThen (Datalog.read "me" personDecoder)
             |> Result.map
                 (\me ->
-                    [ Html.h3 [] [ Html.text "Me" ]
-                    , Html.text (Debug.toString me)
+                    [ Html.h2 [] [ Html.text "Me" ]
+                    , viewPeopleList model me
                     ]
                 )
         )
@@ -313,7 +313,7 @@ viewPerson model personId =
             |> Result.map
                 (\parents ->
                     [ Html.h3 [] [ Html.text "Parents" ]
-                    , Html.text (Debug.toString parents)
+                    , viewPeopleList model parents
                     ]
                 )
         )
@@ -322,7 +322,7 @@ viewPerson model personId =
             |> Result.map
                 (\children ->
                     [ Html.h3 [] [ Html.text "Children" ]
-                    , Html.text (Debug.toString children)
+                    , viewPeopleList model children
                     ]
                 )
         )
@@ -331,7 +331,7 @@ viewPerson model personId =
             |> Result.map
                 (\siblings ->
                     [ Html.h3 [] [ Html.text "Siblings" ]
-                    , Html.text (Debug.toString siblings)
+                    , viewPeopleList model siblings
                     ]
                 )
         )
@@ -340,7 +340,7 @@ viewPerson model personId =
             |> Result.map
                 (\grandparents ->
                     [ Html.h3 [] [ Html.text "Grandparents" ]
-                    , Html.text (Debug.toString grandparents)
+                    , viewPeopleList model grandparents
                     ]
                 )
         )

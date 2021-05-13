@@ -179,13 +179,11 @@ viewAddNewPersonForm model =
             { onSubmit = UserClickedAddPerson
             , fields =
                 [ ( "Name"
-                  , \style ->
-                        Html.input
-                            [ Attrs.value model.newPersonField
-                            , Events.onInput UserTypedInNewPersonField
-                            , css [ style ]
-                            ]
-                            []
+                  , Html.input
+                        [ Attrs.value model.newPersonField
+                        , Events.onInput UserTypedInNewPersonField
+                        ]
+                        []
                   )
                 ]
             , submitCaption = "Add Person"
@@ -218,28 +216,26 @@ viewAddParentChildForm model people =
                     { onSubmit = UserClickedAddParentChildRelationship
                     , fields =
                         [ ( "Parent"
-                          , \style ->
-                                Html.select
-                                    [ Events.onInput (UserChoseParent << String.toInt)
-                                    , model.parentId
-                                        |> Maybe.map String.fromInt
-                                        |> Maybe.withDefault ""
-                                        |> Attrs.value
-                                    , css [ style ]
-                                    ]
-                                    peopleOptions
+                          , Html.select
+                                [ Events.onInput (UserChoseParent << String.toInt)
+                                , model.parentId
+                                    |> Maybe.map String.fromInt
+                                    |> Maybe.withDefault ""
+                                    |> Attrs.value
+                                , css [ Css.flexGrow (Css.int 1) ]
+                                ]
+                                peopleOptions
                           )
                         , ( "Child"
-                          , \style ->
-                                Html.select
-                                    [ Events.onInput (UserChoseChild << String.toInt)
-                                    , model.childId
-                                        |> Maybe.map String.fromInt
-                                        |> Maybe.withDefault ""
-                                        |> Attrs.value
-                                    , css [ style ]
-                                    ]
-                                    peopleOptions
+                          , Html.select
+                                [ Events.onInput (UserChoseChild << String.toInt)
+                                , model.childId
+                                    |> Maybe.map String.fromInt
+                                    |> Maybe.withDefault ""
+                                    |> Attrs.value
+                                , css [ Css.flexGrow (Css.int 1) ]
+                                ]
+                                peopleOptions
                           )
                         ]
                     , submitCaption = "Add parent/child relationship"
@@ -386,7 +382,7 @@ viewResult viewError_ viewSuccess result =
 
 viewForm :
     { onSubmit : msg
-    , fields : List ( String, Css.Style -> Html msg )
+    , fields : List ( String, Html msg )
     , submitCaption : String
     }
     -> Html msg
@@ -402,7 +398,7 @@ viewForm { onSubmit, fields, submitCaption } =
                         ]
                     ]
                     [ Html.span [ css [ Css.minWidth (Css.px 75) ] ] [ Html.text label ]
-                    , input (Css.batch [ Css.flexGrow (Css.int 1) ])
+                    , input
                     ]
             )
             fields

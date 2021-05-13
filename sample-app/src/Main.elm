@@ -1,8 +1,8 @@
 module Main exposing (..)
 
-import AddressBook
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Navigation
+import FamilyTree
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs
 import Url exposing (Url)
@@ -12,13 +12,13 @@ import Url.Parser as Parser exposing ((</>), Parser)
 type alias Model =
     { key : Navigation.Key
     , route : Route
-    , addressBook : AddressBook.Model
+    , familyTree : FamilyTree.Model
     }
 
 
 type Route
     = Index
-    | AddressBook
+    | FamilyTree
     | NotFound
 
 
@@ -28,7 +28,7 @@ parseRoute url =
         |> Parser.parse
             (Parser.oneOf
                 [ Parser.map Index Parser.top
-                , Parser.map AddressBook (Parser.top </> Parser.s "address-book")
+                , Parser.map FamilyTree (Parser.top </> Parser.s "family-tree")
                 ]
             )
         |> Maybe.withDefault NotFound
@@ -40,8 +40,8 @@ pathFor route =
         Index ->
             "/"
 
-        AddressBook ->
-            "/address-book"
+        FamilyTree ->
+            "/family-tree"
 
         NotFound ->
             "/404"
@@ -50,7 +50,7 @@ pathFor route =
 type Msg
     = UrlChanged Url
     | UrlRequested UrlRequest
-    | AddressBookMsg AddressBook.Msg
+    | FamilyTreeMsg FamilyTree.Msg
 
 
 type alias Flags =
@@ -60,14 +60,14 @@ type alias Flags =
 init : Flags -> Url -> Navigation.Key -> ( Model, Cmd Msg )
 init _ url key =
     let
-        ( addressBook, addressBookCmd ) =
-            AddressBook.init
+        ( familyTree, familyTreeCmd ) =
+            FamilyTree.init
     in
     ( { key = key
       , route = parseRoute url
-      , addressBook = addressBook
+      , familyTree = familyTree
       }
-    , Cmd.map AddressBookMsg addressBookCmd
+    , Cmd.map FamilyTreeMsg familyTreeCmd
     )
 
 
@@ -89,13 +89,13 @@ update msg model =
             , Navigation.load url
             )
 
-        AddressBookMsg addressBookMsg ->
+        FamilyTreeMsg familyTreeMsg ->
             let
-                ( newAddressBook, addressBookCmd ) =
-                    AddressBook.update addressBookMsg model.addressBook
+                ( newFamilyTree, familyTreeCmd ) =
+                    FamilyTree.update familyTreeMsg model.familyTree
             in
-            ( { model | addressBook = newAddressBook }
-            , Cmd.map AddressBookMsg addressBookCmd
+            ( { model | familyTree = newFamilyTree }
+            , Cmd.map FamilyTreeMsg familyTreeCmd
             )
 
 
@@ -106,7 +106,7 @@ view model =
             Index ->
                 "Datalog Sample Apps"
 
-            AddressBook ->
+            FamilyTree ->
                 "Address Book | Datalog Sample Apps"
 
             NotFound ->
@@ -119,7 +119,7 @@ view model =
                     [ Html.ol
                         []
                         [ Html.li [] [ Html.a [ Attrs.href (pathFor Index) ] [ Html.text "Index" ] ]
-                        , Html.li [] [ Html.a [ Attrs.href (pathFor AddressBook) ] [ Html.text "Address Book" ] ]
+                        , Html.li [] [ Html.a [ Attrs.href (pathFor FamilyTree) ] [ Html.text "Family Tree" ] ]
                         ]
                     ]
                 ]
@@ -128,9 +128,9 @@ view model =
                     Index ->
                         viewIndex model
 
-                    AddressBook ->
-                        AddressBook.view model.addressBook
-                            |> Html.map AddressBookMsg
+                    FamilyTree ->
+                        FamilyTree.view model.familyTree
+                            |> Html.map FamilyTreeMsg
 
                     NotFound ->
                         viewNotFound

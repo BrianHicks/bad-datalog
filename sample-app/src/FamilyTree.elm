@@ -1,4 +1,4 @@
-module AddressBook exposing (..)
+module FamilyTree exposing (..)
 
 import Database
 import Database.Datalog as Datalog exposing (Database)
@@ -9,22 +9,24 @@ import Html.Styled.Events as Events
 
 type alias Model =
     { db : Database
+    , nextId : Int
 
     -- transient view state
-    , newContactField : String
+    , newPersonField : String
     , lastError : Maybe Datalog.Problem
     }
 
 
 type Msg
-    = UserTypedInNewContactField String
-    | UserClickedAddContact
+    = UserTypedInNewPersonField String
+    | UserClickedAddPerson
 
 
 init : ( Model, Cmd Msg )
 init =
     ( { db = Datalog.empty
-      , newContactField = ""
+      , nextId = 0
+      , newPersonField = ""
       , lastError = Nothing
       }
     , Cmd.none
@@ -34,17 +36,18 @@ init =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UserTypedInNewContactField input ->
-            ( { model | newContactField = input }
+        UserTypedInNewPersonField input ->
+            ( { model | newPersonField = input }
             , Cmd.none
             )
 
-        UserClickedAddContact ->
-            case Datalog.insert "contact" [ Datalog.string model.newContactField ] model.db of
+        UserClickedAddPerson ->
+            case Datalog.insert "person" [ Datalog.int model.nextId, Datalog.string model.newPersonField ] model.db of
                 Ok newDb ->
                     ( { model
                         | db = newDb
-                        , newContactField = ""
+                        , nextId = model.nextId + 1
+                        , newPersonField = ""
                       }
                     , Cmd.none
                     )
@@ -64,17 +67,17 @@ view model =
     Html.div
         []
         [ Html.form
-            [ Events.onSubmit UserClickedAddContact ]
+            [ Events.onSubmit UserClickedAddPerson ]
             [ Html.label [] [ Html.text "New contact name" ]
             , Html.input
-                [ Attrs.value model.newContactField
-                , Events.onInput UserTypedInNewContactField
+                [ Attrs.value model.newPersonField
+                , Events.onInput UserTypedInNewPersonField
                 ]
                 []
             ]
-        , Html.h2 [] [ Html.text "Contacts" ]
+        , Html.h2 [] [ Html.text "People" ]
         , data
-            |> Result.map (Database.read "contact")
+            |> Result.map (Database.read "person")
             |> Debug.toString
             |> Html.text
         , Html.h2 [] [ Html.text "Debug" ]

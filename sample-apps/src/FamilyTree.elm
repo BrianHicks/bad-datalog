@@ -355,10 +355,10 @@ viewRelationships model personId =
                 model.db
     in
     Result.map5
-        (\self parents children auntsAndUncles grandparents ->
+        (\self parents children siblings grandparents ->
             Html.section
                 [ css [ Css.flexGrow (Css.int 1) ] ]
-                (self ++ parents ++ children ++ auntsAndUncles ++ grandparents)
+                (self ++ parents ++ children ++ siblings ++ grandparents)
         )
         (derived
             |> Result.andThen (Datalog.read "me" personDecoder)

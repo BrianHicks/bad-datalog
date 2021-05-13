@@ -26,16 +26,15 @@ import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
-import Set exposing (Set)
 
 
 type Database
-    = Database (Set String) Database.Database
+    = Database Database.Database
 
 
 empty : Database
 empty =
-    Database Set.empty Database.empty
+    Database Database.empty
 
 
 type Problem
@@ -55,7 +54,7 @@ type DecodingProblem
 
 
 insert : String -> List Term -> Database -> Result Problem Database
-insert name body (Database registered db) =
+insert name body (Database db) =
     body
         |> foldrResult
             (\term soFar ->
@@ -72,7 +71,7 @@ insert name body (Database registered db) =
                 Database.insert name constants db
                     |> Result.mapError DatabaseProblem
             )
-        |> Result.map (Database registered)
+        |> Result.map Database
 
 
 {-| When displaying data, you'll often want to provide an "empty" view of
@@ -80,13 +79,18 @@ the data before you'e inserted anything into the database. This allows you
 to do that by letting the database know there will be a table with the given
 name _eventually_.
 -}
-register : String -> Database -> Database
-register name (Database registered db) =
-    Database (Set.insert name registered) db
+register : String -> List Database.FieldType -> Database -> Result Problem Database
+register name schema (Database db) =
+    case Database.register name schema db of
+        Ok newDb ->
+            Ok (Database newDb)
+
+        Err problem ->
+            Err (DatabaseProblem problem)
 
 
 derive : List Rule -> Database -> Result Problem Database
-derive rules (Database registered db) =
+derive rules (Database db) =
     let
         nodes : Result Problem (List (Node ( String, Maybe Database.QueryPlan )))
         nodes =
@@ -182,7 +186,7 @@ derive rules (Database registered db) =
                     db
                     strata
             )
-        |> Result.map (Database registered)
+        |> Result.map Database
 
 
 deriveUntilExhausted :
@@ -335,22 +339,10 @@ at index row =
 
 
 read : String -> Decoder a -> Database -> Result Problem (List a)
-read name (Decoder decode) (Database registered db) =
+read name (Decoder decode) (Database db) =
     Database.read name db
         |> Result.mapError DatabaseProblem
         |> Result.map Database.rows
-        |> (\rowsResult ->
-                case rowsResult of
-                    Err (DatabaseProblem (Database.RelationNotFound _)) ->
-                        if Set.member name registered then
-                            Ok []
-
-                        else
-                            rowsResult
-
-                    _ ->
-                        rowsResult
-           )
         |> Result.andThen
             (foldrResult
                 (\row soFar ->

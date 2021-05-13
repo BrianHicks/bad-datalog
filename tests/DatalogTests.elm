@@ -212,8 +212,8 @@ datalogTests =
                 , test "I get an empty list if I try and read a table which I pre-registered" <|
                     \_ ->
                         empty
-                            |> register "person"
-                            |> (into identity |> stringField 1 |> read "person")
+                            |> register "person" [ Database.StringType ]
+                            |> Result.andThen (into identity |> stringField 1 |> read "person")
                             |> Expect.equal (Ok [])
                 ]
             , describe "deriving new tables"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd sample-app
+cd sample-apps
 elm-live --pushstate index.html src/Main.elm

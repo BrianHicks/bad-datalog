@@ -22,7 +22,7 @@ in nixpkgs.stdenv.mkDerivation {
     mkdir -p $out/share/bad-datalog
 
     (
-      cd sample-app
+      cd sample-apps
       elm make src/Main.elm --output $out/share/bad-datalog/index.html
     )
   '';

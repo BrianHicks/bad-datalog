@@ -217,8 +217,8 @@ viewIndex =
                 [ Html.text "this yet-to-be-named datalog implementation in Elm" ]
             , Html.text ". The source for these lives in the "
             , Html.a
-                [ Attrs.href "https://git.bytes.zone/brian/bad-datalog/src/branch/main/sample-app" ]
-                [ Html.code [] [ Html.text "sample-app" ]
+                [ Attrs.href "https://git.bytes.zone/brian/bad-datalog/src/branch/main/sample-apps" ]
+                [ Html.code [] [ Html.text "sample-apps" ]
                 , Html.text " directory in the repo"
                 ]
             , Html.text "."

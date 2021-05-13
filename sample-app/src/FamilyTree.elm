@@ -5,6 +5,7 @@ import Datalog exposing (Database)
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs exposing (css)
 import Html.Styled.Events as Events
+import Url.Parser as Parser exposing ((</>), Parser)
 
 
 type alias Model =
@@ -16,7 +17,6 @@ type alias Model =
     , lastError : Maybe Datalog.Problem
     , parentId : Maybe Int
     , childId : Maybe Int
-    , activePerson : Maybe Int
     }
 
 
@@ -29,8 +29,36 @@ type Msg
     | UserClickedShowPerson Int
 
 
+type Route
+    = Index
+    | ShowPerson Int
+
+
+pathFor : Route -> String
+pathFor route =
+    case route of
+        Index ->
+            "/"
+
+        ShowPerson id ->
+            "/" ++ String.fromInt id
+
+
+routeParser : Parser (Route -> a) a
+routeParser =
+    Parser.oneOf
+        [ Parser.map Index Parser.top
+        , Parser.map ShowPerson (Parser.top </> Parser.int)
+        ]
+
+
 init : ( Model, Cmd Msg )
 init =
+    let
+        dbResult =
+            Datalog.empty
+                |> Datalog.insert "person" [ Datalog.int 0, Datalog.string "Brian" ]
+    in
     ( { db =
             Datalog.empty
                 |> Datalog.register "person"
@@ -39,18 +67,21 @@ init =
       , lastError = Nothing
       , parentId = Nothing
       , childId = Nothing
-      , activePerson = Just 0
       }
     , Cmd.none
     )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+type Effect
+    = Navigate Route
+
+
+update : Msg -> Model -> ( Model, Maybe Effect )
 update msg model =
     case msg of
         UserTypedInNewPersonField input ->
             ( { model | newPersonField = input }
-            , Cmd.none
+            , Nothing
             )
 
         UserClickedAddPerson ->
@@ -67,22 +98,22 @@ update msg model =
                         , nextId = model.nextId + 1
                         , newPersonField = ""
                       }
-                    , Cmd.none
+                    , Nothing
                     )
 
                 Err problem ->
                     ( { model | lastError = Just problem }
-                    , Cmd.none
+                    , Nothing
                     )
 
         UserChoseParent parentId ->
             ( { model | parentId = parentId }
-            , Cmd.none
+            , Nothing
             )
 
         UserChoseChild childId ->
             ( { model | childId = childId }
-            , Cmd.none
+            , Nothing
             )
 
         UserClickedAddParentChildRelationship ->
@@ -101,27 +132,27 @@ update msg model =
                                 , parentId = Nothing
                                 , childId = Nothing
                               }
-                            , Cmd.none
+                            , Nothing
                             )
 
                         Err problem ->
                             ( { model | lastError = Just problem }
-                            , Cmd.none
+                            , Nothing
                             )
 
                 _ ->
                     ( model
-                    , Cmd.none
+                    , Nothing
                     )
 
         UserClickedShowPerson id ->
-            ( { model | activePerson = Just id }
-            , Cmd.none
+            ( model
+            , Just (Navigate (ShowPerson id))
             )
 
 
-view : Model -> Html Msg
-view model =
+view : Route -> Model -> Html Msg
+view route model =
     let
         allPeople =
             Datalog.read "person" personDecoder model.db
@@ -148,11 +179,11 @@ view model =
                 [ Html.h2 [] [ Html.text "People" ]
                 , viewResult viewError (viewPeopleList model) allPeople
                 ]
-            , case model.activePerson of
-                Nothing ->
+            , case route of
+                Index ->
                     Html.text ""
 
-                Just personId ->
+                ShowPerson personId ->
                     viewRelationships model personId
             ]
         ]
@@ -261,8 +292,10 @@ viewPeopleList model people =
                                 [ Html.text person.name
                                 , Html.text " ("
                                 , Html.a
-                                    [ Events.onClick (UserClickedShowPerson person.id)
-                                    , Attrs.href "#"
+                                    [ -- TODO: this has too much knowlege about
+                                      -- where it is. Would it be possible to
+                                      -- lessen that knowledge somewhat?
+                                      Attrs.href ("/family-tree/" ++ String.fromInt person.id)
                                     ]
                                     [ Html.text "Show Relationships" ]
                                 , Html.text ")"

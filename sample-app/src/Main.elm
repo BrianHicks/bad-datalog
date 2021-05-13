@@ -20,7 +20,7 @@ type alias Model =
 
 type Route
     = Index
-    | FamilyTree
+    | FamilyTree FamilyTree.Route
     | NotFound
 
 
@@ -30,7 +30,7 @@ parseRoute url =
         |> Parser.parse
             (Parser.oneOf
                 [ Parser.map Index Parser.top
-                , Parser.map FamilyTree (Parser.top </> Parser.s "family-tree")
+                , Parser.map FamilyTree (Parser.top </> Parser.s "family-tree" </> FamilyTree.routeParser)
                 ]
             )
         |> Maybe.withDefault NotFound
@@ -42,8 +42,8 @@ pathFor route =
         Index ->
             "/"
 
-        FamilyTree ->
-            "/family-tree"
+        FamilyTree familyTreeRoute ->
+            "/family-tree" ++ FamilyTree.pathFor familyTreeRoute
 
         NotFound ->
             "/404"
@@ -93,11 +93,16 @@ update msg model =
 
         FamilyTreeMsg familyTreeMsg ->
             let
-                ( newFamilyTree, familyTreeCmd ) =
+                ( newFamilyTree, familyTreeEffect ) =
                     FamilyTree.update familyTreeMsg model.familyTree
             in
             ( { model | familyTree = newFamilyTree }
-            , Cmd.map FamilyTreeMsg familyTreeCmd
+            , case familyTreeEffect of
+                Just (FamilyTree.Navigate route) ->
+                    Navigation.pushUrl model.key (pathFor (FamilyTree route))
+
+                Nothing ->
+                    Cmd.none
             )
 
 
@@ -108,8 +113,8 @@ view model =
             Index ->
                 "Datalog Sample Apps"
 
-            FamilyTree ->
-                "Address Book | Datalog Sample Apps"
+            FamilyTree _ ->
+                "Family Tree | Datalog Sample Apps"
 
             NotFound ->
                 "Not Found | Datalog Sample Apps"
@@ -156,7 +161,7 @@ view model =
                             ]
                         ]
                         [ viewHeaderLink Index "Index"
-                        , viewHeaderLink FamilyTree "Family Tree"
+                        , viewHeaderLink (FamilyTree FamilyTree.Index) "Family Tree"
                         ]
                     ]
                 ]
@@ -165,8 +170,8 @@ view model =
                     Index ->
                         viewIndex
 
-                    FamilyTree ->
-                        FamilyTree.view model.familyTree
+                    FamilyTree route ->
+                        FamilyTree.view route model.familyTree
                             |> Html.map FamilyTreeMsg
 
                     NotFound ->
@@ -222,7 +227,7 @@ viewIndex =
         , Html.ul []
             [ Html.li []
                 [ Html.a
-                    [ Attrs.href (pathFor FamilyTree) ]
+                    [ Attrs.href (pathFor (FamilyTree FamilyTree.Index)) ]
                     [ Html.text "Family Tree" ]
                 ]
             ]

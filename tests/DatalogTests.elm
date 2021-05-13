@@ -1,6 +1,5 @@
 module DatalogTests exposing (..)
 
-import Array exposing (Array)
 import Datalog exposing (..)
 import Datalog.Database as Database
 import Expect

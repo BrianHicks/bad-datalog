@@ -143,7 +143,7 @@ view model =
                 allPeople
             ]
         , Html.h2 [] [ Html.text "People" ]
-        , viewResult viewError (viewFamily model) allPeople
+        , viewResult viewError (viewPeopleList model) allPeople
         , case model.activePerson of
             Nothing ->
                 Html.text ""
@@ -241,11 +241,11 @@ personDecoder =
         |> Datalog.stringField 1
 
 
-viewFamily : Model -> List Person -> Html Msg
-viewFamily model people =
+viewPeopleList : Model -> List Person -> Html Msg
+viewPeopleList model people =
     case people of
         [] ->
-            Html.text "Nobody has been added yet!"
+            Html.text "Nobody!"
 
         _ ->
             Html.div []
@@ -254,9 +254,13 @@ viewFamily model people =
                         (\person ->
                             Html.li []
                                 [ Html.text person.name
-                                , Html.button
-                                    [ Events.onClick (UserClickedShowPerson person.id) ]
+                                , Html.text " ("
+                                , Html.a
+                                    [ Events.onClick (UserClickedShowPerson person.id)
+                                    , Attrs.href "#"
+                                    ]
                                     [ Html.text "Show Relationships" ]
+                                , Html.text ")"
                                 ]
                         )
                     |> Html.ul []

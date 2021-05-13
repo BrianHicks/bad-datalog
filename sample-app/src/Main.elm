@@ -172,6 +172,14 @@ view model =
                     NotFound ->
                         viewNotFound
                 ]
+            , Html.footer
+                [ css [ Css.marginTop (Css.px 100) ] ]
+                [ Html.hr [] []
+                , Html.details []
+                    [ Html.summary [] [ Html.text "Debug view of the whole model" ]
+                    , Html.text (Debug.toString model)
+                    ]
+                ]
             ]
             |> Html.toUnstyled
             |> List.singleton

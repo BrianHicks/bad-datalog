@@ -83,11 +83,6 @@ view model =
         , Html.h2 [] [ Html.text "People" ]
         , Datalog.read "person" personDecoder model.db
             |> viewResult viewError viewPeople
-        , Html.hr [] []
-        , Html.details []
-            [ Html.summary [] [ Html.text "Debug view of the whole model" ]
-            , Html.text (Debug.toString model)
-            ]
         ]
 
 

@@ -1,7 +1,6 @@
 module FamilyTree exposing (..)
 
-import Database
-import Database.Datalog as Datalog exposing (Database)
+import Datalog exposing (Database)
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs
 import Html.Styled.Events as Events
@@ -42,7 +41,13 @@ update msg model =
             )
 
         UserClickedAddPerson ->
-            case Datalog.insert "person" [ Datalog.int model.nextId, Datalog.string model.newPersonField ] model.db of
+            case
+                Datalog.insert "person"
+                    [ Datalog.int model.nextId
+                    , Datalog.string model.newPersonField
+                    ]
+                    model.db
+            of
                 Ok newDb ->
                     ( { model
                         | db = newDb
@@ -60,10 +65,6 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    let
-        data =
-            Datalog.query [] model.db
-    in
     Html.div
         []
         [ Html.form
@@ -76,10 +77,22 @@ view model =
                 []
             ]
         , Html.h2 [] [ Html.text "People" ]
-        , data
-            |> Result.map (Database.read "person")
+        , Datalog.read "person" personDecoder model.db
             |> Debug.toString
             |> Html.text
         , Html.h2 [] [ Html.text "Debug" ]
         , Html.text (Debug.toString model)
         ]
+
+
+type alias Person =
+    { id : Int
+    , name : String
+    }
+
+
+personDecoder : Datalog.Decoder Person
+personDecoder =
+    Datalog.into Person
+        |> Datalog.intField 0
+        |> Datalog.stringField 1

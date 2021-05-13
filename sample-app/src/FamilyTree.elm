@@ -69,7 +69,9 @@ view : Model -> Html Msg
 view model =
     Html.div
         []
-        [ Html.form
+        [ Html.h1 [] [ Html.text "Family Tree" ]
+        , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the realtionships between that person and other family members." ]
+        , Html.form
             [ Events.onSubmit UserClickedAddPerson ]
             [ Html.label [] [ Html.text "New contact name" ]
             , Html.input

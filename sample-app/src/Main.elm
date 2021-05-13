@@ -163,7 +163,7 @@ view model =
             , Html.main_ []
                 [ case model.route of
                     Index ->
-                        viewIndex model
+                        viewIndex
 
                     FamilyTree ->
                         FamilyTree.view model.familyTree
@@ -193,9 +193,32 @@ viewHeaderLink route caption =
         ]
 
 
-viewIndex : Model -> Html Msg
-viewIndex model =
-    Html.text "Index!"
+viewIndex : Html Msg
+viewIndex =
+    Html.div []
+        [ Html.h1 [] [ Html.text "Datalog Sample Apps" ]
+        , Html.p []
+            [ Html.text "These are sample apps for "
+            , Html.a
+                [ Attrs.href "https://git.bytes.zone/brian/bad-datalog" ]
+                [ Html.text "this yet-to-be-named datalog implementation in Elm" ]
+            , Html.text ". The source for these lives in the "
+            , Html.a
+                [ Attrs.href "https://git.bytes.zone/brian/bad-datalog/src/branch/main/sample-app" ]
+                [ Html.code [] [ Html.text "sample-app" ]
+                , Html.text " directory in the repo"
+                ]
+            , Html.text "."
+            ]
+        , Html.h2 [] [ Html.text "Apps" ]
+        , Html.ul []
+            [ Html.li []
+                [ Html.a
+                    [ Attrs.href (pathFor FamilyTree) ]
+                    [ Html.text "Family Tree" ]
+                ]
+            ]
+        ]
 
 
 viewNotFound : Html Msg

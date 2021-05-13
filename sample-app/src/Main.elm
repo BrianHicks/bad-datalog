@@ -2,9 +2,11 @@ module Main exposing (..)
 
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Navigation
+import Css
+import Css.Global as Global
 import FamilyTree
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes as Attrs
+import Html.Styled.Attributes as Attrs exposing (css)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser)
 
@@ -112,9 +114,26 @@ view model =
             NotFound ->
                 "Not Found | Datalog Sample Apps"
     , body =
-        [ Html.div
-            []
-            [ Html.header []
+        Html.div
+            [ css
+                [ Css.maxWidth (Css.px 1024)
+                , Css.minHeight (Css.vh 100)
+                , Css.margin2 Css.zero Css.auto
+                , Css.padding (Css.px 25)
+                , Css.boxShadow4 (Css.px 0) (Css.px 0) (Css.px 80) (Css.hex "B2EBF2")
+                , Css.backgroundColor (Css.hex "FFF")
+                ]
+            ]
+            [ Global.global
+                [ Global.body
+                    [ Css.margin Css.zero
+                    , Css.fontFamily Css.sansSerif
+                    , Css.backgroundColor (Css.hex "E0F7FA")
+                    , Css.color (Css.hex "37474F")
+                    ]
+                , Global.everything [ Css.boxSizing Css.borderBox ]
+                ]
+            , Html.header []
                 [ Html.nav []
                     [ Html.ol
                         []
@@ -137,7 +156,7 @@ view model =
                 ]
             ]
             |> Html.toUnstyled
-        ]
+            |> List.singleton
     }
 
 

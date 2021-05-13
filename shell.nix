@@ -8,6 +8,7 @@ in pkgs.mkShell {
     niv.niv
     pkgs.git
 
+    pkgs.elm2nix
     pkgs.elmPackages.elm
     pkgs.elmPackages.elm-format
     pkgs.elmPackages.elm-json

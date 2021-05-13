@@ -1,15 +1,18 @@
 module Datalog exposing
-    ( Database, empty, Problem(..), insert, run
-    , Rule, rule, with, without, filter, planRule
+    ( Database, empty, Problem(..), insert
+    , read, Decoder, DecodingProblem(..), into, stringField, intField
+    , derive, Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
     )
 
 {-|
 
-@docs Database, empty, Problem, insert, run
+@docs Database, empty, Problem, insert
 
-@docs Rule, rule, with, without, filter, planRule
+@docs read, Decoder, DecodingProblem, into, stringField, intField
+
+@docs derive, Rule, rule, with, without, filter, planRule
 
 @docs Filter, eq, gt, lt, not_, or
 
@@ -17,6 +20,7 @@ module Datalog exposing
 
 -}
 
+import Array exposing (Array)
 import Datalog.Database as Database exposing (Constant)
 import Dict
 import Graph exposing (Edge, Graph, Node)
@@ -41,6 +45,12 @@ type Problem
     | CannotInsertVariable String
     | CannotHaveNegationInRecursiveQuery
     | DatabaseProblem Database.Problem
+    | DecodingProblem DecodingProblem
+
+
+type DecodingProblem
+    = FieldNotFound Int
+    | UnexpectedFieldType Database.FieldType
 
 
 insert : String -> List Term -> Database -> Result Problem Database
@@ -64,8 +74,8 @@ insert name body (Database db) =
         |> Result.map Database
 
 
-run : List Rule -> Database -> Result Problem Database.Database
-run rules (Database db) =
+derive : List Rule -> Database -> Result Problem Database
+derive rules (Database db) =
     let
         nodes : Result Problem (List (Node ( String, Maybe Database.QueryPlan )))
         nodes =
@@ -153,30 +163,31 @@ run rules (Database db) =
                 )
                 nodes
     in
-    Result.andThen
-        (\strata ->
-            foldrResult
-                runUntilExhausted
-                db
-                strata
-        )
-        strataResult
+    strataResult
+        |> Result.andThen
+            (\strata ->
+                foldrResult
+                    deriveUntilExhausted
+                    db
+                    strata
+            )
+        |> Result.map Database
 
 
-runUntilExhausted :
+deriveUntilExhausted :
     Graph ( String, Maybe Database.QueryPlan ) Negation
     -> Database.Database
     -> Result Problem Database.Database
-runUntilExhausted stratum db =
-    runUntilExhaustedHelp stratum db db
+deriveUntilExhausted stratum db =
+    deriveUntilExhaustedHelp stratum db db
 
 
-runUntilExhaustedHelp :
+deriveUntilExhaustedHelp :
     Graph ( String, Maybe Database.QueryPlan ) Negation
     -> Database.Database
     -> Database.Database
     -> Result Problem Database.Database
-runUntilExhaustedHelp stratum db finalDb =
+deriveUntilExhaustedHelp stratum db finalDb =
     -- the goal of semi-naive evaluation is to only read "new" tuples on each
     -- iteration towards exhaustion (which is what I'm calling the state of
     -- having found all the tuples.) This helps with performance: instead of
@@ -247,10 +258,88 @@ runUntilExhaustedHelp stratum db finalDb =
                 Ok newFinalDb
 
             else
-                runUntilExhaustedHelp stratum nextDb newFinalDb
+                deriveUntilExhaustedHelp stratum nextDb newFinalDb
 
         Err problem ->
             Err problem
+
+
+type Decoder a
+    = Decoder (Array Database.Constant -> Result DecodingProblem a)
+
+
+into : (a -> b) -> Decoder (a -> b)
+into fn =
+    Decoder (\_ -> Ok fn)
+
+
+stringField : Int -> Decoder (String -> a) -> Decoder a
+stringField index (Decoder fn) =
+    Decoder <|
+        \row ->
+            Result.andThen
+                (\nextFn ->
+                    Result.andThen
+                        (\constant ->
+                            case constant of
+                                Database.String string_ ->
+                                    Ok (nextFn string_)
+
+                                Database.Int _ ->
+                                    Err (UnexpectedFieldType Database.IntType)
+                        )
+                        (at index row)
+                )
+                (fn row)
+
+
+intField : Int -> Decoder (Int -> a) -> Decoder a
+intField index (Decoder fn) =
+    Decoder <|
+        \row ->
+            Result.andThen
+                (\nextFn ->
+                    Result.andThen
+                        (\constant ->
+                            case constant of
+                                Database.String _ ->
+                                    Err (UnexpectedFieldType Database.StringType)
+
+                                Database.Int int_ ->
+                                    Ok (nextFn int_)
+                        )
+                        (at index row)
+                )
+                (fn row)
+
+
+at : Int -> Array Database.Constant -> Result DecodingProblem Database.Constant
+at index row =
+    case Array.get index row of
+        Just constant ->
+            Ok constant
+
+        Nothing ->
+            Err (FieldNotFound index)
+
+
+read : String -> Decoder a -> Database -> Result Problem (List a)
+read name (Decoder decode) (Database db) =
+    Database.read name db
+        |> Result.mapError DatabaseProblem
+        |> Result.map Database.rows
+        |> Result.andThen
+            (foldrResult
+                (\row soFar ->
+                    case decode row of
+                        Ok decoded ->
+                            Ok (decoded :: soFar)
+
+                        Err problem ->
+                            Err (DecodingProblem problem)
+                )
+                []
+            )
 
 
 type Rule

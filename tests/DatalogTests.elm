@@ -167,151 +167,218 @@ datalogTests =
                             |> Expect.equal (Err (VariableMustAppearInPositiveAtom "a"))
                 ]
             ]
-        , describe "running a program"
-            [ test "I can insert data" <|
-                \_ ->
-                    empty
-                        |> insert "greek" [ string "Socrates" ]
-                        |> Expect.ok
-            , test "I can't insert variables" <|
-                \_ ->
-                    empty
-                        |> insert "greek" [ var "who?" ]
-                        |> Expect.equal (Err (CannotInsertVariable "who?"))
-            , test "I can read the data I wrote back" <|
-                \_ ->
-                    empty
-                        |> insert "greek" [ string "Socrates" ]
-                        |> Result.andThen
-                            (run
-                                [ rule "query" [ "who" ]
-                                    |> with "greek" [ var "who" ]
-                                ]
-                            )
-                        |> Result.andThen (readError "query")
-                        |> Expect.equal
-                            (Ok [ Array.fromList [ Database.String "Socrates" ] ])
-            , test "I can run a program with recursion" <|
-                \_ ->
-                    empty
-                        |> insert "link" [ int 1, int 2 ]
-                        |> Result.andThen (insert "link" [ int 2, int 3 ])
-                        |> Result.andThen (insert "link" [ int 3, int 3 ])
-                        |> Result.andThen (insert "link" [ int 3, int 4 ])
-                        |> Result.andThen
-                            (run
-                                [ rule "reachable" [ "a", "b" ]
-                                    |> with "link" [ var "a", var "b" ]
-                                , rule "reachable" [ "a", "c" ]
-                                    |> with "link" [ var "a", var "b" ]
-                                    |> with "reachable" [ var "b", var "c" ]
-                                ]
-                            )
-                        |> Result.andThen (readError "reachable")
-                        |> Expect.equal
-                            (let
-                                link : Int -> Int -> Array Database.Constant
-                                link a b =
-                                    Array.fromList [ Database.Int a, Database.Int b ]
-                             in
-                             Ok
-                                [ link 1 2
-                                , link 1 3
-                                , link 1 4
-                                , link 2 3
-                                , link 2 4
-                                , link 3 3
-                                , link 3 4
-                                ]
-                            )
-            , test "I can run a program that joins tables" <|
-                \_ ->
-                    empty
-                        |> insert "mascot" [ string "Fredbird", string "Cardinals" ]
-                        |> Result.andThen (insert "mascot" [ string "Louie", string "Blues" ])
-                        |> Result.andThen (insert "mascot" [ string "Gritty", string "Flyers" ])
-                        |> Result.andThen (insert "team" [ string "Cardinals", string "St. Louis" ])
-                        |> Result.andThen (insert "team" [ string "Blues", string "St. Louis" ])
-                        |> Result.andThen (insert "team" [ string "Flyers", string "Philadelphia" ])
-                        |> Result.andThen
-                            (run
-                                [ rule "hometown" [ "name", "hometown" ]
-                                    |> with "mascot" [ var "name", var "team" ]
-                                    |> with "team" [ var "team", var "hometown" ]
-                                ]
-                            )
-                        |> Result.andThen (readError "hometown")
-                        |> Expect.equal
-                            (Ok
-                                [ Array.fromList [ Database.String "Fredbird", Database.String "St. Louis" ]
-                                , Array.fromList [ Database.String "Gritty", Database.String "Philadelphia" ]
-                                , Array.fromList [ Database.String "Louie", Database.String "St. Louis" ]
-                                ]
-                            )
-            , test "I can run a program containing negation" <|
-                \_ ->
-                    empty
-                        |> insert "link" [ int 1, int 2 ]
-                        |> Result.andThen (insert "link" [ int 2, int 3 ])
-                        |> Result.andThen (insert "link" [ int 3, int 3 ])
-                        |> Result.andThen (insert "link" [ int 3, int 4 ])
-                        |> Result.andThen
-                            (run
-                                [ rule "reachable" [ "a", "b" ]
-                                    |> with "link" [ var "a", var "b" ]
-                                , rule "reachable" [ "a", "c" ]
-                                    |> with "link" [ var "a", var "b" ]
-                                    |> with "reachable" [ var "b", var "c" ]
-                                , rule "node" [ "a" ]
-                                    |> with "link" [ var "a", var "b" ]
-                                , rule "node" [ "b" ]
-                                    |> with "link" [ var "a", var "b" ]
-                                , rule "unreachable" [ "a", "b" ]
-                                    |> with "node" [ var "a" ]
-                                    |> with "node" [ var "b" ]
-                                    |> without "reachable" [ var "a", var "b" ]
-                                ]
-                            )
-                        |> Result.andThen (readError "unreachable")
-                        |> Expect.equal
-                            (let
-                                link : Int -> Int -> Array Database.Constant
-                                link a b =
-                                    Array.fromList [ Database.Int a, Database.Int b ]
-                             in
-                             Ok
-                                [ link 1 1
-                                , link 2 1
-                                , link 2 2
-                                , link 3 1
-                                , link 3 2
-                                , link 4 1
-                                , link 4 2
-                                , link 4 3
-                                , link 4 4
-                                ]
-                            )
-            , test "I cannot run a program with negative recursion" <|
-                \_ ->
-                    empty
-                        |> insert "x" [ string "this doesn't matter, we just need it to trigger the rule under test" ]
-                        |> Result.andThen
-                            (run
-                                [ rule "p" [ "x" ]
-                                    |> with "x" [ var "x" ]
-                                    |> without "q" [ var "x" ]
-                                , rule "q" [ "x" ]
-                                    |> with "x" [ var "x" ]
-                                    |> without "p" [ var "x" ]
-                                ]
-                            )
-                        |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)
+        , describe "working with the database"
+            [ describe "insertion"
+                [ test "I can insert data" <|
+                    \_ ->
+                        empty
+                            |> insert "greek" [ string "Socrates" ]
+                            |> Expect.ok
+                , test "I can't insert variables" <|
+                    \_ ->
+                        empty
+                            |> insert "greek" [ var "who?" ]
+                            |> Expect.equal (Err (CannotInsertVariable "who?"))
+                ]
+            , describe "reading"
+                [ test "I can read back a string I wrote" <|
+                    \_ ->
+                        empty
+                            |> insert "greek" [ string "Socrates" ]
+                            |> Result.andThen (into identity |> stringField 0 |> read "greek")
+                            |> Expect.equal (Ok [ "Socrates" ])
+                , test "I can read back a number I wrote" <|
+                    \_ ->
+                        empty
+                            |> insert "numbers" [ int 1 ]
+                            |> Result.andThen (into identity |> intField 0 |> read "numbers")
+                            |> Expect.equal (Ok [ 1 ])
+                , test "I get an error if I try to read the wrong type" <|
+                    \_ ->
+                        empty
+                            |> insert "numbers" [ int 1 ]
+                            |> Result.andThen (into identity |> stringField 0 |> read "numbers")
+                            |> Expect.equal (Err (DecodingProblem (UnexpectedFieldType Database.IntType)))
+                , test "I get an error if I try to read an index that doesn't exist" <|
+                    \_ ->
+                        empty
+                            |> insert "numbers" [ int 1 ]
+                            |> Result.andThen (into identity |> stringField 1 |> read "numbers")
+                            |> Expect.equal (Err (DecodingProblem (FieldNotFound 1)))
+                ]
+            , describe "deriving new tables"
+                [ test "I can derive a new table by renaming an existing table" <|
+                    \_ ->
+                        empty
+                            |> insert "greek" [ string "Socrates" ]
+                            |> Result.andThen
+                                (derive
+                                    [ rule "mortal" [ "name" ]
+                                        |> with "greek" [ var "name" ]
+                                    ]
+                                )
+                            |> Result.andThen
+                                (into identity
+                                    |> stringField 0
+                                    |> read "mortal"
+                                )
+                            |> Expect.equal (Ok [ "Socrates" ])
+                , test "I can derive a new table by combining tables" <|
+                    \_ ->
+                        empty
+                            |> insert "greek" [ string "Socrates" ]
+                            |> Result.andThen (insert "french" [ string "Simone de Beauvoir" ])
+                            |> Result.andThen
+                                (derive
+                                    [ rule "mortal" [ "name" ]
+                                        |> with "greek" [ var "name" ]
+                                    , rule "mortal" [ "name" ]
+                                        |> with "french" [ var "name" ]
+                                    ]
+                                )
+                            |> Result.andThen
+                                (into identity
+                                    |> stringField 0
+                                    |> read "mortal"
+                                )
+                            |> Expect.equal (Ok [ "Simone de Beauvoir", "Socrates" ])
+                , test "I can filter tables by matching inside a `with` clause" <|
+                    \_ ->
+                        empty
+                            |> insert "person" [ string "Simone de Beauvoir", string "philosopher" ]
+                            |> Result.andThen (insert "person" [ string "Barbara Liskov", string "computer scientist" ])
+                            |> Result.andThen
+                                (derive
+                                    [ rule "philosopher" [ "name" ]
+                                        |> with "person" [ var "name", string "philosopher" ]
+                                    ]
+                                )
+                            |> Result.andThen
+                                (into identity
+                                    |> stringField 0
+                                    |> read "philosopher"
+                                )
+                            |> Expect.equal (Ok [ "Simone de Beauvoir" ])
+                , test "I can derive with recursion" <|
+                    \_ ->
+                        empty
+                            |> insert "link" [ int 1, int 2 ]
+                            |> Result.andThen (insert "link" [ int 2, int 3 ])
+                            |> Result.andThen (insert "link" [ int 3, int 3 ])
+                            |> Result.andThen (insert "link" [ int 3, int 4 ])
+                            |> Result.andThen
+                                (derive
+                                    [ rule "reachable" [ "a", "b" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                    , rule "reachable" [ "a", "c" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                        |> with "reachable" [ var "b", var "c" ]
+                                    ]
+                                )
+                            |> Result.andThen
+                                (into Tuple.pair
+                                    |> intField 0
+                                    |> intField 1
+                                    |> read "reachable"
+                                )
+                            |> Expect.equal
+                                (Ok
+                                    [ ( 1, 2 )
+                                    , ( 1, 3 )
+                                    , ( 1, 4 )
+                                    , ( 2, 3 )
+                                    , ( 2, 4 )
+                                    , ( 3, 3 )
+                                    , ( 3, 4 )
+                                    ]
+                                )
+                , test "I can derive a new table via join" <|
+                    \_ ->
+                        empty
+                            |> insert "mascot" [ string "Fredbird", string "Cardinals" ]
+                            |> Result.andThen (insert "mascot" [ string "Louie", string "Blues" ])
+                            |> Result.andThen (insert "mascot" [ string "Gritty", string "Flyers" ])
+                            |> Result.andThen (insert "team" [ string "Cardinals", string "St. Louis" ])
+                            |> Result.andThen (insert "team" [ string "Blues", string "St. Louis" ])
+                            |> Result.andThen (insert "team" [ string "Flyers", string "Philadelphia" ])
+                            |> Result.andThen
+                                (derive
+                                    [ rule "hometown" [ "name", "hometown" ]
+                                        |> with "mascot" [ var "name", var "team" ]
+                                        |> with "team" [ var "team", var "hometown" ]
+                                    ]
+                                )
+                            |> Result.andThen
+                                (into Tuple.pair
+                                    |> stringField 0
+                                    |> stringField 1
+                                    |> read "hometown"
+                                )
+                            |> Expect.equal
+                                (Ok
+                                    [ ( "Fredbird", "St. Louis" )
+                                    , ( "Gritty", "Philadelphia" )
+                                    , ( "Louie", "St. Louis" )
+                                    ]
+                                )
+                , test "I can derive a table using negation" <|
+                    \_ ->
+                        empty
+                            |> insert "link" [ int 1, int 2 ]
+                            |> Result.andThen (insert "link" [ int 2, int 3 ])
+                            |> Result.andThen (insert "link" [ int 3, int 3 ])
+                            |> Result.andThen (insert "link" [ int 3, int 4 ])
+                            |> Result.andThen
+                                (derive
+                                    [ rule "reachable" [ "a", "b" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                    , rule "reachable" [ "a", "c" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                        |> with "reachable" [ var "b", var "c" ]
+                                    , rule "node" [ "a" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                    , rule "node" [ "b" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                    , rule "unreachable" [ "a", "b" ]
+                                        |> with "node" [ var "a" ]
+                                        |> with "node" [ var "b" ]
+                                        |> without "reachable" [ var "a", var "b" ]
+                                    ]
+                                )
+                            |> Result.andThen
+                                (into Tuple.pair
+                                    |> intField 0
+                                    |> intField 1
+                                    |> read "unreachable"
+                                )
+                            |> Expect.equal
+                                (Ok
+                                    [ ( 1, 1 )
+                                    , ( 2, 1 )
+                                    , ( 2, 2 )
+                                    , ( 3, 1 )
+                                    , ( 3, 2 )
+                                    , ( 4, 1 )
+                                    , ( 4, 2 )
+                                    , ( 4, 3 )
+                                    , ( 4, 4 )
+                                    ]
+                                )
+                , test "I cannot derive a program with negative recursion" <|
+                    \_ ->
+                        empty
+                            |> insert "x" [ string "this doesn't matter, we just need it to trigger the rule under test" ]
+                            |> Result.andThen
+                                (derive
+                                    [ rule "p" [ "x" ]
+                                        |> with "x" [ var "x" ]
+                                        |> without "q" [ var "x" ]
+                                    , rule "q" [ "x" ]
+                                        |> with "x" [ var "x" ]
+                                        |> without "p" [ var "x" ]
+                                    ]
+                                )
+                            |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)
+                ]
             ]
         ]
-
-
-readError : String -> Database.Database -> Result Problem (List (Array Database.Constant))
-readError name db =
-    Database.read name db
-        |> Result.map Database.rows
-        |> Result.mapError DatabaseProblem

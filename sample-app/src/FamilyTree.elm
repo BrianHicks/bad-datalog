@@ -31,33 +31,15 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    let
-        dbResult : Result Datalog.Problem Datalog.Database
-        dbResult =
+    ( { db =
             Datalog.empty
                 |> Datalog.register "person"
-                |> Datalog.insert "person" [ Datalog.int 0, Datalog.string "Brian" ]
-                |> Result.andThen (Datalog.insert "person" [ Datalog.int 1, Datalog.string "Anne" ])
-                |> Result.andThen (Datalog.insert "person" [ Datalog.int 2, Datalog.string "Nate" ])
-    in
-    ( { db =
-            case dbResult of
-                Ok db ->
-                    db
-
-                Err _ ->
-                    Datalog.empty
-      , nextId = 3
+      , nextId = 0
       , newPersonField = ""
-      , lastError =
-            case dbResult of
-                Ok _ ->
-                    Nothing
-
-                Err problem ->
-                    Just problem
+      , lastError = Nothing
       , parentId = Nothing
       , childId = Nothing
+      , activePerson = Just 0
       }
     , Cmd.none
     )

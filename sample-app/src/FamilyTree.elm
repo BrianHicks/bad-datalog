@@ -129,7 +129,7 @@ view model =
     Html.div
         []
         [ Html.h1 [] [ Html.text "Family Tree" ]
-        , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the realtionships between that person and other family members." ]
+        , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the relationships between that person and other family members." ]
         , Html.div
             [ css
                 [ Css.displayFlex
@@ -347,7 +347,7 @@ viewError : Datalog.Problem -> Html msg
 viewError problem =
     Html.details
         []
-        [ Html.summary [] [ Html.text "Somthing went wrong. Oh no! Here are more details." ]
+        [ Html.summary [] [ Html.text "Something went wrong. Oh no! Here are more details." ]
         , Html.text (Debug.toString problem)
         ]
 

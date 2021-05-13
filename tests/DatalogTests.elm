@@ -183,7 +183,7 @@ datalogTests =
                     empty
                         |> insert "greek" [ string "Socrates" ]
                         |> Result.andThen
-                            (query
+                            (run
                                 [ rule "query" [ "who" ]
                                     |> with "greek" [ var "who" ]
                                 ]
@@ -191,7 +191,7 @@ datalogTests =
                         |> Result.andThen (readError "query")
                         |> Expect.equal
                             (Ok [ Array.fromList [ Database.String "Socrates" ] ])
-            , test "I can make a recursive query" <|
+            , test "I can run a program with recursion" <|
                 \_ ->
                     empty
                         |> insert "link" [ int 1, int 2 ]
@@ -199,7 +199,7 @@ datalogTests =
                         |> Result.andThen (insert "link" [ int 3, int 3 ])
                         |> Result.andThen (insert "link" [ int 3, int 4 ])
                         |> Result.andThen
-                            (query
+                            (run
                                 [ rule "reachable" [ "a", "b" ]
                                     |> with "link" [ var "a", var "b" ]
                                 , rule "reachable" [ "a", "c" ]
@@ -224,7 +224,7 @@ datalogTests =
                                 , link 3 4
                                 ]
                             )
-            , test "I can make a joining query" <|
+            , test "I can run a program that joins tables" <|
                 \_ ->
                     empty
                         |> insert "mascot" [ string "Fredbird", string "Cardinals" ]
@@ -234,7 +234,7 @@ datalogTests =
                         |> Result.andThen (insert "team" [ string "Blues", string "St. Louis" ])
                         |> Result.andThen (insert "team" [ string "Flyers", string "Philadelphia" ])
                         |> Result.andThen
-                            (query
+                            (run
                                 [ rule "hometown" [ "name", "hometown" ]
                                     |> with "mascot" [ var "name", var "team" ]
                                     |> with "team" [ var "team", var "hometown" ]
@@ -248,7 +248,7 @@ datalogTests =
                                 , Array.fromList [ Database.String "Louie", Database.String "St. Louis" ]
                                 ]
                             )
-            , test "I can make a query with a negation" <|
+            , test "I can run a program containing negation" <|
                 \_ ->
                     empty
                         |> insert "link" [ int 1, int 2 ]
@@ -256,7 +256,7 @@ datalogTests =
                         |> Result.andThen (insert "link" [ int 3, int 3 ])
                         |> Result.andThen (insert "link" [ int 3, int 4 ])
                         |> Result.andThen
-                            (query
+                            (run
                                 [ rule "reachable" [ "a", "b" ]
                                     |> with "link" [ var "a", var "b" ]
                                 , rule "reachable" [ "a", "c" ]
@@ -291,12 +291,12 @@ datalogTests =
                                 , link 4 4
                                 ]
                             )
-            , test "I cannot make a query with negative recursion" <|
+            , test "I cannot run a program with negative recursion" <|
                 \_ ->
                     empty
                         |> insert "x" [ string "this doesn't matter, we just need it to trigger the rule under test" ]
                         |> Result.andThen
-                            (query
+                            (run
                                 [ rule "p" [ "x" ]
                                     |> with "x" [ var "x" ]
                                     |> without "q" [ var "x" ]

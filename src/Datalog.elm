@@ -1,5 +1,5 @@
 module Datalog exposing
-    ( Database, empty, Problem(..), insert, query
+    ( Database, empty, Problem(..), insert, run
     , Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
@@ -7,7 +7,7 @@ module Datalog exposing
 
 {-|
 
-@docs Database, empty, Problem, insert, query
+@docs Database, empty, Problem, insert, run
 
 @docs Rule, rule, with, without, filter, planRule
 
@@ -64,8 +64,8 @@ insert name body (Database db) =
         |> Result.map Database
 
 
-query : List Rule -> Database -> Result Problem Database.Database
-query rules (Database db) =
+run : List Rule -> Database -> Result Problem Database.Database
+run rules (Database db) =
     let
         nodes : Result Problem (List (Node ( String, Maybe Database.QueryPlan )))
         nodes =

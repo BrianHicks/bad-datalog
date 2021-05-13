@@ -23,7 +23,9 @@ type Msg
 
 init : ( Model, Cmd Msg )
 init =
-    ( { db = Datalog.empty
+    ( { db =
+            Datalog.empty
+                |> Datalog.register "person"
       , nextId = 0
       , newPersonField = ""
       , lastError = Nothing

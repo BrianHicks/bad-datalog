@@ -205,6 +205,17 @@ datalogTests =
                             |> insert "numbers" [ int 1 ]
                             |> Result.andThen (into identity |> stringField 1 |> read "numbers")
                             |> Expect.equal (Err (DecodingProblem (FieldNotFound 1)))
+                , test "I get an error if I try and read a table that doesn't exist" <|
+                    \_ ->
+                        empty
+                            |> (into identity |> stringField 1 |> read "person")
+                            |> Expect.equal (Err (DatabaseProblem (Database.RelationNotFound "person")))
+                , test "I get an empty list if I try and read a table which I pre-registered" <|
+                    \_ ->
+                        empty
+                            |> register "person"
+                            |> (into identity |> stringField 1 |> read "person")
+                            |> Expect.equal (Ok [])
                 ]
             , describe "deriving new tables"
                 [ test "I can derive a new table by renaming an existing table" <|

@@ -1,5 +1,5 @@
 module Datalog exposing
-    ( Database, empty, Problem(..), insert
+    ( Database, empty, register, Problem(..), insert
     , read, Decoder, DecodingProblem(..), into, stringField, intField
     , derive, Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
@@ -8,7 +8,7 @@ module Datalog exposing
 
 {-|
 
-@docs Database, empty, Problem, insert
+@docs Database, empty, register, Problem, insert
 
 @docs read, Decoder, DecodingProblem, into, stringField, intField
 
@@ -26,15 +26,16 @@ import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
+import Set exposing (Set)
 
 
 type Database
-    = Database Database.Database
+    = Database (Set String) Database.Database
 
 
 empty : Database
 empty =
-    Database Database.empty
+    Database Set.empty Database.empty
 
 
 type Problem
@@ -54,7 +55,7 @@ type DecodingProblem
 
 
 insert : String -> List Term -> Database -> Result Problem Database
-insert name body (Database db) =
+insert name body (Database registered db) =
     body
         |> foldrResult
             (\term soFar ->
@@ -71,11 +72,21 @@ insert name body (Database db) =
                 Database.insert name constants db
                     |> Result.mapError DatabaseProblem
             )
-        |> Result.map Database
+        |> Result.map (Database registered)
+
+
+{-| When displaying data, you'll often want to provide an "empty" view of
+the data before you'e inserted anything into the database. This allows you
+to do that by letting the database know there will be a table with the given
+name _eventually_.
+-}
+register : String -> Database -> Database
+register name (Database registered db) =
+    Database (Set.insert name registered) db
 
 
 derive : List Rule -> Database -> Result Problem Database
-derive rules (Database db) =
+derive rules (Database registered db) =
     let
         nodes : Result Problem (List (Node ( String, Maybe Database.QueryPlan )))
         nodes =
@@ -171,7 +182,7 @@ derive rules (Database db) =
                     db
                     strata
             )
-        |> Result.map Database
+        |> Result.map (Database registered)
 
 
 deriveUntilExhausted :
@@ -324,10 +335,22 @@ at index row =
 
 
 read : String -> Decoder a -> Database -> Result Problem (List a)
-read name (Decoder decode) (Database db) =
+read name (Decoder decode) (Database registered db) =
     Database.read name db
         |> Result.mapError DatabaseProblem
         |> Result.map Database.rows
+        |> (\rowsResult ->
+                case rowsResult of
+                    Err (DatabaseProblem (Database.RelationNotFound _)) ->
+                        if Set.member name registered then
+                            Ok []
+
+                        else
+                            rowsResult
+
+                    _ ->
+                        rowsResult
+           )
         |> Result.andThen
             (foldrResult
                 (\row soFar ->

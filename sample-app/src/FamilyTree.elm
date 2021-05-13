@@ -140,14 +140,23 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        allPeople =
+            Datalog.read "person" personDecoder model.db
+    in
     Html.div
         []
         [ Html.h1 [] [ Html.text "Family Tree" ]
         , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the realtionships between that person and other family members." ]
-        , addNewPersonForm model
+        , Html.div [ css [ Css.displayFlex ] ]
+            [ viewAddNewPersonForm model
+            , viewResult
+                (\_ -> Html.text "")
+                (viewAddParentChildForm model)
+                allPeople
+            ]
         , Html.h2 [] [ Html.text "People" ]
-        , Datalog.read "person" personDecoder model.db
-            |> viewResult viewError (viewFamily model)
+        , viewResult viewError (viewFamily model) allPeople
         , case model.activePerson of
             Nothing ->
                 Html.text ""
@@ -157,14 +166,12 @@ view model =
         ]
 
 
-addNewPersonForm : Model -> Html Msg
-addNewPersonForm model =
+viewAddNewPersonForm : Model -> Html Msg
+viewAddNewPersonForm model =
     Html.section []
         [ Html.h2 [] [ Html.text "Add a New Person" ]
         , Html.form
-            [ Events.onSubmit UserClickedAddPerson
-            , css [ Css.width (Css.px 300) ]
-            ]
+            [ Events.onSubmit UserClickedAddPerson ]
             [ Html.label [ css [ Css.displayFlex ] ]
                 [ Html.text "Person's name: "
                 , Html.input
@@ -221,12 +228,11 @@ viewFamily model people =
                                 ]
                         )
                     |> Html.ul []
-                , viewParentChildForm model people
                 ]
 
 
-viewParentChildForm : Model -> List Person -> Html Msg
-viewParentChildForm model people =
+viewAddParentChildForm : Model -> List Person -> Html Msg
+viewAddParentChildForm model people =
     case people of
         _ :: _ :: _ ->
             let
@@ -244,35 +250,38 @@ viewParentChildForm model people =
                                 [ Html.text "---" ]
                             )
             in
-            Html.form
-                [ Events.onSubmit UserClickedAddParentChildRelationship ]
-                [ Html.label
-                    [ css [ Css.display Css.block ] ]
-                    [ Html.text "Parent: "
-                    , Html.select
-                        [ Events.onInput (UserChoseParent << String.toInt)
-                        , model.parentId
-                            |> Maybe.map String.fromInt
-                            |> Maybe.withDefault ""
-                            |> Attrs.value
+            Html.div []
+                [ Html.h2 [] [ Html.text "Add a Parent/Child Relationship" ]
+                , Html.form
+                    [ Events.onSubmit UserClickedAddParentChildRelationship ]
+                    [ Html.label
+                        [ css [ Css.display Css.block ] ]
+                        [ Html.text "Parent: "
+                        , Html.select
+                            [ Events.onInput (UserChoseParent << String.toInt)
+                            , model.parentId
+                                |> Maybe.map String.fromInt
+                                |> Maybe.withDefault ""
+                                |> Attrs.value
+                            ]
+                            peopleOptions
                         ]
-                        peopleOptions
-                    ]
-                , Html.label
-                    [ css [ Css.display Css.block ] ]
-                    [ Html.text "Child: "
-                    , Html.select
-                        [ Events.onInput (UserChoseChild << String.toInt)
-                        , model.childId
-                            |> Maybe.map String.fromInt
-                            |> Maybe.withDefault ""
-                            |> Attrs.value
+                    , Html.label
+                        [ css [ Css.display Css.block ] ]
+                        [ Html.text "Child: "
+                        , Html.select
+                            [ Events.onInput (UserChoseChild << String.toInt)
+                            , model.childId
+                                |> Maybe.map String.fromInt
+                                |> Maybe.withDefault ""
+                                |> Attrs.value
+                            ]
+                            peopleOptions
                         ]
-                        peopleOptions
+                    , Html.button
+                        []
+                        [ Html.text "Add parent/child relationship" ]
                     ]
-                , Html.button
-                    []
-                    [ Html.text "Add parent/child relationship" ]
                 ]
 
         _ ->

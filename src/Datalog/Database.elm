@@ -1,5 +1,5 @@
 module Datalog.Database exposing
-    ( Database, empty, insert, mergeRelations, replaceRelation
+    ( Database, empty, insert, register, mergeRelations, replaceRelation
     , Relation, read, rows
     , Schema, FieldType(..)
     , Constant(..), Problem(..)
@@ -16,7 +16,7 @@ Resources:
   - <https://cs.uwaterloo.ca/~tozsu/courses/CS338/lectures/5%20Rel%20Algebra.pdf>
   - <https://www.cs.ubc.ca/~laks/cpsc304/Unit05-FormalLanguages.pdf>
 
-@docs Database, empty, insert, mergeRelations, replaceRelation
+@docs Database, empty, insert, register, mergeRelations, replaceRelation
 
 @docs Relation, read, rows
 
@@ -153,6 +153,32 @@ insert relationName row (Database db) =
                     (SchemaMismatch
                         { wanted = schema
                         , got = rowToSchema row
+                        }
+                    )
+
+
+register : String -> List FieldType -> Database -> Result Problem Database
+register relationName schema (Database db) =
+    case Dict.get relationName db of
+        Nothing ->
+            db
+                |> Dict.insert relationName
+                    (Relation
+                        (Array.fromList schema)
+                        (Set.empty rowSorter)
+                    )
+                |> Database
+                |> Ok
+
+        Just (Relation existingSchema rows_) ->
+            if existingSchema == Array.fromList schema then
+                Ok (Database db)
+
+            else
+                Err
+                    (SchemaMismatch
+                        { wanted = existingSchema
+                        , got = Array.fromList schema
                         }
                     )
 

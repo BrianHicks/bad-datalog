@@ -147,6 +147,66 @@ readTests =
         ]
 
 
+registerTests : Test
+registerTests =
+    describe "register"
+        [ test "cannot read a relation which has not been pre-registered and doesn't exist" <|
+            \_ ->
+                empty
+                    |> read "test"
+                    |> Expect.equal (Err (RelationNotFound "test"))
+        , test "can read a relation which has been pre-registered but doesn't exist" <|
+            \_ ->
+                empty
+                    |> register "test" [ StringType ]
+                    |> Result.andThen (read "test")
+                    |> Result.map rows
+                    |> Expect.equal (Ok [])
+        , test "can read the actual rows from a field that has been pre-registered and then filled" <|
+            \_ ->
+                empty
+                    |> register "test" [ StringType ]
+                    |> Result.andThen (insert "test" [ String "test" ])
+                    |> Result.andThen (read "test")
+                    |> Result.map rows
+                    |> Expect.equal (Ok [ Array.fromList [ String "test" ] ])
+        , test "can read the actual rows from a field that has been filled and then pre-registered" <|
+            \_ ->
+                empty
+                    |> insert "test" [ String "test" ]
+                    |> Result.andThen (register "test" [ StringType ])
+                    |> Result.andThen (read "test")
+                    |> Result.map rows
+                    |> Expect.equal (Ok [ Array.fromList [ String "test" ] ])
+        , test "cannot register with the wrong schema after inserting" <|
+            \_ ->
+                empty
+                    |> insert "test" [ String "test" ]
+                    |> Result.andThen (register "test" [ IntType ])
+                    |> Expect.equal
+                        (Err
+                            (SchemaMismatch
+                                { wanted = Array.fromList [ StringType ]
+                                , got = Array.fromList [ IntType ]
+                                }
+                            )
+                        )
+        , test "cannot insert with the wrong schema after registering" <|
+            \_ ->
+                empty
+                    |> register "test" [ IntType ]
+                    |> Result.andThen (insert "test" [ String "test" ])
+                    |> Expect.equal
+                        (Err
+                            (SchemaMismatch
+                                { wanted = Array.fromList [ IntType ]
+                                , got = Array.fromList [ StringType ]
+                                }
+                            )
+                        )
+        ]
+
+
 queryTests : Test
 queryTests =
     describe "query"

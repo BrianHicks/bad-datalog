@@ -9,10 +9,10 @@ in pkgs.mkShell {
     pkgs.git
 
     pkgs.elmPackages.elm
-    pkgs.elmPackages.elm-test
     pkgs.elmPackages.elm-format
     pkgs.elmPackages.elm-json
-    pkgs.elmPackages.elm-review
     pkgs.elmPackages.elm-live
+    pkgs.elmPackages.elm-review
+    pkgs.elmPackages.elm-test
   ];
 }

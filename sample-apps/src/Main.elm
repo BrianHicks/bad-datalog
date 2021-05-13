@@ -223,6 +223,8 @@ viewIndex =
                 ]
             , Html.text "."
             ]
+        , Html.p []
+            [ Html.text "By the way, if you're here thinking \"wasn't there a parser with a playground here before?\"... yep! There was! But I haven't reimplemented the string parsing for the newest iteration of this program/library. It'll show up eventually as another sample app but for now things have changed (but the links shouldn't've broken!)" ]
         , Html.h2 [] [ Html.text "Apps" ]
         , Html.ul []
             [ Html.li []

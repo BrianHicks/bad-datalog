@@ -173,6 +173,17 @@ view route model =
         []
         [ Html.h1 [] [ Html.text "Family Tree" ]
         , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the relationships between that person and other family members." ]
+        , Html.p []
+            [ Html.text "View the Elm source for this page at "
+            , Html.a
+                [ Attrs.href "https://git.bytes.zone/brian/bad-datalog/src/branch/main/sample-apps/src/FamilyTree.elm" ]
+                [ Html.text "sample-apps/src/FamilyTree.elm" ]
+            , Html.text " in the "
+            , Html.a
+                [ Attrs.href "https://git.bytes.zone/brian/bad-datalog" ]
+                [ Html.text "brian/bad-datalog repo" ]
+            , Html.text "."
+            ]
         , Html.div
             [ css
                 [ Css.displayFlex

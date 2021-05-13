@@ -142,14 +142,19 @@ view model =
                 (viewAddParentChildForm model)
                 allPeople
             ]
-        , Html.h2 [] [ Html.text "People" ]
-        , viewResult viewError (viewPeopleList model) allPeople
-        , case model.activePerson of
-            Nothing ->
-                Html.text ""
+        , Html.div
+            [ css [ Css.displayFlex ] ]
+            [ Html.section [ css [ Css.flexGrow (Css.int 1) ] ]
+                [ Html.h2 [] [ Html.text "People" ]
+                , viewResult viewError (viewPeopleList model) allPeople
+                ]
+            , case model.activePerson of
+                Nothing ->
+                    Html.text ""
 
-            Just personId ->
-                viewPerson model personId
+                Just personId ->
+                    viewRelationships model personId
+            ]
         ]
 
 
@@ -267,8 +272,8 @@ viewPeopleList model people =
                 ]
 
 
-viewPerson : Model -> Int -> Html Msg
-viewPerson model personId =
+viewRelationships : Model -> Int -> Html Msg
+viewRelationships model personId =
     let
         derived =
             Datalog.derive
@@ -296,7 +301,7 @@ viewPerson model personId =
     Result.map5
         (\self parents children auntsAndUncles grandparents ->
             Html.section
-                []
+                [ css [ Css.flexGrow (Css.int 1) ] ]
                 (self ++ parents ++ children ++ auntsAndUncles ++ grandparents)
         )
         (derived

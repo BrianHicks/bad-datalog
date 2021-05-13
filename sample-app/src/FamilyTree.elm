@@ -80,10 +80,12 @@ view model =
             ]
         , Html.h2 [] [ Html.text "People" ]
         , Datalog.read "person" personDecoder model.db
-            |> Debug.toString
-            |> Html.text
-        , Html.h2 [] [ Html.text "Debug" ]
-        , Html.text (Debug.toString model)
+            |> viewResult viewError viewPeople
+        , Html.hr [] []
+        , Html.details []
+            [ Html.summary [] [ Html.text "Debug view of the whole model" ]
+            , Html.text (Debug.toString model)
+            ]
         ]
 
 
@@ -98,3 +100,34 @@ personDecoder =
     Datalog.into Person
         |> Datalog.intField 0
         |> Datalog.stringField 1
+
+
+viewPeople : List Person -> Html msg
+viewPeople people =
+    case people of
+        [] ->
+            Html.text "Nobody has been added yet!"
+
+        _ ->
+            people
+                |> List.map (\person -> Html.li [] [ Html.text person.name ])
+                |> Html.ul []
+
+
+viewError : Datalog.Problem -> Html msg
+viewError problem =
+    Html.details
+        []
+        [ Html.summary [] [ Html.text "Somthing went wrong. Oh no! Here are more details." ]
+        , Html.text (Debug.toString problem)
+        ]
+
+
+viewResult : (error -> Html msg) -> (success -> Html msg) -> Result error success -> Html msg
+viewResult viewError_ viewSuccess result =
+    case result of
+        Ok success ->
+            viewSuccess success
+
+        Err error ->
+            viewError_ error

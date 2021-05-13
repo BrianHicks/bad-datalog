@@ -16,6 +16,7 @@ type alias Model =
     , lastError : Maybe Datalog.Problem
     , parentId : Maybe Int
     , childId : Maybe Int
+    , activePerson : Maybe Int
     }
 
 
@@ -25,6 +26,7 @@ type Msg
     | UserChoseParent (Maybe Int)
     | UserChoseChild (Maybe Int)
     | UserClickedAddParentChildRelationship
+    | UserClickedShowPerson Int
 
 
 init : ( Model, Cmd Msg )
@@ -130,6 +132,11 @@ update msg model =
                     , Cmd.none
                     )
 
+        UserClickedShowPerson id ->
+            ( { model | activePerson = Just id }
+            , Cmd.none
+            )
+
 
 view : Model -> Html Msg
 view model =
@@ -141,6 +148,12 @@ view model =
         , Html.h2 [] [ Html.text "People" ]
         , Datalog.read "person" personDecoder model.db
             |> viewResult viewError (viewFamily model)
+        , case model.activePerson of
+            Nothing ->
+                Html.text ""
+
+            Just personId ->
+                viewPerson model personId
         ]
 
 
@@ -198,7 +211,15 @@ viewFamily model people =
         _ ->
             Html.div []
                 [ people
-                    |> List.map (\person -> Html.li [] [ Html.text person.name ])
+                    |> List.map
+                        (\person ->
+                            Html.li []
+                                [ Html.text person.name
+                                , Html.button
+                                    [ Events.onClick (UserClickedShowPerson person.id) ]
+                                    [ Html.text "Show Relationships" ]
+                                ]
+                        )
                     |> Html.ul []
                 , viewParentChildForm model people
                 ]
@@ -256,6 +277,86 @@ viewParentChildForm model people =
 
         _ ->
             Html.text "add at least two people and I'll let you set relationships!"
+
+
+viewPerson : Model -> Int -> Html Msg
+viewPerson model personId =
+    let
+        derived =
+            Datalog.derive
+                [ Datalog.rule "me" [ "id", "name" ]
+                    |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
+                    |> Datalog.filter (Datalog.eq "id" (Datalog.int personId))
+                , Datalog.rule "parents" [ "id", "name" ]
+                    |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
+                    |> Datalog.with "parent" [ Datalog.var "id", Datalog.int personId ]
+                , Datalog.rule "children" [ "id", "name" ]
+                    |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
+                    |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "id" ]
+                , Datalog.rule "siblings" [ "siblingId", "siblingName" ]
+                    |> Datalog.with "person" [ Datalog.var "siblingId", Datalog.var "siblingName" ]
+                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
+                    |> Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
+                , Datalog.rule "grandparents" [ "grandparentId", "grandparentName" ]
+                    |> Datalog.with "person" [ Datalog.var "grandparentId", Datalog.var "grandparentName" ]
+                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
+                ]
+                model.db
+    in
+    Result.map5
+        (\self parents children auntsAndUncles grandparents ->
+            Html.div
+                []
+                (self ++ parents ++ children ++ auntsAndUncles ++ grandparents)
+        )
+        (derived
+            |> Result.andThen (Datalog.read "me" personDecoder)
+            |> Result.map
+                (\me ->
+                    [ Html.h3 [] [ Html.text "Me" ]
+                    , Html.text (Debug.toString me)
+                    ]
+                )
+        )
+        (derived
+            |> Result.andThen (Datalog.read "parents" personDecoder)
+            |> Result.map
+                (\parents ->
+                    [ Html.h3 [] [ Html.text "Parents" ]
+                    , Html.text (Debug.toString parents)
+                    ]
+                )
+        )
+        (derived
+            |> Result.andThen (Datalog.read "children" personDecoder)
+            |> Result.map
+                (\children ->
+                    [ Html.h3 [] [ Html.text "Children" ]
+                    , Html.text (Debug.toString children)
+                    ]
+                )
+        )
+        (derived
+            |> Result.andThen (Datalog.read "siblings" personDecoder)
+            |> Result.map
+                (\siblings ->
+                    [ Html.h3 [] [ Html.text "Siblings" ]
+                    , Html.text (Debug.toString siblings)
+                    ]
+                )
+        )
+        (derived
+            |> Result.andThen (Datalog.read "grandparents" personDecoder)
+            |> Result.map
+                (\grandparents ->
+                    [ Html.h3 [] [ Html.text "Grandparents" ]
+                    , Html.text (Debug.toString grandparents)
+                    ]
+                )
+        )
+        |> viewResult viewError identity
 
 
 viewError : Datalog.Problem -> Html msg

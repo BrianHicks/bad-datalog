@@ -233,26 +233,26 @@ viewFamily model people =
 
 viewAddParentChildForm : Model -> List Person -> Html Msg
 viewAddParentChildForm model people =
-    case people of
-        _ :: _ :: _ ->
-            let
-                peopleOptions =
-                    people
-                        |> List.map
-                            (\{ id, name } ->
-                                Html.option
-                                    [ Attrs.value (String.fromInt id) ]
-                                    [ Html.text name ]
-                            )
-                        |> (::)
-                            (Html.option
-                                [ Attrs.value "" ]
-                                [ Html.text "---" ]
-                            )
-            in
-            Html.div []
-                [ Html.h2 [] [ Html.text "Add a Parent/Child Relationship" ]
-                , Html.form
+    let
+        peopleOptions =
+            people
+                |> List.map
+                    (\{ id, name } ->
+                        Html.option
+                            [ Attrs.value (String.fromInt id) ]
+                            [ Html.text name ]
+                    )
+                |> (::)
+                    (Html.option
+                        [ Attrs.value "" ]
+                        [ Html.text "---" ]
+                    )
+    in
+    Html.div []
+        [ Html.h2 [] [ Html.text "Add a Parent/Child Relationship" ]
+        , case people of
+            _ :: _ :: _ ->
+                Html.form
                     [ Events.onSubmit UserClickedAddParentChildRelationship ]
                     [ Html.label
                         [ css [ Css.display Css.block ] ]
@@ -282,10 +282,10 @@ viewAddParentChildForm model people =
                         []
                         [ Html.text "Add parent/child relationship" ]
                     ]
-                ]
 
-        _ ->
-            Html.text "add at least two people and I'll let you set relationships!"
+            _ ->
+                Html.text "add at least two people and I'll let you set relationships!"
+        ]
 
 
 viewPerson : Model -> Int -> Html Msg

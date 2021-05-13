@@ -353,59 +353,32 @@ viewRelationships model personId =
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
                 ]
                 model.db
+
+        viewSection : String -> List Person -> Html Msg
+        viewSection name people =
+            Html.section []
+                [ Html.h2 [] [ Html.text name ]
+                , viewPeopleList model people
+                ]
     in
-    Result.map5
-        (\self parents children siblings grandparents ->
-            Html.section
-                [ css [ Css.flexGrow (Css.int 1) ] ]
-                (self ++ parents ++ children ++ siblings ++ grandparents)
-        )
-        (derived
+    flattenResults
+        [ derived
             |> Result.andThen (Datalog.read "me" personDecoder)
-            |> Result.map
-                (\me ->
-                    [ Html.h2 [] [ Html.text "Me" ]
-                    , viewPeopleList model me
-                    ]
-                )
-        )
-        (derived
+            |> Result.map (viewSection "Me")
+        , derived
             |> Result.andThen (Datalog.read "parents" personDecoder)
-            |> Result.map
-                (\parents ->
-                    [ Html.h3 [] [ Html.text "Parents" ]
-                    , viewPeopleList model parents
-                    ]
-                )
-        )
-        (derived
+            |> Result.map (viewSection "Parents")
+        , derived
             |> Result.andThen (Datalog.read "children" personDecoder)
-            |> Result.map
-                (\children ->
-                    [ Html.h3 [] [ Html.text "Children" ]
-                    , viewPeopleList model children
-                    ]
-                )
-        )
-        (derived
+            |> Result.map (viewSection "Children")
+        , derived
             |> Result.andThen (Datalog.read "siblings" personDecoder)
-            |> Result.map
-                (\siblings ->
-                    [ Html.h3 [] [ Html.text "Siblings" ]
-                    , viewPeopleList model siblings
-                    ]
-                )
-        )
-        (derived
+            |> Result.map (viewSection "Siblings")
+        , derived
             |> Result.andThen (Datalog.read "grandparents" personDecoder)
-            |> Result.map
-                (\grandparents ->
-                    [ Html.h3 [] [ Html.text "Grandparents" ]
-                    , viewPeopleList model grandparents
-                    ]
-                )
-        )
-        |> viewResult viewError identity
+            |> Result.map (viewSection "Grandparents")
+        ]
+        |> viewResult viewError (Html.div [ css [ Css.flexGrow (Css.int 1) ] ])
 
 
 viewError : Datalog.Problem -> Html msg
@@ -454,3 +427,8 @@ viewForm { onSubmit, fields, submitCaption } =
                     [ Html.text submitCaption ]
                ]
         )
+
+
+flattenResults : List (Result x a) -> Result x (List a)
+flattenResults =
+    List.foldr (Result.map2 (::)) (Ok [])

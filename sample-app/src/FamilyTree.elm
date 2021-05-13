@@ -2,6 +2,7 @@ module FamilyTree exposing (..)
 
 import Css
 import Datalog exposing (Database)
+import Datalog.Database as Database
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs exposing (css)
 import Html.Styled.Events as Events
@@ -57,14 +58,25 @@ init =
     let
         dbResult =
             Datalog.empty
-                |> Datalog.insert "person" [ Datalog.int 0, Datalog.string "Brian" ]
+                |> Datalog.register "person" [ Database.IntType, Database.StringType ]
+                |> Result.andThen (Datalog.register "parent" [ Database.IntType, Database.IntType ])
     in
     ( { db =
-            Datalog.empty
-                |> Datalog.register "person"
+            case dbResult of
+                Ok db ->
+                    db
+
+                Err problem ->
+                    Datalog.empty
       , nextId = 0
       , newPersonField = ""
-      , lastError = Nothing
+      , lastError =
+            case dbResult of
+                Ok _ ->
+                    Nothing
+
+                Err problem ->
+                    Just problem
       , parentId = Nothing
       , childId = Nothing
       }

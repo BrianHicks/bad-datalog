@@ -133,12 +133,30 @@ view model =
                     ]
                 , Global.everything [ Css.boxSizing Css.borderBox ]
                 ]
-            , Html.header []
-                [ Html.nav []
+            , Html.header
+                [ css
+                    [ Css.displayFlex
+                    , Css.marginBottom (Css.px 25)
+                    ]
+                ]
+                [ Html.p
+                    [ css
+                        [ Css.marginRight (Css.px 10)
+                        , Css.fontWeight Css.bold
+                        ]
+                    ]
+                    [ Html.text "Datalog Sample Apps" ]
+                , Html.nav []
                     [ Html.ol
-                        []
-                        [ Html.li [] [ Html.a [ Attrs.href (pathFor Index) ] [ Html.text "Index" ] ]
-                        , Html.li [] [ Html.a [ Attrs.href (pathFor FamilyTree) ] [ Html.text "Family Tree" ] ]
+                        [ css
+                            [ Css.listStyleType Css.none
+                            , Css.margin Css.zero
+                            , Css.padding Css.zero
+                            , Css.displayFlex
+                            ]
+                        ]
+                        [ viewHeaderLink Index "Index"
+                        , viewHeaderLink FamilyTree "Family Tree"
                         ]
                     ]
                 ]
@@ -158,6 +176,21 @@ view model =
             |> Html.toUnstyled
             |> List.singleton
     }
+
+
+viewHeaderLink : Route -> String -> Html msg
+viewHeaderLink route caption =
+    Html.li
+        [ css
+            [ Css.paddingRight (Css.px 10)
+            ]
+        ]
+        [ Html.p []
+            [ Html.a
+                [ Attrs.href (pathFor route) ]
+                [ Html.text caption ]
+            ]
+        ]
 
 
 viewIndex : Model -> Html Msg

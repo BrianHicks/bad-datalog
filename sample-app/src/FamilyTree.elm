@@ -14,22 +14,48 @@ type alias Model =
     -- transient view state
     , newPersonField : String
     , lastError : Maybe Datalog.Problem
+    , parentId : Maybe Int
+    , childId : Maybe Int
     }
 
 
 type Msg
     = UserTypedInNewPersonField String
     | UserClickedAddPerson
+    | UserChoseParent (Maybe Int)
+    | UserChoseChild (Maybe Int)
+    | UserClickedAddParentChildRelationship
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { db =
+    let
+        dbResult : Result Datalog.Problem Datalog.Database
+        dbResult =
             Datalog.empty
                 |> Datalog.register "person"
-      , nextId = 0
+                |> Datalog.insert "person" [ Datalog.int 0, Datalog.string "Brian" ]
+                |> Result.andThen (Datalog.insert "person" [ Datalog.int 1, Datalog.string "Anne" ])
+                |> Result.andThen (Datalog.insert "person" [ Datalog.int 2, Datalog.string "Nate" ])
+    in
+    ( { db =
+            case dbResult of
+                Ok db ->
+                    db
+
+                Err _ ->
+                    Datalog.empty
+      , nextId = 3
       , newPersonField = ""
-      , lastError = Nothing
+      , lastError =
+            case dbResult of
+                Ok _ ->
+                    Nothing
+
+                Err problem ->
+                    Just problem
+      , parentId = Nothing
+      , childId = Nothing
       }
     , Cmd.none
     )
@@ -65,6 +91,45 @@ update msg model =
                     , Cmd.none
                     )
 
+        UserChoseParent parentId ->
+            ( { model | parentId = parentId }
+            , Cmd.none
+            )
+
+        UserChoseChild childId ->
+            ( { model | childId = childId }
+            , Cmd.none
+            )
+
+        UserClickedAddParentChildRelationship ->
+            case ( model.parentId, model.childId ) of
+                ( Just parentId, Just childId ) ->
+                    case
+                        Datalog.insert "parent"
+                            [ Datalog.int parentId
+                            , Datalog.int childId
+                            ]
+                            model.db
+                    of
+                        Ok newDb ->
+                            ( { model
+                                | db = newDb
+                                , parentId = Nothing
+                                , childId = Nothing
+                              }
+                            , Cmd.none
+                            )
+
+                        Err problem ->
+                            ( { model | lastError = Just problem }
+                            , Cmd.none
+                            )
+
+                _ ->
+                    ( model
+                    , Cmd.none
+                    )
+
 
 view : Model -> Html Msg
 view model =
@@ -75,7 +140,7 @@ view model =
         , addNewPersonForm model
         , Html.h2 [] [ Html.text "People" ]
         , Datalog.read "person" personDecoder model.db
-            |> viewResult viewError viewFamily
+            |> viewResult viewError (viewFamily model)
         ]
 
 
@@ -124,8 +189,8 @@ personDecoder =
         |> Datalog.stringField 1
 
 
-viewFamily : List Person -> Html msg
-viewFamily people =
+viewFamily : Model -> List Person -> Html Msg
+viewFamily model people =
     case people of
         [] ->
             Html.text "Nobody has been added yet!"
@@ -135,24 +200,58 @@ viewFamily people =
                 [ people
                     |> List.map (\person -> Html.li [] [ Html.text person.name ])
                     |> Html.ul []
-                , viewParentChildForm people
+                , viewParentChildForm model people
                 ]
 
 
-viewParentChildForm : List Person -> Html msg
-viewParentChildForm people =
+viewParentChildForm : Model -> List Person -> Html Msg
+viewParentChildForm model people =
     case people of
         _ :: _ :: _ ->
+            let
+                peopleOptions =
+                    people
+                        |> List.map
+                            (\{ id, name } ->
+                                Html.option
+                                    [ Attrs.value (String.fromInt id) ]
+                                    [ Html.text name ]
+                            )
+                        |> (::)
+                            (Html.option
+                                [ Attrs.value "" ]
+                                [ Html.text "---" ]
+                            )
+            in
             Html.form
-                []
-                [ Html.label []
+                [ Events.onSubmit UserClickedAddParentChildRelationship ]
+                [ Html.label
+                    [ css [ Css.display Css.block ] ]
                     [ Html.text "Parent: "
-                    , Html.select [] []
+                    , Html.select
+                        [ Events.onInput (UserChoseParent << String.toInt)
+                        , model.parentId
+                            |> Maybe.map String.fromInt
+                            |> Maybe.withDefault ""
+                            |> Attrs.value
+                        ]
+                        peopleOptions
                     ]
-                , Html.label []
+                , Html.label
+                    [ css [ Css.display Css.block ] ]
                     [ Html.text "Child: "
-                    , Html.select [] []
+                    , Html.select
+                        [ Events.onInput (UserChoseChild << String.toInt)
+                        , model.childId
+                            |> Maybe.map String.fromInt
+                            |> Maybe.withDefault ""
+                            |> Attrs.value
+                        ]
+                        peopleOptions
                     ]
+                , Html.button
+                    []
+                    [ Html.text "Add parent/child relationship" ]
                 ]
 
         _ ->

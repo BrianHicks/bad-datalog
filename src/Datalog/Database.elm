@@ -1,4 +1,4 @@
-module Database exposing
+module Datalog.Database exposing
     ( Database, empty, insert, mergeRelations, replaceRelation
     , Relation, read, rows
     , Schema, FieldType(..)

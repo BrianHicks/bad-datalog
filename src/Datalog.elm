@@ -1,4 +1,4 @@
-module Database.Datalog exposing
+module Datalog exposing
     ( Database, empty, Problem(..), insert, query
     , Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
@@ -17,7 +17,7 @@ module Database.Datalog exposing
 
 -}
 
-import Database exposing (Constant)
+import Datalog.Database as Database exposing (Constant)
 import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)

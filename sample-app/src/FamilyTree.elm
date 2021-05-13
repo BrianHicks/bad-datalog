@@ -1,8 +1,9 @@
 module FamilyTree exposing (..)
 
+import Css
 import Datalog exposing (Database)
 import Html.Styled as Html exposing (Html)
-import Html.Styled.Attributes as Attrs
+import Html.Styled.Attributes as Attrs exposing (css)
 import Html.Styled.Events as Events
 
 
@@ -71,18 +72,42 @@ view model =
         []
         [ Html.h1 [] [ Html.text "Family Tree" ]
         , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the realtionships between that person and other family members." ]
-        , Html.form
-            [ Events.onSubmit UserClickedAddPerson ]
-            [ Html.label [] [ Html.text "New contact name" ]
-            , Html.input
-                [ Attrs.value model.newPersonField
-                , Events.onInput UserTypedInNewPersonField
-                ]
-                []
-            ]
+        , addNewPersonForm model
         , Html.h2 [] [ Html.text "People" ]
         , Datalog.read "person" personDecoder model.db
-            |> viewResult viewError viewPeople
+            |> viewResult viewError viewFamily
+        ]
+
+
+addNewPersonForm : Model -> Html Msg
+addNewPersonForm model =
+    Html.section []
+        [ Html.h2 [] [ Html.text "Add a New Person" ]
+        , Html.form
+            [ Events.onSubmit UserClickedAddPerson
+            , css [ Css.width (Css.px 300) ]
+            ]
+            [ Html.label [ css [ Css.displayFlex ] ]
+                [ Html.text "Person's name: "
+                , Html.input
+                    [ Attrs.value model.newPersonField
+                    , Events.onInput UserTypedInNewPersonField
+                    , css
+                        [ Css.flexGrow (Css.int 1)
+                        , Css.marginLeft (Css.px 5)
+                        ]
+                    ]
+                    []
+                ]
+            , Html.button
+                [ css
+                    [ Css.display Css.block
+                    , Css.width (Css.pct 100)
+                    , Css.marginTop (Css.px 20)
+                    ]
+                ]
+                [ Html.text "Add Person" ]
+            ]
         ]
 
 
@@ -99,16 +124,39 @@ personDecoder =
         |> Datalog.stringField 1
 
 
-viewPeople : List Person -> Html msg
-viewPeople people =
+viewFamily : List Person -> Html msg
+viewFamily people =
     case people of
         [] ->
             Html.text "Nobody has been added yet!"
 
         _ ->
-            people
-                |> List.map (\person -> Html.li [] [ Html.text person.name ])
-                |> Html.ul []
+            Html.div []
+                [ people
+                    |> List.map (\person -> Html.li [] [ Html.text person.name ])
+                    |> Html.ul []
+                , viewParentChildForm people
+                ]
+
+
+viewParentChildForm : List Person -> Html msg
+viewParentChildForm people =
+    case people of
+        _ :: _ :: _ ->
+            Html.form
+                []
+                [ Html.label []
+                    [ Html.text "Parent: "
+                    , Html.select [] []
+                    ]
+                , Html.label []
+                    [ Html.text "Child: "
+                    , Html.select [] []
+                    ]
+                ]
+
+        _ ->
+            Html.text "add at least two people and I'll let you set relationships!"
 
 
 viewError : Datalog.Problem -> Html msg

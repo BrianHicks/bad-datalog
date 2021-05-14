@@ -3,9 +3,11 @@ module FamilyTree exposing (..)
 import Css
 import Datalog exposing (Database)
 import Datalog.Database as Database
+import Dict exposing (Dict)
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs exposing (css)
 import Html.Styled.Events as Events
+import Set
 
 
 type alias Model =
@@ -28,6 +30,11 @@ type Msg
     | UserChoseChild (Maybe Int)
     | UserClickedAddParentChildRelationship
     | UserClickedShowPerson Int
+    | UserClickedLoadSampleData Dataset
+
+
+type Dataset
+    = KennedyFamily
 
 
 init : ( Model, Cmd Msg )
@@ -136,6 +143,11 @@ update msg model =
             , Cmd.none
             )
 
+        UserClickedLoadSampleData dataset ->
+            ( loadSampleData dataset
+            , Cmd.none
+            )
+
 
 view : Model -> Html Msg
 view model =
@@ -147,6 +159,13 @@ view model =
         []
         [ Html.h1 [] [ Html.text "Family Tree" ]
         , Html.p [] [ Html.text "Enter names for the family tree below. Once you've added at least two names, you can set parent/child relationships. Click names you've already entered to see the relationships between that person and other family members." ]
+        , Html.p [] [ Html.text "Alternatively, you can load a pre-made family tree:" ]
+        , Html.ul []
+            [ Html.li []
+                [ linkButton (UserClickedLoadSampleData KennedyFamily) "Kennedy Family (U.S. Political Dynasty)"
+                , Html.text " (Note: this is a HUGE family, and so if you know about the Kennedys you'll notice people missing. But it's enough for a demo!)"
+                ]
+            ]
         , Html.p []
             [ Html.text "View the Elm source for this page at "
             , Html.a
@@ -294,21 +313,7 @@ viewPeopleList model people =
                             Html.li []
                                 [ Html.text person.name
                                 , Html.text " ("
-                                , Html.button
-                                    [ Events.onClick (UserClickedShowPerson person.id)
-                                    , css
-                                        [ Css.fontSize Css.unset
-                                        , Css.border Css.zero
-                                        , Css.backgroundColor Css.unset
-                                        , Css.display Css.inline
-                                        , Css.margin Css.unset
-                                        , Css.padding Css.unset
-                                        , Css.color (Css.hex "006064")
-                                        , Css.textDecoration Css.underline
-                                        , Css.cursor Css.pointer
-                                        ]
-                                    ]
-                                    [ Html.text "Show Relationships" ]
+                                , linkButton (UserClickedShowPerson person.id) "Show relationships"
                                 , Html.text ")"
                                 ]
                         )
@@ -448,3 +453,136 @@ viewForm { onSubmit, fields, submitCaption } =
 flattenResults : List (Result x a) -> Result x (List a)
 flattenResults =
     List.foldr (Result.map2 (::)) (Ok [])
+
+
+linkButton : msg -> String -> Html msg
+linkButton msg caption =
+    Html.button
+        [ Events.onClick msg
+        , css
+            [ Css.fontSize Css.unset
+            , Css.border Css.zero
+            , Css.backgroundColor Css.unset
+            , Css.display Css.inline
+            , Css.margin Css.unset
+            , Css.padding Css.unset
+            , Css.color (Css.hex "006064")
+            , Css.textDecoration Css.underline
+            , Css.cursor Css.pointer
+            ]
+        ]
+        [ Html.text caption ]
+
+
+loadSampleData : Dataset -> Model
+loadSampleData dataset =
+    let
+        addPerson :
+            Int
+            -> String
+            -> Result Datalog.Problem Datalog.Database
+            -> Result Datalog.Problem Datalog.Database
+        addPerson id name =
+            Result.andThen (Datalog.insert "person" [ Datalog.int id, Datalog.string name ])
+    in
+    case dataset of
+        KennedyFamily ->
+            let
+                familyTree : Dict String (List String)
+                familyTree =
+                    Dict.fromList
+                        [ ( "Joseph P 'Joe' Kennedy Sr.", [ "Joseph Patrick Kennedy Jr.", "John Fitzgerald 'Jack' Kennedy", "Rose Marie Kennedy", "Kathleen Agnes (Marchioness of Hartington) Kennedy", "Eunice Mary Kennedy", "Patricia Helen Kennedy", "Robert Francis 'Bobby' Kennedy", "Jean Ann Kennedy", "Edward Moore 'Ted' Kennedy" ] )
+                        , ( "Joseph P 'Joe' Kennedy Sr.", [ "Joseph Patrick Kennedy Jr.", "John Fitzgerald 'Jack' Kennedy", "Rose Marie Kennedy", "Kathleen Agnes (Marchioness of Hartington) Kennedy", "Eunice Mary Kennedy", "Patricia Helen Kennedy", "Robert Francis 'Bobby' Kennedy", "Jean Ann Kennedy", "Edward Moore 'Ted' Kennedy" ] )
+                        , ( "John Fitzgerald 'Jack' Kennedy", [ "Arabella Kennedy", "Caroline Bouvier Kennedy", "John Fitzgerald Kennedy Jr.", "Patrick Bouvier Kennedy" ] )
+                        , ( "Jacqueline Lee Bouvier", [ "Arabella Kennedy", "Caroline Bouvier Kennedy", "John Fitzgerald Kennedy Jr.", "Patrick Bouvier Kennedy" ] )
+                        , ( "Eunice Mary Kennedy", [ "Robert Sargent Shriver III", "Maria Owings Shriver", "Timothy Perry Shriver", "Mark Kennedy Shriver", "Anthony Paul Kennedy Shriver" ] )
+                        , ( "Robert Sargent Shriver Jr.", [ "Robert Sargent Shriver III", "Maria Owings Shriver", "Timothy Perry Shriver", "Mark Kennedy Shriver", "Anthony Paul Kennedy Shriver" ] )
+                        , ( "Patricia Helen Kennedy", [ "Christopher Kennedy Lawford", "Sydney Maleaia Kennedy Lawford", "Victoria Francis Lawford", "Robin Elizabeth Lawford" ] )
+                        , ( "Peter Sydney Ernest Lawford", [ "Christopher Kennedy Lawford", "Sydney Maleaia Kennedy Lawford", "Victoria Francis Lawford", "Robin Elizabeth Lawford" ] )
+                        , ( "Robert Francis 'Bobby' Kennedy", [ "Kathleen Hartington Kennedy", "Joseph Patrick Kennedy II", "Robert Francis Kennedy Jr.", "David Anthony Kennedy", "Mary Courtney Kennedy", "Michael LeMoyne Kennedy", "Mary Kerry 'Kerry' Kennedy", "Christopher George Kennedy", "Matthew Maxwell Taylor 'Max' Kennedy", "Douglass Harriman Kennedy", "Rory Elizabeth Katherine Kennedy" ] )
+                        , ( "Ethel Skakel", [ "Kathleen Hartington Kennedy", "Joseph Patrick Kennedy II", "Robert Francis Kennedy Jr.", "David Anthony Kennedy", "Mary Courtney Kennedy", "Michael LeMoyne Kennedy", "Mary Kerry 'Kerry' Kennedy", "Christopher George Kennedy", "Matthew Maxwell Taylor 'Max' Kennedy", "Douglass Harriman Kennedy", "Rory Elizabeth Katherine Kennedy" ] )
+                        , ( "Jean Ann Kennedy", [ "Stephen Edward Smith Jr.", "William Kennedy Smith", "Amanda Mary Smith", "Kym Maria Smith" ] )
+                        , ( "Stephen Edward Smith", [ "Stephen Edward Smith Jr.", "William Kennedy Smith", "Amanda Mary Smith", "Kym Maria Smith" ] )
+                        , ( "Edward Moore 'Ted' Kennedy", [ "Kara Anne Kennedy", "Edward Moore Kennedy Jr.", "Patrick Joseph Kennedy II" ] )
+                        , ( "Virginia Joan Bennet", [ "Kara Anne Kennedy", "Edward Moore Kennedy Jr.", "Patrick Joseph Kennedy II" ] )
+                        , ( "Maria Owings Shriver", [ "Katherine Eunice Schwarzenegger", "Christina Maria Aurelia Schwarzenegger", "Patrick Arnold Shriver Schwarzenegger", "Christopher Sargent Shriver Schwarzenegger" ] )
+                        , ( "Arnold Alois Schwarzenegger", [ "Katherine Eunice Schwarzenegger", "Christina Maria Aurelia Schwarzenegger", "Patrick Arnold Shriver Schwarzenegger", "Christopher Sargent Shriver Schwarzenegger" ] )
+                        , ( "Katherine Eunice Schwarzenegger", [ "Lyla Maria Pratt" ] )
+                        , ( "Christopher Michael Pratt", [ "Lyla Maria Pratt" ] )
+                        ]
+
+                people : Dict String Int
+                people =
+                    familyTree
+                        |> Dict.foldl
+                            (\parent children soFar ->
+                                soFar
+                                    |> Set.insert parent
+                                    |> Set.union (Set.fromList children)
+                            )
+                            Set.empty
+                        |> Set.toList
+                        |> List.indexedMap (\i person -> ( person, i ))
+                        |> Dict.fromList
+
+                parents : List ( Int, Int )
+                parents =
+                    familyTree
+                        |> Dict.toList
+                        |> List.concatMap (\( parent, children ) -> List.map (Tuple.pair parent) children)
+                        |> List.filterMap
+                            (\( parent, child ) ->
+                                Maybe.map2 Tuple.pair
+                                    (Dict.get parent people)
+                                    (Dict.get child people)
+                            )
+
+                dbResult =
+                    Ok Datalog.empty
+                        |> (\dbResultWithoutPeople ->
+                                Dict.foldl
+                                    (\person id ->
+                                        Result.andThen
+                                            (Datalog.insert "person"
+                                                [ Datalog.int id
+                                                , Datalog.string person
+                                                ]
+                                            )
+                                    )
+                                    dbResultWithoutPeople
+                                    people
+                           )
+                        |> (\dbResultWithoutParents ->
+                                List.foldl
+                                    (\( parent, child ) ->
+                                        Result.andThen
+                                            (Datalog.insert "parent"
+                                                [ Datalog.int parent
+                                                , Datalog.int child
+                                                ]
+                                            )
+                                    )
+                                    dbResultWithoutParents
+                                    parents
+                           )
+            in
+            { db =
+                case dbResult of
+                    Ok db ->
+                        db
+
+                    Err problem ->
+                        Datalog.empty
+            , nextId = 0
+            , newPersonField = ""
+            , lastError =
+                case dbResult of
+                    Ok _ ->
+                        Nothing
+
+                    Err problem ->
+                        Just problem
+            , parentId = Nothing
+            , childId = Nothing
+            , activePerson = Dict.get "John Fitzgerald 'Jack' Kennedy" people
+            }

@@ -184,6 +184,12 @@ view route model =
                 [ Html.text "brian/bad-datalog repo" ]
             , Html.text "."
             ]
+        , case model.lastError of
+            Nothing ->
+                Html.text ""
+
+            Just problem ->
+                viewError problem
         , Html.div
             [ css
                 [ Css.displayFlex

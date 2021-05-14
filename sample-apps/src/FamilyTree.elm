@@ -357,33 +357,45 @@ viewRelationships model personId =
                     |> Datalog.with "person" [ Datalog.var "grandparentId", Datalog.var "grandparentName" ]
                     |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
+                , Datalog.rule "auntsAndUncles" [ "auId", "auName" ]
+                    |> Datalog.with "person" [ Datalog.var "auId", Datalog.var "auName" ]
+                    |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "auId" ]
+                    |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
+                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    |> Datalog.filter (Datalog.not_ (Datalog.eq "auId" (Datalog.var "parentId")))
                 ]
                 model.db
 
         viewSection : String -> List Person -> Html Msg
         viewSection name people =
             Html.section []
-                [ Html.h2 [] [ Html.text name ]
+                [ Html.h3 [] [ Html.text name ]
                 , viewPeopleList model people
                 ]
     in
-    flattenResults
-        [ derived
-            |> Result.andThen (Datalog.read "me" personDecoder)
-            |> Result.map (viewSection "Me")
-        , derived
-            |> Result.andThen (Datalog.read "parents" personDecoder)
-            |> Result.map (viewSection "Parents")
-        , derived
-            |> Result.andThen (Datalog.read "children" personDecoder)
-            |> Result.map (viewSection "Children")
-        , derived
-            |> Result.andThen (Datalog.read "siblings" personDecoder)
-            |> Result.map (viewSection "Siblings")
-        , derived
-            |> Result.andThen (Datalog.read "grandparents" personDecoder)
-            |> Result.map (viewSection "Grandparents")
-        ]
+    derived
+        |> Result.andThen (Datalog.readOne "me" personDecoder)
+        |> Result.andThen
+            (\me ->
+                flattenResults
+                    [ Ok (Html.h2 [] [ Html.text me.name ])
+                    , derived
+                        |> Result.andThen (Datalog.read "parents" personDecoder)
+                        |> Result.map (viewSection "Parents")
+                    , derived
+                        |> Result.andThen (Datalog.read "children" personDecoder)
+                        |> Result.map (viewSection "Children")
+                    , derived
+                        |> Result.andThen (Datalog.read "siblings" personDecoder)
+                        |> Result.map (viewSection "Siblings")
+                    , derived
+                        |> Result.andThen (Datalog.read "grandparents" personDecoder)
+                        |> Result.map (viewSection "Grandparents")
+                    , derived
+                        |> Result.andThen (Datalog.read "auntsAndUncles" personDecoder)
+                        |> Result.map (viewSection "Aunts and Uncles")
+                    ]
+            )
         |> viewResult viewError (Html.div [ css [ Css.flexGrow (Css.int 1) ] ])
 
 

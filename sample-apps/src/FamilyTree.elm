@@ -387,20 +387,20 @@ viewRelationships model personId =
                         |> Result.andThen (Datalog.read "parents" personDecoder)
                         |> Result.map (viewSection "Parents")
                     , derived
-                        |> Result.andThen (Datalog.read "children" personDecoder)
-                        |> Result.map (viewSection "Children")
+                        |> Result.andThen (Datalog.read "grandparents" personDecoder)
+                        |> Result.map (viewSection "Grandparents")
+                    , derived
+                        |> Result.andThen (Datalog.read "auntsAndUncles" personDecoder)
+                        |> Result.map (viewSection "Aunts and Uncles")
                     , derived
                         |> Result.andThen (Datalog.read "siblings" personDecoder)
                         |> Result.map (viewSection "Siblings")
                     , derived
-                        |> Result.andThen (Datalog.read "grandparents" personDecoder)
-                        |> Result.map (viewSection "Grandparents")
+                        |> Result.andThen (Datalog.read "children" personDecoder)
+                        |> Result.map (viewSection "Children")
                     , derived
                         |> Result.andThen (Datalog.read "grandchildren" personDecoder)
                         |> Result.map (viewSection "Grandchildren")
-                    , derived
-                        |> Result.andThen (Datalog.read "auntsAndUncles" personDecoder)
-                        |> Result.map (viewSection "Aunts and Uncles")
                     ]
             )
         |> viewResult viewError (Html.div [ css [ Css.flexGrow (Css.int 1) ] ])

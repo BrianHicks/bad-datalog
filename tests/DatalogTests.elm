@@ -215,6 +215,25 @@ datalogTests =
                             |> register "person" [ Database.StringType ]
                             |> Result.andThen (into identity |> stringField 1 |> read "person")
                             |> Expect.equal (Ok [])
+                , test "I can read exactly one row" <|
+                    \_ ->
+                        empty
+                            |> insert "person" [ string "Fred Rogers" ]
+                            |> Result.andThen (into identity |> stringField 0 |> readOne "person")
+                            |> Expect.equal (Ok "Fred Rogers")
+                , test "if I expect one row and there are 0, it's an error" <|
+                    \_ ->
+                        empty
+                            |> register "person" [ Database.StringType ]
+                            |> Result.andThen (into identity |> stringField 0 |> readOne "person")
+                            |> Expect.equal (Err (ExpectedExactlyOneRow 0))
+                , test "if I expect one row and there si more than one, it's an error" <|
+                    \_ ->
+                        empty
+                            |> insert "person" [ string "Fred Rogers" ]
+                            |> Result.andThen (insert "person" [ string "Frida Kahlo" ])
+                            |> Result.andThen (into identity |> stringField 0 |> readOne "person")
+                            |> Expect.equal (Err (ExpectedExactlyOneRow 2))
                 ]
             , describe "deriving new tables"
                 [ test "I can derive a new table by renaming an existing table" <|

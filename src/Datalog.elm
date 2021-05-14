@@ -1,6 +1,6 @@
 module Datalog exposing
     ( Database, empty, register, Problem(..), insert
-    , read, Decoder, DecodingProblem(..), into, stringField, intField
+    , read, readOne, Decoder, DecodingProblem(..), into, stringField, intField
     , derive, Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
@@ -10,7 +10,7 @@ module Datalog exposing
 
 @docs Database, empty, register, Problem, insert
 
-@docs read, Decoder, DecodingProblem, into, stringField, intField
+@docs read, readOne, Decoder, DecodingProblem, into, stringField, intField
 
 @docs derive, Rule, rule, with, without, filter, planRule
 
@@ -44,6 +44,7 @@ type Problem
     | VariableMustAppearInPositiveAtom String
     | CannotInsertVariable String
     | CannotHaveNegationInRecursiveQuery
+    | ExpectedExactlyOneRow Int
     | DatabaseProblem Database.Problem
     | DecodingProblem DecodingProblem
 
@@ -355,6 +356,20 @@ read name (Decoder decode) (Database db) =
                 )
                 []
             )
+
+
+readOne : String -> Decoder a -> Database -> Result Problem a
+readOne name decoder database =
+    Result.andThen
+        (\rows ->
+            case rows of
+                [ only ] ->
+                    Ok only
+
+                _ ->
+                    Err (ExpectedExactlyOneRow (List.length rows))
+        )
+        (read name decoder database)
 
 
 type Rule

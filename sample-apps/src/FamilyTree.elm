@@ -6,7 +6,6 @@ import Datalog.Database as Database
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attrs exposing (css)
 import Html.Styled.Events as Events
-import Url.Parser as Parser exposing ((</>), Parser)
 
 
 type alias Model =
@@ -18,6 +17,7 @@ type alias Model =
     , lastError : Maybe Datalog.Problem
     , parentId : Maybe Int
     , childId : Maybe Int
+    , activePerson : Maybe Int
     }
 
 
@@ -28,29 +28,6 @@ type Msg
     | UserChoseChild (Maybe Int)
     | UserClickedAddParentChildRelationship
     | UserClickedShowPerson Int
-
-
-type Route
-    = Index
-    | ShowPerson Int
-
-
-pathFor : Route -> String
-pathFor route =
-    case route of
-        Index ->
-            "/"
-
-        ShowPerson id ->
-            "/" ++ String.fromInt id
-
-
-routeParser : Parser (Route -> a) a
-routeParser =
-    Parser.oneOf
-        [ Parser.map Index Parser.top
-        , Parser.map ShowPerson (Parser.top </> Parser.int)
-        ]
 
 
 init : ( Model, Cmd Msg )
@@ -79,21 +56,18 @@ init =
                     Just problem
       , parentId = Nothing
       , childId = Nothing
+      , activePerson = Nothing
       }
     , Cmd.none
     )
 
 
-type Effect
-    = Navigate Route
-
-
-update : Msg -> Model -> ( Model, Maybe Effect )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         UserTypedInNewPersonField input ->
             ( { model | newPersonField = input }
-            , Nothing
+            , Cmd.none
             )
 
         UserClickedAddPerson ->
@@ -110,22 +84,22 @@ update msg model =
                         , nextId = model.nextId + 1
                         , newPersonField = ""
                       }
-                    , Nothing
+                    , Cmd.none
                     )
 
                 Err problem ->
                     ( { model | lastError = Just problem }
-                    , Nothing
+                    , Cmd.none
                     )
 
         UserChoseParent parentId ->
             ( { model | parentId = parentId }
-            , Nothing
+            , Cmd.none
             )
 
         UserChoseChild childId ->
             ( { model | childId = childId }
-            , Nothing
+            , Cmd.none
             )
 
         UserClickedAddParentChildRelationship ->
@@ -144,27 +118,27 @@ update msg model =
                                 , parentId = Nothing
                                 , childId = Nothing
                               }
-                            , Nothing
+                            , Cmd.none
                             )
 
                         Err problem ->
                             ( { model | lastError = Just problem }
-                            , Nothing
+                            , Cmd.none
                             )
 
                 _ ->
                     ( model
-                    , Nothing
+                    , Cmd.none
                     )
 
         UserClickedShowPerson id ->
-            ( model
-            , Just (Navigate (ShowPerson id))
+            ( { model | activePerson = Just id }
+            , Cmd.none
             )
 
 
-view : Route -> Model -> Html Msg
-view route model =
+view : Model -> Html Msg
+view model =
     let
         allPeople =
             Datalog.read "person" personDecoder model.db
@@ -208,11 +182,11 @@ view route model =
                 [ Html.h2 [] [ Html.text "People" ]
                 , viewResult viewError (viewPeopleList model) allPeople
                 ]
-            , case route of
-                Index ->
+            , case model.activePerson of
+                Nothing ->
                     Html.text ""
 
-                ShowPerson personId ->
+                Just personId ->
                     viewRelationships model personId
             ]
         ]
@@ -320,11 +294,19 @@ viewPeopleList model people =
                             Html.li []
                                 [ Html.text person.name
                                 , Html.text " ("
-                                , Html.a
-                                    [ -- TODO: this has too much knowlege about
-                                      -- where it is. Would it be possible to
-                                      -- lessen that knowledge somewhat?
-                                      Attrs.href ("/family-tree/" ++ String.fromInt person.id)
+                                , Html.button
+                                    [ Events.onClick (UserClickedShowPerson person.id)
+                                    , css
+                                        [ Css.fontSize Css.unset
+                                        , Css.border Css.zero
+                                        , Css.backgroundColor Css.unset
+                                        , Css.display Css.inline
+                                        , Css.margin Css.unset
+                                        , Css.padding Css.unset
+                                        , Css.color (Css.hex "006064")
+                                        , Css.textDecoration Css.underline
+                                        , Css.cursor Css.pointer
+                                        ]
                                     ]
                                     [ Html.text "Show Relationships" ]
                                 , Html.text ")"
@@ -367,6 +349,12 @@ viewRelationships model personId =
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
                     |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
                     |> Datalog.filter (Datalog.not_ (Datalog.eq "auId" (Datalog.var "parentId")))
+                , Datalog.rule "niecesAndNephews" [ "nnId", "nnName" ]
+                    |> Datalog.with "person" [ Datalog.var "nnId", Datalog.var "nnName" ]
+                    |> Datalog.with "parent" [ Datalog.var "siblingId", Datalog.var "nnId" ]
+                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
+                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    |> Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
                 ]
                 model.db
 
@@ -398,6 +386,9 @@ viewRelationships model personId =
                     , derived
                         |> Result.andThen (Datalog.read "children" personDecoder)
                         |> Result.map (viewSection "Children")
+                    , derived
+                        |> Result.andThen (Datalog.read "niecesAndNephews" personDecoder)
+                        |> Result.map (viewSection "Nieces and Nephews")
                     , derived
                         |> Result.andThen (Datalog.read "grandchildren" personDecoder)
                         |> Result.map (viewSection "Grandchildren")

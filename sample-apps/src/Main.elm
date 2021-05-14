@@ -20,7 +20,7 @@ type alias Model =
 
 type Route
     = Index
-    | FamilyTree FamilyTree.Route
+    | FamilyTree
     | NotFound
 
 
@@ -30,7 +30,7 @@ parseRoute url =
         |> Parser.parse
             (Parser.oneOf
                 [ Parser.map Index Parser.top
-                , Parser.map FamilyTree (Parser.top </> Parser.s "family-tree" </> FamilyTree.routeParser)
+                , Parser.map FamilyTree (Parser.top </> Parser.s "family-tree")
                 ]
             )
         |> Maybe.withDefault NotFound
@@ -42,8 +42,8 @@ pathFor route =
         Index ->
             "/"
 
-        FamilyTree familyTreeRoute ->
-            "/family-tree" ++ FamilyTree.pathFor familyTreeRoute
+        FamilyTree ->
+            "/family-tree"
 
         NotFound ->
             "/404"
@@ -93,16 +93,11 @@ update msg model =
 
         FamilyTreeMsg familyTreeMsg ->
             let
-                ( newFamilyTree, familyTreeEffect ) =
+                ( newFamilyTree, familyTreeCmd ) =
                     FamilyTree.update familyTreeMsg model.familyTree
             in
             ( { model | familyTree = newFamilyTree }
-            , case familyTreeEffect of
-                Just (FamilyTree.Navigate route) ->
-                    Navigation.pushUrl model.key (pathFor (FamilyTree route))
-
-                Nothing ->
-                    Cmd.none
+            , Cmd.map FamilyTreeMsg familyTreeCmd
             )
 
 
@@ -113,7 +108,7 @@ view model =
             Index ->
                 "Datalog Sample Apps"
 
-            FamilyTree _ ->
+            FamilyTree ->
                 "Family Tree | Datalog Sample Apps"
 
             NotFound ->
@@ -137,6 +132,7 @@ view model =
                     , Css.color (Css.hex "37474F")
                     ]
                 , Global.everything [ Css.boxSizing Css.borderBox ]
+                , Global.a [ Css.color (Css.hex "006064") ]
                 ]
             , Html.header
                 [ css
@@ -161,7 +157,7 @@ view model =
                             ]
                         ]
                         [ viewHeaderLink Index "Index"
-                        , viewHeaderLink (FamilyTree FamilyTree.Index) "Family Tree"
+                        , viewHeaderLink FamilyTree "Family Tree"
                         ]
                     ]
                 ]
@@ -170,8 +166,8 @@ view model =
                     Index ->
                         viewIndex
 
-                    FamilyTree route ->
-                        FamilyTree.view route model.familyTree
+                    FamilyTree ->
+                        FamilyTree.view model.familyTree
                             |> Html.map FamilyTreeMsg
 
                     NotFound ->
@@ -229,7 +225,7 @@ viewIndex =
         , Html.ul []
             [ Html.li []
                 [ Html.a
-                    [ Attrs.href (pathFor (FamilyTree FamilyTree.Index)) ]
+                    [ Attrs.href (pathFor FamilyTree) ]
                     [ Html.text "Family Tree" ]
                 ]
             ]

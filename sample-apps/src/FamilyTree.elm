@@ -357,6 +357,10 @@ viewRelationships model personId =
                     |> Datalog.with "person" [ Datalog.var "grandparentId", Datalog.var "grandparentName" ]
                     |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
+                , Datalog.rule "grandchildren" [ "grandchildId", "grandchildName" ]
+                    |> Datalog.with "person" [ Datalog.var "grandchildId", Datalog.var "grandchildName" ]
+                    |> Datalog.with "parent" [ Datalog.var "childId", Datalog.var "grandchildId" ]
+                    |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "childId" ]
                 , Datalog.rule "auntsAndUncles" [ "auId", "auName" ]
                     |> Datalog.with "person" [ Datalog.var "auId", Datalog.var "auName" ]
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "auId" ]
@@ -391,6 +395,9 @@ viewRelationships model personId =
                     , derived
                         |> Result.andThen (Datalog.read "grandparents" personDecoder)
                         |> Result.map (viewSection "Grandparents")
+                    , derived
+                        |> Result.andThen (Datalog.read "grandchildren" personDecoder)
+                        |> Result.map (viewSection "Grandchildren")
                     , derived
                         |> Result.andThen (Datalog.read "auntsAndUncles" personDecoder)
                         |> Result.map (viewSection "Aunts and Uncles")

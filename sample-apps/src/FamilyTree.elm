@@ -326,21 +326,37 @@ viewRelationships model personId =
     let
         derived =
             Datalog.derive
-                [ Datalog.rule "me" [ "id", "name" ]
+                [ {- me(id, name) :- person(id, name), id = personId -}
+                  Datalog.rule "me" [ "id", "name" ]
                     |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
                     |> Datalog.filter (Datalog.eq "id" (Datalog.int personId))
-                , Datalog.rule "parents" [ "id", "name" ]
+                , {- parents(id, name) :- person(id, name), parent(id, personId). -}
+                  Datalog.rule "parents" [ "id", "name" ]
                     |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
                     |> Datalog.with "parent" [ Datalog.var "id", Datalog.int personId ]
-                , Datalog.rule "children" [ "id", "name" ]
+                , {- children(id, name) :- person(id, name), parent(personId, id). -}
+                  Datalog.rule "children" [ "id", "name" ]
                     |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
                     |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "id" ]
-                , Datalog.rule "siblings" [ "siblingId", "siblingName" ]
+                , {-
+                     siblings(siglingId, siblingName) :-
+                        person(siblingId, siblingName),
+                        parent(parentId, personId),
+                        parent(parentId, siblingId),
+                        siblingId /= personId.
+                  -}
+                  Datalog.rule "siblings" [ "siblingId", "siblingName" ]
                     |> Datalog.with "person" [ Datalog.var "siblingId", Datalog.var "siblingName" ]
                     |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
                     |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
                     |> Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
-                , Datalog.rule "grandparents" [ "grandparentId", "grandparentName" ]
+                , {-
+                     grandparents(grandparentId, grandparentName) :-
+                        person(grandparentId, grandparentName),
+                        person(parentId, personId),
+                        person(grandparentId, parentId).
+                  -}
+                  Datalog.rule "grandparents" [ "grandparentId", "grandparentName" ]
                     |> Datalog.with "person" [ Datalog.var "grandparentId", Datalog.var "grandparentName" ]
                     |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
@@ -348,7 +364,15 @@ viewRelationships model personId =
                     |> Datalog.with "person" [ Datalog.var "grandchildId", Datalog.var "grandchildName" ]
                     |> Datalog.with "parent" [ Datalog.var "childId", Datalog.var "grandchildId" ]
                     |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "childId" ]
-                , Datalog.rule "auntsAndUncles" [ "auId", "auName" ]
+                , {-
+                     auntsAndUncles(auId, auName) :-
+                       person(auId, auName),
+                       parent(grandparentId, auId),
+                       parent(grandparentId, parentId),
+                       parent(parentId, personId),
+                       auId /= parentId.
+                  -}
+                  Datalog.rule "auntsAndUncles" [ "auId", "auName" ]
                     |> Datalog.with "person" [ Datalog.var "auId", Datalog.var "auName" ]
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "auId" ]
                     |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]

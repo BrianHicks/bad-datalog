@@ -339,7 +339,7 @@ viewRelationships model personId =
                     |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
                     |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "id" ]
                 , {-
-                     siblings(siglingId, siblingName) :-
+                     siblings(siblingId, siblingName) :-
                         person(siblingId, siblingName),
                         parent(parentId, personId),
                         parent(parentId, siblingId),

@@ -3,7 +3,7 @@ set -euo pipefail
 set -x
 
 (
-  cd sample-app
+  cd sample-apps
 
   elm2nix convert > ../nix/elm-srcs.nix
   elm2nix snapshot

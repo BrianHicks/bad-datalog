@@ -844,17 +844,25 @@ type Context
     = RuleHead
     | VariableInRuleHead
     | NameOfRule
+    | AtomInBody
+    | TermInAtom
 
 
 type ParsingProblem
     = ExpectedToken Token
     | ExpectedValidName
+    | ExpectedNumber
+    | InvalidNumber
+    | FloatsAreNotAllowedYet
 
 
 type Token
     = OpenParenthesis
     | ClosingParenthesis
     | Comma
+    | Period
+    | Horn
+    | DoubleQuote
 
 
 type alias Parser a =
@@ -878,7 +886,10 @@ parserHelp soFar =
 
 ruleParser : Parser Rule
 ruleParser =
-    ruleHeadParser
+    Parser.succeed (List.foldl (\with_ rule_ -> with_ rule_))
+        |= ruleHeadParser
+        |. Parser.spaces
+        |= ruleBodyParser
 
 
 ruleHeadParser : Parser Rule
@@ -895,6 +906,54 @@ ruleHeadParser =
             , trailing = Parser.Forbidden
             }
         |> Parser.inContext RuleHead
+
+
+ruleBodyParser : Parser (List (Rule -> Rule))
+ruleBodyParser =
+    Parser.sequence
+        { start = hornToken
+        , separator = commaToken
+        , end = periodToken
+        , spaces = Parser.spaces
+        , item = Parser.inContext AtomInBody bodyAtomParser
+        , trailing = Parser.Forbidden
+        }
+
+
+bodyAtomParser : Parser (Rule -> Rule)
+bodyAtomParser =
+    Parser.succeed with
+        |= nameParser
+        |. Parser.spaces
+        |= Parser.sequence
+            { start = openParenToken
+            , separator = commaToken
+            , end = closeParenToken
+            , spaces = Parser.spaces
+            , item = Parser.inContext TermInAtom termParser
+            , trailing = Parser.Forbidden
+            }
+
+
+termParser : Parser Term
+termParser =
+    Parser.oneOf
+        [ Parser.number
+            { int = Ok identity
+            , hex = Ok identity
+            , octal = Ok identity
+            , binary = Ok identity
+            , float = Err FloatsAreNotAllowedYet
+            , invalid = InvalidNumber
+            , expecting = ExpectedNumber
+            }
+            |> Parser.map int
+        , Parser.succeed string
+            |. Parser.token doubleQuoteToken
+            |= Parser.getChompedString (Parser.chompWhile (\c -> c /= doubleQuoteChar))
+            |. Parser.token doubleQuoteToken
+        , Parser.map var nameParser
+        ]
 
 
 nameParser : Parser String
@@ -971,3 +1030,26 @@ closeParenToken =
 commaToken : Parser.Token ParsingProblem
 commaToken =
     Parser.Token "," (ExpectedToken Comma)
+
+
+periodToken : Parser.Token ParsingProblem
+periodToken =
+    Parser.Token "." (ExpectedToken Period)
+
+
+hornToken : Parser.Token ParsingProblem
+hornToken =
+    Parser.Token ":-" (ExpectedToken Horn)
+
+
+doubleQuoteToken : Parser.Token ParsingProblem
+doubleQuoteToken =
+    Parser.Token ":-" (ExpectedToken DoubleQuote)
+
+
+{-| This is down here because my editor's highlighting is busted and it
+thinks everything after '"' is a string.
+-}
+doubleQuoteChar : Char
+doubleQuoteChar =
+    '"'

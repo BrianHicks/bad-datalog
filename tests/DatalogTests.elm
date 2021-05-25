@@ -414,7 +414,7 @@ datalogTests =
             [ describe "valid programs"
                 [ test "a non-recursive rule" <|
                     \_ ->
-                        Datalog.parse "mortal(thing) :- greek(thing)"
+                        Datalog.parse "mortal(thing) :- greek(thing)."
                             |> Expect.equal
                                 (Ok
                                     [ rule "mortal" [ "thing" ]

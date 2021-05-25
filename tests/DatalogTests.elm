@@ -410,4 +410,22 @@ datalogTests =
                             |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)
                 ]
             ]
+        , describe "parsing rules from a string"
+            [ describe "valid programs"
+                [ test "a non-recursive rule" <|
+                    \_ ->
+                        Datalog.parse "mortal(thing) :- greek(thing)"
+                            |> Expect.equal
+                                (Ok
+                                    [ rule "mortal" [ "thing" ]
+                                        |> with "greek" [ var "thing" ]
+                                    ]
+                                )
+                , todo "recursive rule"
+                , todo "rule with a filter"
+                , todo "rule with negation"
+                ]
+            , describe "errors"
+                [ todo "errors!" ]
+            ]
         ]

@@ -4,6 +4,7 @@ module Datalog exposing
     , derive, Rule, rule, with, without, filter, planRule
     , Filter, eq, gt, lt, not_, or
     , Term, var, int, string
+    , parse
     )
 
 {-|
@@ -26,6 +27,8 @@ import Dict
 import Graph exposing (Edge, Graph, Node)
 import List.Extra exposing (foldrResult, indexOf)
 import Murmur3
+import Parser.Advanced as Parser exposing ((|.), (|=))
+import Set exposing (Set)
 
 
 type Database
@@ -47,6 +50,7 @@ type Problem
     | ExpectedExactlyOneRow Int
     | DatabaseProblem Database.Problem
     | DecodingProblem DecodingProblem
+    | ParsingProblem (List (Parser.DeadEnd Context ParsingProblem))
 
 
 type DecodingProblem
@@ -827,3 +831,143 @@ termToString term =
 
         Constant (Database.Int int_) ->
             String.fromInt int_
+
+
+parse : String -> Result Problem (List Rule)
+parse input =
+    input
+        |> Parser.run parser
+        |> Result.mapError ParsingProblem
+
+
+type Context
+    = RuleHead
+    | VariableInRuleHead
+    | NameOfRule
+
+
+type ParsingProblem
+    = ExpectedToken Token
+    | ExpectedValidName
+
+
+type Token
+    = OpenParenthesis
+    | ClosingParenthesis
+    | Comma
+
+
+type alias Parser a =
+    Parser.Parser Context ParsingProblem a
+
+
+parser : Parser (List Rule)
+parser =
+    Parser.loop [] parserHelp
+
+
+parserHelp : List Rule -> Parser (Parser.Step (List Rule) (List Rule))
+parserHelp soFar =
+    Parser.oneOf
+        [ Parser.succeed (\newRule -> Parser.Loop (newRule :: soFar))
+            |= ruleParser
+            |. Parser.spaces
+        , Parser.lazy (\_ -> Parser.succeed (Parser.Done (List.reverse soFar)))
+        ]
+
+
+ruleParser : Parser Rule
+ruleParser =
+    ruleHeadParser
+
+
+ruleHeadParser : Parser Rule
+ruleHeadParser =
+    Parser.succeed rule
+        |= Parser.inContext NameOfRule nameParser
+        |. Parser.spaces
+        |= Parser.sequence
+            { start = openParenToken
+            , separator = commaToken
+            , end = closeParenToken
+            , spaces = Parser.spaces
+            , item = Parser.inContext VariableInRuleHead nameParser
+            , trailing = Parser.Forbidden
+            }
+        |> Parser.inContext RuleHead
+
+
+nameParser : Parser String
+nameParser =
+    Parser.variable
+        { start = \c -> not (Set.member c disallowedNameChar)
+        , inner = \c -> not (Set.member c disallowedNameChar)
+        , reserved =
+            Set.fromList
+                [ "_" -- reserved for future use as an anonymous placeholder
+                ]
+        , expecting = ExpectedValidName
+        }
+
+
+disallowedNameChar : Set Char
+disallowedNameChar =
+    Set.fromList
+        [ -- https://en.wikipedia.org/wiki/Whitespace_character
+          '\t'
+        , '\n'
+        , '\u{000B}'
+        , '\u{000C}'
+        , '\u{000D}'
+        , ' '
+        , '\u{0085}'
+        , '\u{00A0}'
+        , '\u{1680}'
+        , '\u{2000}'
+        , '\u{2001}'
+        , '\u{2002}'
+        , '\u{2003}'
+        , '\u{2004}'
+        , '\u{2005}'
+        , '\u{2006}'
+        , '\u{2007}'
+        , '\u{2008}'
+        , '\u{2009}'
+        , '\u{200A}'
+        , '\u{2028}'
+        , '\u{2029}'
+        , '\u{202F}'
+        , '\u{205F}'
+        , '\u{3000}'
+        , '\u{180E}'
+        , '\u{200B}'
+        , '\u{200C}'
+        , '\u{200D}'
+        , '\u{2060}'
+        , '\u{FEFF}'
+
+        -- symbols that follow names. We can't allow these or we won't know
+        -- where a name ends and the next thing we need to parse begins!
+        , '('
+        , ')'
+        , ','
+        ]
+
+
+
+-- TOKENS
+
+
+openParenToken : Parser.Token ParsingProblem
+openParenToken =
+    Parser.Token "(" (ExpectedToken OpenParenthesis)
+
+
+closeParenToken : Parser.Token ParsingProblem
+closeParenToken =
+    Parser.Token ")" (ExpectedToken ClosingParenthesis)
+
+
+commaToken : Parser.Token ParsingProblem
+commaToken =
+    Parser.Token "," (ExpectedToken Comma)

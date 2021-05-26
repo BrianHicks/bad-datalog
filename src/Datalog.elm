@@ -871,7 +871,9 @@ type alias Parser a =
 
 parser : Parser (List Rule)
 parser =
-    Parser.loop [] parserHelp
+    Parser.succeed identity
+        |. Parser.spaces
+        |= Parser.loop [] parserHelp
 
 
 parserHelp : List Rule -> Parser (Parser.Step (List Rule) (List Rule))

@@ -421,7 +421,22 @@ datalogTests =
                                         |> with "greek" [ var "thing" ]
                                     ]
                                 )
-                , todo "recursive rule"
+                , test "recursive rule" <|
+                    \_ ->
+                        Datalog.parse
+                            """
+                            reachable(a, b) :- link(a, b).
+                            reachable(a, c) :- link(a, b), reachable(b, c).
+                            """
+                            |> Expect.equal
+                                (Ok
+                                    [ rule "reachable" [ "a", "b" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                    , rule "reachable" [ "a", "c" ]
+                                        |> with "link" [ var "a", var "b" ]
+                                        |> with "reachable" [ var "b", var "c" ]
+                                    ]
+                                )
                 , todo "rule with a filter"
                 , todo "rule with negation"
                 ]

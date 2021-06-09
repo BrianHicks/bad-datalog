@@ -974,7 +974,9 @@ nameParser =
 disallowedNameChar : Set Char
 disallowedNameChar =
     Set.fromList
-        [ -- https://en.wikipedia.org/wiki/Whitespace_character
+        [ -- all kinds of whitespace. See
+          -- https://en.wikipedia.org/wiki/Whitespace_character for
+          -- explanations about these characters.
           '\t'
         , '\n'
         , '\u{000B}'

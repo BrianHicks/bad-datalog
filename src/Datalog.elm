@@ -961,7 +961,7 @@ termParser =
 nameParser : Parser String
 nameParser =
     Parser.variable
-        { start = \c -> not (Set.member c disallowedNameChar)
+        { start = \c -> not (Set.member c disallowedNameChar) && c /= doubleQuoteChar
         , inner = \c -> not (Set.member c disallowedNameChar)
         , reserved =
             Set.fromList
@@ -1048,7 +1048,7 @@ hornToken =
 
 doubleQuoteToken : Parser.Token ParsingProblem
 doubleQuoteToken =
-    Parser.Token ":-" (ExpectedToken DoubleQuote)
+    Parser.Token "\"" (ExpectedToken DoubleQuote)
 
 
 {-| This is down here because my editor's highlighting is busted and it

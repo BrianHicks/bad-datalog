@@ -438,6 +438,18 @@ datalogTests =
                                     ]
                                 )
                 , todo "rule with a filter"
+                , test "an atom with an string" <|
+                    \_ ->
+                        Datalog.parse
+                            """
+                            baseballTeam(name) :- team(name, "MLB").
+                            """
+                            |> Expect.equal
+                                (Ok
+                                    [ rule "baseballTeam" [ "name" ]
+                                        |> with "team" [ var "name", string "MLB" ]
+                                    ]
+                                )
                 , todo "rule with negation"
                 ]
             , describe "errors"

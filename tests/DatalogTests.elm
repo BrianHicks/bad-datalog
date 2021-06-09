@@ -462,43 +462,6 @@ datalogTests =
                                         |> with "building" [ var "name", int 7 ]
                                     ]
                                 )
-                , test "an atom with a hex number" <|
-                    \_ ->
-                        Datalog.parse
-                            """
-                            luckyBuilding(name) :- building(name, 0x7).
-                            """
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "luckyBuilding" [ "name" ]
-                                        |> with "building" [ var "name", int 7 ]
-                                    ]
-                                )
-                , test "an atom with an octal number" <|
-                    \_ ->
-                        Datalog.parse
-                            """
-                            luckyBuilding(name) :- building(name, 0o7).
-                            """
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "luckyBuilding" [ "name" ]
-                                        |> with "building" [ var "name", int 7 ]
-                                    ]
-                                )
-                , test "an atom with a binary number" <|
-                    \_ ->
-                        Datalog.parse
-                            """
-                            luckyBuilding(name) :- building(name, 0b111).
-                            """
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "luckyBuilding" [ "name" ]
-                                        |> with "building" [ var "name", int 7 ]
-                                    ]
-                                )
-
                 , todo "rule with negation"
                 ]
             , describe "errors"

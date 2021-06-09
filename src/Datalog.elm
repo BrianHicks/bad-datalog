@@ -940,28 +940,29 @@ bodyAtomParser =
 termParser : Parser Term
 termParser =
     Parser.oneOf
-        [ Parser.number
-            { int = Ok identity
-            , hex = Ok identity
-            , octal = Ok identity
-            , binary = Ok identity
-            , float = Err FloatsAreNotAllowedYet
-            , invalid = InvalidNumber
-            , expecting = ExpectedNumber
-            }
-            |> Parser.map int
+        [ Parser.map var nameParser
         , Parser.succeed string
             |. Parser.token doubleQuoteToken
             |= Parser.getChompedString (Parser.chompWhile (\c -> c /= doubleQuoteChar))
             |. Parser.token doubleQuoteToken
-        , Parser.map var nameParser
+        , Parser.chompWhile Char.isDigit
+            |> Parser.getChompedString
+            |> Parser.andThen
+                (\numString ->
+                    case String.toInt numString of
+                        Just num ->
+                            Parser.succeed (int num)
+
+                        Nothing ->
+                            Parser.problem ExpectedNumber
+                )
         ]
 
 
 nameParser : Parser String
 nameParser =
     Parser.variable
-        { start = \c -> not (Set.member c disallowedNameChar) && c /= doubleQuoteChar
+        { start = \c -> not (Set.member c disallowedNameChar) && c /= doubleQuoteChar && not (Char.isDigit c)
         , inner = \c -> not (Set.member c disallowedNameChar)
         , reserved =
             Set.fromList

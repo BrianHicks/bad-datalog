@@ -845,6 +845,7 @@ type Context
     | VariableInRuleHead
     | NameOfRule
     | AtomInBody
+    | FilterInBody
     | TermInAtom
 
 
@@ -863,6 +864,7 @@ type Token
     | Period
     | Horn
     | DoubleQuote
+    | LessThan
 
 
 type alias Parser a =
@@ -917,7 +919,11 @@ ruleBodyParser =
         , separator = commaToken
         , end = periodToken
         , spaces = Parser.spaces
-        , item = Parser.inContext AtomInBody bodyAtomParser
+        , item =
+            Parser.oneOf
+                [ Parser.inContext AtomInBody (Parser.backtrackable bodyAtomParser)
+                , Parser.inContext FilterInBody filterParser
+                ]
         , trailing = Parser.Forbidden
         }
 
@@ -935,6 +941,24 @@ bodyAtomParser =
             , item = Parser.inContext TermInAtom termParser
             , trailing = Parser.Forbidden
             }
+
+
+filterParser : Parser (Rule -> Rule)
+filterParser =
+    Parser.succeed (\lhs op rhs -> filter (op lhs rhs))
+        |= nameParser
+        |. Parser.spaces
+        |= opParser
+        |. Parser.spaces
+        |= termParser
+
+
+opParser : Parser (String -> Term -> Filter)
+opParser =
+    Parser.oneOf
+        [ Parser.succeed lt
+            |. Parser.token lessThanToken
+        ]
 
 
 termParser : Parser Term
@@ -1015,6 +1039,9 @@ disallowedNameChar =
         , '('
         , ')'
         , ','
+        , '<'
+        , '>'
+        , '='
         ]
 
 
@@ -1050,6 +1077,11 @@ hornToken =
 doubleQuoteToken : Parser.Token ParsingProblem
 doubleQuoteToken =
     Parser.Token "\"" (ExpectedToken DoubleQuote)
+
+
+lessThanToken : Parser.Token ParsingProblem
+lessThanToken =
+    Parser.Token "<" (ExpectedToken LessThan)
 
 
 {-| This is down here because my editor's highlighting is busted and it

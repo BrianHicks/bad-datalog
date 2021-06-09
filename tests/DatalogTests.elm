@@ -437,7 +437,6 @@ datalogTests =
                                         |> with "reachable" [ var "b", var "c" ]
                                     ]
                                 )
-                , todo "rule with a filter"
                 , test "an atom with an string" <|
                     \_ ->
                         Datalog.parse
@@ -462,6 +461,23 @@ datalogTests =
                                         |> with "building" [ var "name", int 7 ]
                                     ]
                                 )
+                , describe "filters"
+                    [ test "less than" <|
+                        \_ ->
+                            Datalog.parse
+                                """
+                                child(name) :-
+                                  person(name, age),
+                                  age < 18.
+                                """
+                                |> Expect.equal
+                                    (Ok
+                                        [ rule "child" [ "name" ]
+                                            |> with "person" [ var "name", var "age" ]
+                                            |> filter (lt "age" (int 18))
+                                        ]
+                                    )
+                    ]
                 , todo "rule with negation"
                 ]
             , describe "errors"

@@ -865,6 +865,7 @@ type Token
     | Horn
     | DoubleQuote
     | LessThan
+    | GreaterThan
 
 
 type alias Parser a =
@@ -958,6 +959,8 @@ opParser =
     Parser.oneOf
         [ Parser.succeed lt
             |. Parser.token lessThanToken
+        , Parser.succeed gt
+            |. Parser.token greaterThanToken
         ]
 
 
@@ -1082,6 +1085,11 @@ doubleQuoteToken =
 lessThanToken : Parser.Token ParsingProblem
 lessThanToken =
     Parser.Token "<" (ExpectedToken LessThan)
+
+
+greaterThanToken : Parser.Token ParsingProblem
+greaterThanToken =
+    Parser.Token ">" (ExpectedToken GreaterThan)
 
 
 {-| This is down here because my editor's highlighting is busted and it

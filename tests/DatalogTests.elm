@@ -477,6 +477,21 @@ datalogTests =
                                             |> filter (lt "age" (int 18))
                                         ]
                                     )
+                    , test "greater than" <|
+                        \_ ->
+                            Datalog.parse
+                                """
+                                adult(name) :-
+                                  person(name, age),
+                                  age > 18.
+                                """
+                                |> Expect.equal
+                                    (Ok
+                                        [ rule "adult" [ "name" ]
+                                            |> with "person" [ var "name", var "age" ]
+                                            |> filter (gt "age" (int 18))
+                                        ]
+                                    )
                     ]
                 , todo "rule with negation"
                 ]

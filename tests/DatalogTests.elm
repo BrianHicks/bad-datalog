@@ -414,99 +414,77 @@ datalogTests =
             [ describe "valid programs"
                 [ test "a non-recursive rule" <|
                     \_ ->
-                        Datalog.parse "mortal(thing) :- greek(thing)."
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "mortal" [ "thing" ]
-                                        |> with "greek" [ var "thing" ]
-                                    ]
-                                )
+                        expectParses
+                            "mortal(thing) :- greek(thing)."
+                            [ rule "mortal" [ "thing" ]
+                                |> with "greek" [ var "thing" ]
+                            ]
                 , test "recursive rule" <|
                     \_ ->
-                        Datalog.parse
+                        expectParses
                             """
                             reachable(a, b) :- link(a, b).
                             reachable(a, c) :- link(a, b), reachable(b, c).
                             """
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "reachable" [ "a", "b" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                    , rule "reachable" [ "a", "c" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                        |> with "reachable" [ var "b", var "c" ]
-                                    ]
-                                )
+                            [ rule "reachable" [ "a", "b" ]
+                                |> with "link" [ var "a", var "b" ]
+                            , rule "reachable" [ "a", "c" ]
+                                |> with "link" [ var "a", var "b" ]
+                                |> with "reachable" [ var "b", var "c" ]
+                            ]
                 , test "an atom with an string" <|
                     \_ ->
-                        Datalog.parse
-                            """
-                            baseballTeam(name) :- team(name, "MLB").
-                            """
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "baseballTeam" [ "name" ]
-                                        |> with "team" [ var "name", string "MLB" ]
-                                    ]
-                                )
+                        expectParses
+                            """baseballTeam(name) :- team(name, "MLB")."""
+                            [ rule "baseballTeam" [ "name" ]
+                                |> with "team" [ var "name", string "MLB" ]
+                            ]
                 , test "an atom with an integer" <|
                     \_ ->
-                        Datalog.parse
+                        expectParses
                             """
                             luckyBuilding(name) :- building(name, 7).
                             """
-                            |> Expect.equal
-                                (Ok
-                                    [ rule "luckyBuilding" [ "name" ]
-                                        |> with "building" [ var "name", int 7 ]
-                                    ]
-                                )
+                            [ rule "luckyBuilding" [ "name" ]
+                                |> with "building" [ var "name", int 7 ]
+                            ]
                 , describe "filters"
                     [ test "less than" <|
                         \_ ->
-                            Datalog.parse
+                            expectParses
                                 """
                                 child(name) :-
                                   person(name, age),
                                   age < 18.
                                 """
-                                |> Expect.equal
-                                    (Ok
-                                        [ rule "child" [ "name" ]
-                                            |> with "person" [ var "name", var "age" ]
-                                            |> filter (lt "age" (int 18))
-                                        ]
-                                    )
+                                [ rule "child" [ "name" ]
+                                    |> with "person" [ var "name", var "age" ]
+                                    |> filter (lt "age" (int 18))
+                                ]
                     , test "greater than" <|
                         \_ ->
-                            Datalog.parse
+                            expectParses
                                 """
                                 adult(name) :-
                                   person(name, age),
                                   age > 17.
                                 """
-                                |> Expect.equal
-                                    (Ok
-                                        [ rule "adult" [ "name" ]
-                                            |> with "person" [ var "name", var "age" ]
-                                            |> filter (gt "age" (int 17))
-                                        ]
-                                    )
+                                [ rule "adult" [ "name" ]
+                                    |> with "person" [ var "name", var "age" ]
+                                    |> filter (gt "age" (int 17))
+                                ]
                     , test "equal to" <|
                         \_ ->
-                            Datalog.parse
+                            expectParses
                                 """
                                 spider(name) :-
                                   thing(name, legs),
                                   legs = 8.
                                 """
-                                |> Expect.equal
-                                    (Ok
-                                        [ rule "spider" [ "name" ]
-                                            |> with "thing" [ var "name", var "legs" ]
-                                            |> filter (eq "legs" (int 8))
-                                        ]
-                                    )
+                                [ rule "spider" [ "name" ]
+                                    |> with "thing" [ var "name", var "legs" ]
+                                    |> filter (eq "legs" (int 8))
+                                ]
                     , test "or" <|
                         \_ ->
                             expectParses

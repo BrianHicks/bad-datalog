@@ -866,6 +866,7 @@ type Token
     | DoubleQuote
     | LessThan
     | GreaterThan
+    | Equals
 
 
 type alias Parser a =
@@ -961,6 +962,8 @@ opParser =
             |. Parser.token lessThanToken
         , Parser.succeed gt
             |. Parser.token greaterThanToken
+        , Parser.succeed eq
+            |. Parser.token equalsToken
         ]
 
 
@@ -1090,6 +1093,11 @@ lessThanToken =
 greaterThanToken : Parser.Token ParsingProblem
 greaterThanToken =
     Parser.Token ">" (ExpectedToken GreaterThan)
+
+
+equalsToken : Parser.Token ParsingProblem
+equalsToken =
+    Parser.Token "=" (ExpectedToken Equals)
 
 
 {-| This is down here because my editor's highlighting is busted and it

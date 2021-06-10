@@ -492,6 +492,21 @@ datalogTests =
                                             |> filter (gt "age" (int 18))
                                         ]
                                     )
+                    , test "equal to" <|
+                        \_ ->
+                            Datalog.parse
+                                """
+                                spider(name) :-
+                                  thing(name, legs),
+                                  legs = 8.
+                                """
+                                |> Expect.equal
+                                    (Ok
+                                        [ rule "spider" [ "name" ]
+                                            |> with "thing" [ var "name", var "legs" ]
+                                            |> filter (eq "legs" (int 8))
+                                        ]
+                                    )
                     ]
                 , todo "rule with negation"
                 ]

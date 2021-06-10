@@ -845,7 +845,8 @@ type Context
     | VariableInRuleHead
     | NameOfRule
     | AtomInBody
-    | FilterInBody
+    | FilterClauseInBody
+    | FilterInClause
     | TermInAtom
 
 
@@ -867,6 +868,7 @@ type Token
     | LessThan
     | GreaterThan
     | Equals
+    | OrToken
 
 
 type alias Parser a =
@@ -924,7 +926,7 @@ ruleBodyParser =
         , item =
             Parser.oneOf
                 [ Parser.inContext AtomInBody (Parser.backtrackable bodyAtomParser)
-                , Parser.inContext FilterInBody filterParser
+                , Parser.inContext FilterClauseInBody filterParser
                 ]
         , trailing = Parser.Forbidden
         }
@@ -947,12 +949,32 @@ bodyAtomParser =
 
 filterParser : Parser (Rule -> Rule)
 filterParser =
-    Parser.succeed (\lhs op rhs -> filter (op lhs rhs))
+    Parser.andThen
+        (\firstFilter -> Parser.loop firstFilter filterParserHelp)
+        filterClauseParser
+
+
+filterParserHelp : Filter -> Parser (Parser.Step Filter (Rule -> Rule))
+filterParserHelp lastFilter =
+    Parser.oneOf
+        [ Parser.succeed (\nextFilter -> Parser.Loop (or lastFilter nextFilter))
+            |. Parser.spaces
+            |. Parser.token orToken
+            |. Parser.spaces
+            |= filterClauseParser
+        , Parser.lazy (\_ -> Parser.succeed (Parser.Done (filter lastFilter)))
+        ]
+
+
+filterClauseParser : Parser Filter
+filterClauseParser =
+    Parser.succeed (\lhs op rhs -> op lhs rhs)
         |= nameParser
         |. Parser.spaces
         |= opParser
         |. Parser.spaces
         |= termParser
+        |> Parser.inContext FilterInClause
 
 
 opParser : Parser (String -> Term -> Filter)
@@ -1098,6 +1120,11 @@ greaterThanToken =
 equalsToken : Parser.Token ParsingProblem
 equalsToken =
     Parser.Token "=" (ExpectedToken Equals)
+
+
+orToken : Parser.Token ParsingProblem
+orToken =
+    Parser.Token "||" (ExpectedToken OrToken)
 
 
 {-| This is down here because my editor's highlighting is busted and it

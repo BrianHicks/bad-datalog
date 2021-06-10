@@ -2,7 +2,7 @@ module DatalogTests exposing (..)
 
 import Datalog exposing (..)
 import Datalog.Database as Database
-import Expect
+import Expect exposing (Expectation)
 import Test exposing (..)
 
 
@@ -483,13 +483,13 @@ datalogTests =
                                 """
                                 adult(name) :-
                                   person(name, age),
-                                  age > 18.
+                                  age > 17.
                                 """
                                 |> Expect.equal
                                     (Ok
                                         [ rule "adult" [ "name" ]
                                             |> with "person" [ var "name", var "age" ]
-                                            |> filter (gt "age" (int 18))
+                                            |> filter (gt "age" (int 17))
                                         ]
                                     )
                     , test "equal to" <|
@@ -507,6 +507,22 @@ datalogTests =
                                             |> filter (eq "legs" (int 8))
                                         ]
                                     )
+                    , test "or" <|
+                        \_ ->
+                            expectParses
+                                """
+                                adult(name) :-
+                                  person(name, age),
+                                  age = 18 || age > 18.
+                                """
+                                [ rule "adult" [ "name" ]
+                                    |> with "person" [ var "name", var "age" ]
+                                    |> filter
+                                        (or
+                                            (eq "age" (int 18))
+                                            (gt "age" (int 18))
+                                        )
+                                ]
                     ]
                 , todo "rule with negation"
                 ]
@@ -514,3 +530,57 @@ datalogTests =
                 [ todo "errors!" ]
             ]
         ]
+
+
+expectParses : String -> List Rule -> Expectation
+expectParses input expectedOutput =
+    case Datalog.parse input of
+        Ok actualOutput ->
+            Expect.equal expectedOutput actualOutput
+
+        Err err ->
+            case err of
+                ParsingProblem deadEnds ->
+                    -- this should eventually just show the nicest version possible
+                    -- of the error message. Probably using whatever `errorToString`
+                    -- thing we end up with.
+                    let
+                        rows : List String
+                        rows =
+                            String.lines input
+
+                        sourceRow : Int -> Maybe String
+                        sourceRow i =
+                            rows
+                                |> List.drop (i - 1)
+                                |> List.head
+
+                        pointer : Int -> String
+                        pointer i =
+                            String.repeat (i - 1) " " ++ "^"
+                    in
+                    deadEnds
+                        |> List.map
+                            (\{ row, col, contextStack, problem } ->
+                                String.join "\n"
+                                    [ "There's a problem at row " ++ String.fromInt row ++ ", column " ++ String.fromInt col ++ ":"
+                                    , ""
+                                    , Maybe.withDefault "???" (sourceRow row)
+                                    , pointer col
+                                    , ""
+                                    , "With this problem:"
+                                    , Debug.toString problem
+                                    , ""
+                                    , "With this context:"
+                                    , contextStack
+                                        |> List.map (\context -> " - " ++ Debug.toString context)
+                                        |> String.join "\n"
+                                    ]
+                            )
+                        |> String.join "\n\n==========================================================\n\n"
+                        |> (++) "I ran into a problem parsing. I got these dead ends:\n\n"
+                        |> Expect.fail
+
+                _ ->
+                    -- fall back on a reasonable implementation
+                    Expect.equal (Ok expectedOutput) (Err err)

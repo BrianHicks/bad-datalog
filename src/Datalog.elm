@@ -867,6 +867,7 @@ type Token
     | DoubleQuote
     | LessThan
     | GreaterThan
+    | GreaterThanOrEquals
     | Equals
     | OrToken
 
@@ -982,6 +983,8 @@ opParser =
     Parser.oneOf
         [ Parser.succeed lt
             |. Parser.token lessThanToken
+        , Parser.succeed (\lhs rhs -> or (gt lhs rhs) (eq lhs rhs))
+            |. Parser.token greaterThanOrEqualsToken
         , Parser.succeed gt
             |. Parser.token greaterThanToken
         , Parser.succeed eq
@@ -1115,6 +1118,11 @@ lessThanToken =
 greaterThanToken : Parser.Token ParsingProblem
 greaterThanToken =
     Parser.Token ">" (ExpectedToken GreaterThan)
+
+
+greaterThanOrEqualsToken : Parser.Token ParsingProblem
+greaterThanOrEqualsToken =
+    Parser.Token ">=" (ExpectedToken GreaterThanOrEquals)
 
 
 equalsToken : Parser.Token ParsingProblem

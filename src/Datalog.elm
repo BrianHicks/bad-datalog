@@ -866,6 +866,7 @@ type Token
     | Horn
     | DoubleQuote
     | LessThan
+    | LessThanOrEquals
     | GreaterThan
     | GreaterThanOrEquals
     | Equals
@@ -981,7 +982,9 @@ filterClauseParser =
 opParser : Parser (String -> Term -> Filter)
 opParser =
     Parser.oneOf
-        [ Parser.succeed lt
+        [ Parser.succeed (\lhs rhs -> or (lt lhs rhs) (eq lhs rhs))
+            |. Parser.token lessThanOrEqualsToken
+        , Parser.succeed lt
             |. Parser.token lessThanToken
         , Parser.succeed (\lhs rhs -> or (gt lhs rhs) (eq lhs rhs))
             |. Parser.token greaterThanOrEqualsToken
@@ -1113,6 +1116,11 @@ doubleQuoteToken =
 lessThanToken : Parser.Token ParsingProblem
 lessThanToken =
     Parser.Token "<" (ExpectedToken LessThan)
+
+
+lessThanOrEqualsToken : Parser.Token ParsingProblem
+lessThanOrEqualsToken =
+    Parser.Token "<=" (ExpectedToken LessThanOrEquals)
 
 
 greaterThanToken : Parser.Token ParsingProblem

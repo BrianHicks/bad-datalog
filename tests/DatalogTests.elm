@@ -517,6 +517,22 @@ datalogTests =
                                             (eq "age" (int 18))
                                         )
                                 ]
+                    , test "less than or equal to" <|
+                        \_ ->
+                            expectParses
+                                """
+                                child(name) :-
+                                  person(name, age),
+                                  age <= 17.
+                                """
+                                [ rule "child" [ "name" ]
+                                    |> with "person" [ var "name", var "age" ]
+                                    |> filter
+                                        (or
+                                            (lt "age" (int 17))
+                                            (eq "age" (int 17))
+                                        )
+                                ]
                     ]
                 , todo "rule with negation"
                 ]

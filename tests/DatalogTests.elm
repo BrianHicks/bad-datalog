@@ -549,8 +549,6 @@ datalogTests =
                                 |> without "reachable" [ var "a", var "b" ]
                             ]
                 ]
-            , describe "errors"
-                [ todo "errors!" ]
             ]
         ]
 

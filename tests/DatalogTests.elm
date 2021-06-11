@@ -548,6 +548,20 @@ datalogTests =
                                 |> with "node" [ var "b" ]
                                 |> without "reachable" [ var "a", var "b" ]
                             ]
+                , test "comments" <|
+                    \_ ->
+                        expectParses
+                            """
+                            -- before
+                            adult(name) :- -- before body
+                              person(name, age), -- after rule
+                              age > 17 -- before close
+                              . -- after
+                            """
+                            [ rule "adult" [ "name" ]
+                                |> with "person" [ var "name", var "age" ]
+                                |> filter (gt "age" (int 17))
+                            ]
                 ]
             ]
         ]

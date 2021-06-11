@@ -872,6 +872,7 @@ type Token
     | Equals
     | OrToken
     | NotToken
+    | LineComment
 
 
 type alias Parser a =
@@ -881,7 +882,7 @@ type alias Parser a =
 parser : Parser (List Rule)
 parser =
     Parser.succeed identity
-        |. Parser.spaces
+        |. spacesAndComments
         |= Parser.loop [] parserHelp
 
 
@@ -890,7 +891,7 @@ parserHelp soFar =
     Parser.oneOf
         [ Parser.succeed (\newRule -> Parser.Loop (newRule :: soFar))
             |= ruleParser
-            |. Parser.spaces
+            |. spacesAndComments
         , Parser.lazy (\_ -> Parser.succeed (Parser.Done (List.reverse soFar)))
         ]
 
@@ -899,7 +900,7 @@ ruleParser : Parser Rule
 ruleParser =
     Parser.succeed (List.foldl (\with_ rule_ -> with_ rule_))
         |= ruleHeadParser
-        |. Parser.spaces
+        |. spacesAndComments
         |= ruleBodyParser
 
 
@@ -907,12 +908,12 @@ ruleHeadParser : Parser Rule
 ruleHeadParser =
     Parser.succeed rule
         |= Parser.inContext NameOfRule nameParser
-        |. Parser.spaces
+        |. spacesAndComments
         |= Parser.sequence
             { start = openParenToken
             , separator = commaToken
             , end = closeParenToken
-            , spaces = Parser.spaces
+            , spaces = spacesAndComments
             , item = Parser.inContext VariableInRuleHead nameParser
             , trailing = Parser.Forbidden
             }
@@ -925,7 +926,7 @@ ruleBodyParser =
         { start = hornToken
         , separator = commaToken
         , end = periodToken
-        , spaces = Parser.spaces
+        , spaces = spacesAndComments
         , item =
             Parser.oneOf
                 [ Parser.inContext AtomInBody (Parser.backtrackable bodyAtomParser)
@@ -946,14 +947,14 @@ bodyAtomParser =
                 with name body
         )
         |= notParser
-        |. Parser.spaces
+        |. spacesAndComments
         |= nameParser
-        |. Parser.spaces
+        |. spacesAndComments
         |= Parser.sequence
             { start = openParenToken
             , separator = commaToken
             , end = closeParenToken
-            , spaces = Parser.spaces
+            , spaces = spacesAndComments
             , item = Parser.inContext TermInAtom termParser
             , trailing = Parser.Forbidden
             }
@@ -979,9 +980,9 @@ filterParserHelp : Filter -> Parser (Parser.Step Filter (Rule -> Rule))
 filterParserHelp lastFilter =
     Parser.oneOf
         [ Parser.succeed (\nextFilter -> Parser.Loop (or lastFilter nextFilter))
-            |. Parser.spaces
+            |. Parser.backtrackable spacesAndComments
             |. Parser.token orToken
-            |. Parser.spaces
+            |. spacesAndComments
             |= filterClauseParser
         , Parser.lazy (\_ -> Parser.succeed (Parser.Done (filter lastFilter)))
         ]
@@ -991,9 +992,9 @@ filterClauseParser : Parser Filter
 filterClauseParser =
     Parser.succeed (\lhs op rhs -> op lhs rhs)
         |= nameParser
-        |. Parser.spaces
+        |. spacesAndComments
         |= opParser
-        |. Parser.spaces
+        |. spacesAndComments
         |= termParser
         |> Parser.inContext FilterInClause
 
@@ -1098,6 +1099,22 @@ disallowedNameChar =
         ]
 
 
+spacesAndComments : Parser ()
+spacesAndComments =
+    Parser.oneOf
+        [ Parser.succeed ()
+            |. Parser.backtrackable Parser.spaces
+            |. lineCommentParser
+            |. Parser.spaces
+        , Parser.spaces
+        ]
+
+
+lineCommentParser : Parser ()
+lineCommentParser =
+    Parser.lineComment lineCommentToken
+
+
 
 -- TOKENS
 
@@ -1165,6 +1182,11 @@ orToken =
 notToken : Parser.Token ParsingProblem
 notToken =
     Parser.Token "not" (ExpectedToken NotToken)
+
+
+lineCommentToken : Parser.Token ParsingProblem
+lineCommentToken =
+    Parser.Token "--" (ExpectedToken LineComment)
 
 
 {-| This is down here because my editor's highlighting is busted and it

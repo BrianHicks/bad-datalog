@@ -485,6 +485,18 @@ datalogTests =
                                     |> with "thing" [ var "name", var "legs" ]
                                     |> filter (eq "legs" (int 8))
                                 ]
+                    , test "not equal to" <|
+                        \_ ->
+                            expectParses
+                                """
+                                notASpider(name) :-
+                                  thing(name, legs),
+                                  legs != 8.
+                                """
+                                [ rule "notASpider" [ "name" ]
+                                    |> with "thing" [ var "name", var "legs" ]
+                                    |> filter (not_ (eq "legs" (int 8)))
+                                ]
                     , test "or" <|
                         \_ ->
                             expectParses

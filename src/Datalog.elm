@@ -870,6 +870,7 @@ type Token
     | GreaterThan
     | GreaterThanOrEquals
     | Equals
+    | NotEquals
     | OrToken
     | NotToken
     | LineComment
@@ -1012,6 +1013,8 @@ opParser =
             |. Parser.token greaterThanToken
         , Parser.succeed eq
             |. Parser.token equalsToken
+        , Parser.succeed (\lhs rhs -> not_ (eq lhs rhs))
+            |. Parser.token notEqualsToken
         ]
 
 
@@ -1172,6 +1175,11 @@ greaterThanOrEqualsToken =
 equalsToken : Parser.Token ParsingProblem
 equalsToken =
     Parser.Token "=" (ExpectedToken Equals)
+
+
+notEqualsToken : Parser.Token ParsingProblem
+notEqualsToken =
+    Parser.Token "!=" (ExpectedToken NotEquals)
 
 
 orToken : Parser.Token ParsingProblem

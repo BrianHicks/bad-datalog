@@ -871,6 +871,7 @@ type Token
     | GreaterThanOrEquals
     | Equals
     | OrToken
+    | NotToken
 
 
 type alias Parser a =
@@ -936,7 +937,16 @@ ruleBodyParser =
 
 bodyAtomParser : Parser (Rule -> Rule)
 bodyAtomParser =
-    Parser.succeed with
+    Parser.succeed
+        (\negative name body ->
+            if negative then
+                without name body
+
+            else
+                with name body
+        )
+        |= notParser
+        |. Parser.spaces
         |= nameParser
         |. Parser.spaces
         |= Parser.sequence
@@ -947,6 +957,15 @@ bodyAtomParser =
             , item = Parser.inContext TermInAtom termParser
             , trailing = Parser.Forbidden
             }
+
+
+notParser : Parser Bool
+notParser =
+    Parser.oneOf
+        [ Parser.succeed True
+            |. Parser.token notToken
+        , Parser.succeed False
+        ]
 
 
 filterParser : Parser (Rule -> Rule)
@@ -1141,6 +1160,11 @@ equalsToken =
 orToken : Parser.Token ParsingProblem
 orToken =
     Parser.Token "||" (ExpectedToken OrToken)
+
+
+notToken : Parser.Token ParsingProblem
+notToken =
+    Parser.Token "not" (ExpectedToken NotToken)
 
 
 {-| This is down here because my editor's highlighting is busted and it

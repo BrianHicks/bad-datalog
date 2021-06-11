@@ -534,7 +534,20 @@ datalogTests =
                                         )
                                 ]
                     ]
-                , todo "rule with negation"
+                , test "rule with negation" <|
+                    \_ ->
+                        expectParses
+                            """
+                            unreachable(a, b) :-
+                              node(a),
+                              node(b),
+                              not reachable(a, b).
+                            """
+                            [ rule "unreachable" [ "a", "b" ]
+                                |> with "node" [ var "a" ]
+                                |> with "node" [ var "b" ]
+                                |> without "reachable" [ var "a", var "b" ]
+                            ]
                 ]
             , describe "errors"
                 [ todo "errors!" ]

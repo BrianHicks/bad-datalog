@@ -12,14 +12,16 @@ datalogTests =
         [ describe "planRule"
             [ test "a simple read turns into a Read -> Project" <|
                 \_ ->
-                    rule "mortal" [ "who" ]
-                        |> with "greek" [ var "who" ]
+                    rule "mortal"
+                        [ "who" ]
+                        [ with "greek" [ var "who" ] ]
                         |> planRule
                         |> Expect.equal (Ok (Database.Project [ 0 ] (Database.Read "greek")))
             , test "a filtered read turns into a Select" <|
                 \_ ->
-                    rule "mortal" [ "first name" ]
-                        |> with "greek" [ var "first name", string "of Athens" ]
+                    rule "mortal"
+                        [ "first name" ]
+                        [ with "greek" [ var "first name", string "of Athens" ] ]
                         |> planRule
                         |> Expect.equal
                             (Database.Read "greek"
@@ -29,24 +31,28 @@ datalogTests =
                             )
             , test "sharing a variable between two atoms results in a join" <|
                 \_ ->
-                    rule "reachable" [ "a", "c" ]
-                        |> with "link" [ var "a", var "b" ]
-                        |> with "reachable" [ var "b", var "c" ]
+                    rule "reachable"
+                        [ "a", "c" ]
+                        [ with "link" [ var "a", var "b" ]
+                        , with "reachable" [ var "b", var "c" ]
+                        ]
                         |> planRule
                         |> Expect.equal
                             (Database.JoinOn
-                                { left = Database.Read "reachable"
-                                , right = Database.Read "link"
-                                , fields = [ ( 0, 1 ) ]
+                                { left = Database.Read "link"
+                                , right = Database.Read "reachable"
+                                , fields = [ ( 1, 0 ) ]
                                 }
-                                |> Database.Project [ 2, 1 ]
+                                |> Database.Project [ 0, 3 ]
                                 |> Ok
                             )
             , test "filtering adds a predicate" <|
                 \_ ->
-                    rule "adult" [ "name" ]
-                        |> with "person" [ var "name", var "age" ]
-                        |> filter (gt "age" (int 20))
+                    rule "adult"
+                        [ "name" ]
+                        [ with "person" [ var "name", var "age" ]
+                        , filter (gt "age" (int 20))
+                        ]
                         |> planRule
                         |> Expect.equal
                             (Database.Read "person"
@@ -56,10 +62,12 @@ datalogTests =
                             )
             , test "filtering using negation adds a predicate" <|
                 \_ ->
-                    rule "sibling" [ "a", "b" ]
-                        |> with "parent" [ var "parent", var "a" ]
-                        |> with "parent" [ var "parent", var "b" ]
-                        |> filter (not_ (eq "a" (var "b")))
+                    rule "sibling"
+                        [ "a", "b" ]
+                        [ with "parent" [ var "parent", var "a" ]
+                        , with "parent" [ var "parent", var "b" ]
+                        , filter (not_ (eq "a" (var "b")))
+                        ]
                         |> planRule
                         |> Expect.equal
                             (Database.JoinOn
@@ -67,19 +75,21 @@ datalogTests =
                                 , right = Database.Read "parent"
                                 , fields = [ ( 0, 0 ) ]
                                 }
-                                |> Database.Select (Database.Not (Database.Predicate 3 Database.Eq (Database.Field 1)))
-                                |> Database.Project [ 3, 1 ]
+                                |> Database.Select (Database.Not (Database.Predicate 1 Database.Eq (Database.Field 3)))
+                                |> Database.Project [ 1, 3 ]
                                 |> Ok
                             )
             , test "filtering using or adds a predicate" <|
                 \_ ->
-                    rule "teen" [ "name" ]
-                        |> with "person" [ var "name", var "age" ]
-                        |> filter
+                    rule "teen"
+                        [ "name" ]
+                        [ with "person" [ var "name", var "age" ]
+                        , filter
                             (or
                                 (gt "age" (int 12))
                                 (lt "age" (int 20))
                             )
+                        ]
                         |> planRule
                         |> Expect.equal
                             (Database.Read "person"
@@ -93,24 +103,28 @@ datalogTests =
                             )
             , test "filtering using separate filters adds two filters" <|
                 \_ ->
-                    rule "oldHockeyTeam" [ "name" ]
-                        |> with "team" [ var "name", var "league", var "age" ]
-                        |> filter (eq "league" (string "NHL"))
-                        |> filter (gt "age" (int 50))
+                    rule "oldHockeyTeam"
+                        [ "name" ]
+                        [ with "team" [ var "name", var "league", var "age" ]
+                        , filter (eq "league" (string "NHL"))
+                        , filter (gt "age" (int 50))
+                        ]
                         |> planRule
                         |> Expect.equal
                             (Database.Read "team"
-                                |> Database.Select (Database.Predicate 2 Database.Gt (Database.Constant (Database.Int 50)))
                                 |> Database.Select (Database.Predicate 1 Database.Eq (Database.Constant (Database.String "NHL")))
+                                |> Database.Select (Database.Predicate 2 Database.Gt (Database.Constant (Database.Int 50)))
                                 |> Database.Project [ 0 ]
                                 |> Ok
                             )
             , test "negation adds an outer join" <|
                 \_ ->
-                    rule "unreachable" [ "a", "b" ]
-                        |> with "node" [ var "a" ]
-                        |> with "node" [ var "b" ]
-                        |> without "reachable" [ var "a", var "b" ]
+                    rule "unreachable"
+                        [ "a", "b" ]
+                        [ with "node" [ var "a" ]
+                        , with "node" [ var "b" ]
+                        , without "reachable" [ var "a", var "b" ]
+                        ]
                         |> planRule
                         |> Expect.equal
                             (Database.OuterJoinOn
@@ -121,47 +135,54 @@ datalogTests =
                                         , right = Database.Read "node"
                                         }
                                 , drop = Database.Read "reachable"
-                                , fields = [ ( 1, 0 ), ( 0, 1 ) ]
+                                , fields = [ ( 0, 0 ), ( 1, 1 ) ]
                                 }
-                                |> Database.Project [ 1, 0 ]
+                                |> Database.Project [ 0, 1 ]
                                 |> Ok
                             )
             , describe "safety"
                 [ test "rules are required to have bodies" <|
                     \_ ->
-                        rule "noBody" [ "a" ]
+                        rule "noBody" [ "a" ] []
                             |> planRule
                             |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
                 , test "rules are required to have at least one name" <|
                     \_ ->
-                        rule "noNames" []
-                            |> with "what" [ var "a" ]
+                        rule "noNames"
+                            []
+                            [ with "what" [ var "a" ] ]
                             |> planRule
                             |> Expect.equal (Err NeedAtLeastOneName)
                 , test "all terms in the head must appear in the body" <|
                     \_ ->
-                        rule "bad" [ "a", "b" ]
-                            |> with "fine" [ var "a" ]
+                        rule "bad"
+                            [ "a", "b" ]
+                            [ with "fine" [ var "a" ] ]
                             |> planRule
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 , test "you can't have just filters" <|
                     \_ ->
-                        rule "bad" [ "a" ]
-                            |> filter (eq "a" (string "no"))
+                        rule "bad"
+                            [ "a" ]
+                            [ filter (eq "a" (string "no")) ]
                             |> planRule
                             |> Expect.equal (Err NeedAtLeastOnePositiveAtom)
                 , test "you can't filter on an unbound name" <|
                     \_ ->
-                        rule "bad" [ "a" ]
-                            |> with "fine" [ var "a" ]
-                            |> filter (eq "b" (string "no"))
+                        rule "bad"
+                            [ "a" ]
+                            [ with "fine" [ var "a" ]
+                            , filter (eq "b" (string "no"))
+                            ]
                             |> planRule
                             |> Expect.equal (Err (VariableDoesNotAppearInBody "b"))
                 , test "every name appearing in a negative atom must also appear in a positive atom" <|
                     \_ ->
-                        rule "bad" [ "a" ]
-                            |> with "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
-                            |> without "here's the problem" [ var "a" ]
+                        rule "bad"
+                            [ "a" ]
+                            [ with "an atom to avoid the must-have-one-positive-atom rule" [ var "b" ]
+                            , without "here's the problem" [ var "a" ]
+                            ]
                             |> planRule
                             |> Expect.equal (Err (VariableMustAppearInPositiveAtom "a"))
                 ]
@@ -242,8 +263,9 @@ datalogTests =
                             |> insert "greek" [ string "Socrates" ]
                             |> Result.andThen
                                 (derive
-                                    [ rule "mortal" [ "name" ]
-                                        |> with "greek" [ var "name" ]
+                                    [ rule "mortal"
+                                        [ "name" ]
+                                        [ with "greek" [ var "name" ] ]
                                     ]
                                 )
                             |> Result.andThen
@@ -259,10 +281,12 @@ datalogTests =
                             |> Result.andThen (insert "french" [ string "Simone de Beauvoir" ])
                             |> Result.andThen
                                 (derive
-                                    [ rule "mortal" [ "name" ]
-                                        |> with "greek" [ var "name" ]
-                                    , rule "mortal" [ "name" ]
-                                        |> with "french" [ var "name" ]
+                                    [ rule "mortal"
+                                        [ "name" ]
+                                        [ with "greek" [ var "name" ] ]
+                                    , rule "mortal"
+                                        [ "name" ]
+                                        [ with "french" [ var "name" ] ]
                                     ]
                                 )
                             |> Result.andThen
@@ -278,8 +302,9 @@ datalogTests =
                             |> Result.andThen (insert "person" [ string "Barbara Liskov", string "computer scientist" ])
                             |> Result.andThen
                                 (derive
-                                    [ rule "philosopher" [ "name" ]
-                                        |> with "person" [ var "name", string "philosopher" ]
+                                    [ rule "philosopher"
+                                        [ "name" ]
+                                        [ with "person" [ var "name", string "philosopher" ] ]
                                     ]
                                 )
                             |> Result.andThen
@@ -297,11 +322,14 @@ datalogTests =
                             |> Result.andThen (insert "link" [ int 3, int 4 ])
                             |> Result.andThen
                                 (derive
-                                    [ rule "reachable" [ "a", "b" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                    , rule "reachable" [ "a", "c" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                        |> with "reachable" [ var "b", var "c" ]
+                                    [ rule "reachable"
+                                        [ "a", "b" ]
+                                        [ with "link" [ var "a", var "b" ] ]
+                                    , rule "reachable"
+                                        [ "a", "c" ]
+                                        [ with "link" [ var "a", var "b" ]
+                                        , with "reachable" [ var "b", var "c" ]
+                                        ]
                                     ]
                                 )
                             |> Result.andThen
@@ -332,9 +360,11 @@ datalogTests =
                             |> Result.andThen (insert "team" [ string "Flyers", string "Philadelphia" ])
                             |> Result.andThen
                                 (derive
-                                    [ rule "hometown" [ "name", "hometown" ]
-                                        |> with "mascot" [ var "name", var "team" ]
-                                        |> with "team" [ var "team", var "hometown" ]
+                                    [ rule "hometown"
+                                        [ "name", "hometown" ]
+                                        [ with "mascot" [ var "name", var "team" ]
+                                        , with "team" [ var "team", var "hometown" ]
+                                        ]
                                     ]
                                 )
                             |> Result.andThen
@@ -359,19 +389,26 @@ datalogTests =
                             |> Result.andThen (insert "link" [ int 3, int 4 ])
                             |> Result.andThen
                                 (derive
-                                    [ rule "reachable" [ "a", "b" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                    , rule "reachable" [ "a", "c" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                        |> with "reachable" [ var "b", var "c" ]
-                                    , rule "node" [ "a" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                    , rule "node" [ "b" ]
-                                        |> with "link" [ var "a", var "b" ]
-                                    , rule "unreachable" [ "a", "b" ]
-                                        |> with "node" [ var "a" ]
-                                        |> with "node" [ var "b" ]
-                                        |> without "reachable" [ var "a", var "b" ]
+                                    [ rule "reachable"
+                                        [ "a", "b" ]
+                                        [ with "link" [ var "a", var "b" ] ]
+                                    , rule "reachable"
+                                        [ "a", "c" ]
+                                        [ with "link" [ var "a", var "b" ]
+                                        , with "reachable" [ var "b", var "c" ]
+                                        ]
+                                    , rule "node"
+                                        [ "a" ]
+                                        [ with "link" [ var "a", var "b" ] ]
+                                    , rule "node"
+                                        [ "b" ]
+                                        [ with "link" [ var "a", var "b" ] ]
+                                    , rule "unreachable"
+                                        [ "a", "b" ]
+                                        [ with "node" [ var "a" ]
+                                        , with "node" [ var "b" ]
+                                        , without "reachable" [ var "a", var "b" ]
+                                        ]
                                     ]
                                 )
                             |> Result.andThen
@@ -399,12 +436,16 @@ datalogTests =
                             |> insert "x" [ string "this doesn't matter, we just need it to trigger the rule under test" ]
                             |> Result.andThen
                                 (derive
-                                    [ rule "p" [ "x" ]
-                                        |> with "x" [ var "x" ]
-                                        |> without "q" [ var "x" ]
-                                    , rule "q" [ "x" ]
-                                        |> with "x" [ var "x" ]
-                                        |> without "p" [ var "x" ]
+                                    [ rule "p"
+                                        [ "x" ]
+                                        [ with "x" [ var "x" ]
+                                        , without "q" [ var "x" ]
+                                        ]
+                                    , rule "q"
+                                        [ "x" ]
+                                        [ with "x" [ var "x" ]
+                                        , without "p" [ var "x" ]
+                                        ]
                                     ]
                                 )
                             |> Expect.equal (Err CannotHaveNegationInRecursiveQuery)
@@ -416,8 +457,9 @@ datalogTests =
                     \_ ->
                         expectParses
                             "mortal(thing) :- greek(thing)."
-                            [ rule "mortal" [ "thing" ]
-                                |> with "greek" [ var "thing" ]
+                            [ rule "mortal"
+                                [ "thing" ]
+                                [ with "greek" [ var "thing" ] ]
                             ]
                 , test "recursive rule" <|
                     \_ ->
@@ -426,18 +468,22 @@ datalogTests =
                             reachable(a, b) :- link(a, b).
                             reachable(a, c) :- link(a, b), reachable(b, c).
                             """
-                            [ rule "reachable" [ "a", "b" ]
-                                |> with "link" [ var "a", var "b" ]
-                            , rule "reachable" [ "a", "c" ]
-                                |> with "link" [ var "a", var "b" ]
-                                |> with "reachable" [ var "b", var "c" ]
+                            [ rule "reachable"
+                                [ "a", "b" ]
+                                [ with "link" [ var "a", var "b" ] ]
+                            , rule "reachable"
+                                [ "a", "c" ]
+                                [ with "link" [ var "a", var "b" ]
+                                , with "reachable" [ var "b", var "c" ]
+                                ]
                             ]
                 , test "an atom with an string" <|
                     \_ ->
                         expectParses
                             """baseballTeam(name) :- team(name, "MLB")."""
-                            [ rule "baseballTeam" [ "name" ]
-                                |> with "team" [ var "name", string "MLB" ]
+                            [ rule "baseballTeam"
+                                [ "name" ]
+                                [ with "team" [ var "name", string "MLB" ] ]
                             ]
                 , test "an atom with an integer" <|
                     \_ ->
@@ -445,8 +491,9 @@ datalogTests =
                             """
                             luckyBuilding(name) :- building(name, 7).
                             """
-                            [ rule "luckyBuilding" [ "name" ]
-                                |> with "building" [ var "name", int 7 ]
+                            [ rule "luckyBuilding"
+                                [ "name" ]
+                                [ with "building" [ var "name", int 7 ] ]
                             ]
                 , describe "filters"
                     [ test "less than" <|
@@ -457,9 +504,11 @@ datalogTests =
                                   person(name, age),
                                   age < 18.
                                 """
-                                [ rule "child" [ "name" ]
-                                    |> with "person" [ var "name", var "age" ]
-                                    |> filter (lt "age" (int 18))
+                                [ rule "child"
+                                    [ "name" ]
+                                    [ with "person" [ var "name", var "age" ]
+                                    , filter (lt "age" (int 18))
+                                    ]
                                 ]
                     , test "greater than" <|
                         \_ ->
@@ -469,9 +518,11 @@ datalogTests =
                                   person(name, age),
                                   age > 17.
                                 """
-                                [ rule "adult" [ "name" ]
-                                    |> with "person" [ var "name", var "age" ]
-                                    |> filter (gt "age" (int 17))
+                                [ rule "adult"
+                                    [ "name" ]
+                                    [ with "person" [ var "name", var "age" ]
+                                    , filter (gt "age" (int 17))
+                                    ]
                                 ]
                     , test "equal to" <|
                         \_ ->
@@ -481,9 +532,11 @@ datalogTests =
                                   thing(name, legs),
                                   legs = 8.
                                 """
-                                [ rule "spider" [ "name" ]
-                                    |> with "thing" [ var "name", var "legs" ]
-                                    |> filter (eq "legs" (int 8))
+                                [ rule "spider"
+                                    [ "name" ]
+                                    [ with "thing" [ var "name", var "legs" ]
+                                    , filter (eq "legs" (int 8))
+                                    ]
                                 ]
                     , test "not equal to" <|
                         \_ ->
@@ -493,9 +546,11 @@ datalogTests =
                                   thing(name, legs),
                                   legs != 8.
                                 """
-                                [ rule "notASpider" [ "name" ]
-                                    |> with "thing" [ var "name", var "legs" ]
-                                    |> filter (not_ (eq "legs" (int 8)))
+                                [ rule "notASpider"
+                                    [ "name" ]
+                                    [ with "thing" [ var "name", var "legs" ]
+                                    , filter (not_ (eq "legs" (int 8)))
+                                    ]
                                 ]
                     , test "or" <|
                         \_ ->
@@ -505,13 +560,15 @@ datalogTests =
                                   person(name, age),
                                   age = 18 || age > 18.
                                 """
-                                [ rule "adult" [ "name" ]
-                                    |> with "person" [ var "name", var "age" ]
-                                    |> filter
+                                [ rule "adult"
+                                    [ "name" ]
+                                    [ with "person" [ var "name", var "age" ]
+                                    , filter
                                         (or
                                             (eq "age" (int 18))
                                             (gt "age" (int 18))
                                         )
+                                    ]
                                 ]
                     , test "greater than or equal to" <|
                         \_ ->
@@ -521,13 +578,15 @@ datalogTests =
                                   person(name, age),
                                   age >= 18.
                                 """
-                                [ rule "adult" [ "name" ]
-                                    |> with "person" [ var "name", var "age" ]
-                                    |> filter
+                                [ rule "adult"
+                                    [ "name" ]
+                                    [ with "person" [ var "name", var "age" ]
+                                    , filter
                                         (or
                                             (gt "age" (int 18))
                                             (eq "age" (int 18))
                                         )
+                                    ]
                                 ]
                     , test "less than or equal to" <|
                         \_ ->
@@ -537,13 +596,15 @@ datalogTests =
                                   person(name, age),
                                   age <= 17.
                                 """
-                                [ rule "child" [ "name" ]
-                                    |> with "person" [ var "name", var "age" ]
-                                    |> filter
+                                [ rule "child"
+                                    [ "name" ]
+                                    [ with "person" [ var "name", var "age" ]
+                                    , filter
                                         (or
                                             (lt "age" (int 17))
                                             (eq "age" (int 17))
                                         )
+                                    ]
                                 ]
                     ]
                 , test "rule with negation" <|
@@ -555,10 +616,12 @@ datalogTests =
                               node(b),
                               not reachable(a, b).
                             """
-                            [ rule "unreachable" [ "a", "b" ]
-                                |> with "node" [ var "a" ]
-                                |> with "node" [ var "b" ]
-                                |> without "reachable" [ var "a", var "b" ]
+                            [ rule "unreachable"
+                                [ "a", "b" ]
+                                [ with "node" [ var "a" ]
+                                , with "node" [ var "b" ]
+                                , without "reachable" [ var "a", var "b" ]
+                                ]
                             ]
                 , test "comments" <|
                     \_ ->
@@ -570,9 +633,11 @@ datalogTests =
                               age > 17 -- before close
                               . -- after
                             """
-                            [ rule "adult" [ "name" ]
-                                |> with "person" [ var "name", var "age" ]
-                                |> filter (gt "age" (int 17))
+                            [ rule "adult"
+                                [ "name" ]
+                                [ with "person" [ var "name", var "age" ]
+                                , filter (gt "age" (int 17))
+                                ]
                             ]
                 ]
             ]

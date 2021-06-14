@@ -327,17 +327,23 @@ viewRelationships model personId =
         derived =
             Datalog.derive
                 [ {- me(id, name) :- person(id, name), id = personId -}
-                  Datalog.rule "me" [ "id", "name" ]
-                    |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
-                    |> Datalog.filter (Datalog.eq "id" (Datalog.int personId))
+                  Datalog.rule "me"
+                    [ "id", "name" ]
+                    [ Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
+                    , Datalog.filter (Datalog.eq "id" (Datalog.int personId))
+                    ]
                 , {- parents(id, name) :- person(id, name), parent(id, personId). -}
-                  Datalog.rule "parents" [ "id", "name" ]
-                    |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
-                    |> Datalog.with "parent" [ Datalog.var "id", Datalog.int personId ]
+                  Datalog.rule "parents"
+                    [ "id", "name" ]
+                    [ Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
+                    , Datalog.with "parent" [ Datalog.var "id", Datalog.int personId ]
+                    ]
                 , {- children(id, name) :- person(id, name), parent(personId, id). -}
-                  Datalog.rule "children" [ "id", "name" ]
-                    |> Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
-                    |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "id" ]
+                  Datalog.rule "children"
+                    [ "id", "name" ]
+                    [ Datalog.with "person" [ Datalog.var "id", Datalog.var "name" ]
+                    , Datalog.with "parent" [ Datalog.int personId, Datalog.var "id" ]
+                    ]
                 , {-
                      siblings(siblingId, siblingName) :-
                         person(siblingId, siblingName),
@@ -345,25 +351,31 @@ viewRelationships model personId =
                         parent(parentId, siblingId),
                         siblingId /= personId.
                   -}
-                  Datalog.rule "siblings" [ "siblingId", "siblingName" ]
-                    |> Datalog.with "person" [ Datalog.var "siblingId", Datalog.var "siblingName" ]
-                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
-                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
-                    |> Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
+                  Datalog.rule "siblings"
+                    [ "siblingId", "siblingName" ]
+                    [ Datalog.with "person" [ Datalog.var "siblingId", Datalog.var "siblingName" ]
+                    , Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    , Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
+                    , Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
+                    ]
                 , {-
                      grandparents(grandparentId, grandparentName) :-
                         person(grandparentId, grandparentName),
                         person(parentId, personId),
                         person(grandparentId, parentId).
                   -}
-                  Datalog.rule "grandparents" [ "grandparentId", "grandparentName" ]
-                    |> Datalog.with "person" [ Datalog.var "grandparentId", Datalog.var "grandparentName" ]
-                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
-                    |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
-                , Datalog.rule "grandchildren" [ "grandchildId", "grandchildName" ]
-                    |> Datalog.with "person" [ Datalog.var "grandchildId", Datalog.var "grandchildName" ]
-                    |> Datalog.with "parent" [ Datalog.var "childId", Datalog.var "grandchildId" ]
-                    |> Datalog.with "parent" [ Datalog.int personId, Datalog.var "childId" ]
+                  Datalog.rule "grandparents"
+                    [ "grandparentId", "grandparentName" ]
+                    [ Datalog.with "person" [ Datalog.var "grandparentId", Datalog.var "grandparentName" ]
+                    , Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    , Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
+                    ]
+                , Datalog.rule "grandchildren"
+                    [ "grandchildId", "grandchildName" ]
+                    [ Datalog.with "person" [ Datalog.var "grandchildId", Datalog.var "grandchildName" ]
+                    , Datalog.with "parent" [ Datalog.var "childId", Datalog.var "grandchildId" ]
+                    , Datalog.with "parent" [ Datalog.int personId, Datalog.var "childId" ]
+                    ]
                 , {-
                      auntsAndUncles(auId, auName) :-
                        person(auId, auName),
@@ -372,18 +384,22 @@ viewRelationships model personId =
                        parent(parentId, personId),
                        auId /= parentId.
                   -}
-                  Datalog.rule "auntsAndUncles" [ "auId", "auName" ]
-                    |> Datalog.with "person" [ Datalog.var "auId", Datalog.var "auName" ]
-                    |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "auId" ]
-                    |> Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
-                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
-                    |> Datalog.filter (Datalog.not_ (Datalog.eq "auId" (Datalog.var "parentId")))
-                , Datalog.rule "niecesAndNephews" [ "nnId", "nnName" ]
-                    |> Datalog.with "person" [ Datalog.var "nnId", Datalog.var "nnName" ]
-                    |> Datalog.with "parent" [ Datalog.var "siblingId", Datalog.var "nnId" ]
-                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
-                    |> Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
-                    |> Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
+                  Datalog.rule "auntsAndUncles"
+                    [ "auId", "auName" ]
+                    [ Datalog.with "person" [ Datalog.var "auId", Datalog.var "auName" ]
+                    , Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "auId" ]
+                    , Datalog.with "parent" [ Datalog.var "grandparentId", Datalog.var "parentId" ]
+                    , Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    , Datalog.filter (Datalog.not_ (Datalog.eq "auId" (Datalog.var "parentId")))
+                    ]
+                , Datalog.rule "niecesAndNephews"
+                    [ "nnId", "nnName" ]
+                    [ Datalog.with "person" [ Datalog.var "nnId", Datalog.var "nnName" ]
+                    , Datalog.with "parent" [ Datalog.var "siblingId", Datalog.var "nnId" ]
+                    , Datalog.with "parent" [ Datalog.var "parentId", Datalog.var "siblingId" ]
+                    , Datalog.with "parent" [ Datalog.var "parentId", Datalog.int personId ]
+                    , Datalog.filter (Datalog.not_ (Datalog.eq "siblingId" (Datalog.int personId)))
+                    ]
                 ]
                 model.db
 

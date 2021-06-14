@@ -392,9 +392,9 @@ If you have multiple rules with the same name, they'll be merged together
 (for an example, see the docs for [`with`](#with).)
 
 -}
-rule : String -> List String -> Rule
-rule name headVars =
-    Rule (Atom name (List.map Variable headVars)) []
+rule : String -> List String -> List BodyAtom -> Rule
+rule name headVars atoms =
+    Rule (Atom name (List.map Variable headVars)) atoms
 
 
 {-| Add matches from the given name (TODO: table? rule? named tuple store?)
@@ -402,25 +402,29 @@ rule name headVars =
 For example, if you have some greeks (Socrates, say) you can write a rule
 like this to see which of them are mortal:
 
-    rule "mortal" [ "name" ]
-        |> with "greek" [ var "name" ]
+    rule "mortal"
+        [ "name" ]
+        [ with "greek" [ var "name" ] ]
 
 It's fine to use this to set up recursive queries. For example, you could
 compute reachability for all nodes in a graph using two rules like this:
 
-    [ rule "reachable" [ "a", "b" ]
-        |> with "link" [ var "a", var "b" ]
-    , rule "reachable" [ "a", "c" ]
-        |> with "link" [ var "a", var "b" ]
-        |> with "reachable" [ var "b", var "c" ]
+    [ rule "reachable"
+        [ "a", "b" ]
+        [ with "link" [ var "a", var "b" ] ]
+    , rule "reachable"
+        [ "a", "c" ]
+        [ with "link" [ var "a", var "b" ]
+        , with "reachable" [ var "b", var "c" ]
+        ]
     ]
 
 If you introduce a variable in a `with` like that above, it's also fine!
 
 -}
-with : String -> List Term -> Rule -> Rule
-with name terms (Rule head body) =
-    Rule head (BodyAtom Positive (Atom name terms) :: body)
+with : String -> List Term -> BodyAtom
+with name terms =
+    BodyAtom Positive (Atom name terms)
 
 
 {-| The opposite of [`with`](#with): remove any matching tuples based on
@@ -441,30 +445,40 @@ Here's an example of computing all the nodes in a graph that _aren't_
 reachable from each other:
 
     [ -- first, define `reachable` as in the example in `with`:
-      rule "reachable" [ "a", "b" ]
-        |> with "link" [ var "a", var "b" ]
-    , rule "reachable" [ "a", "c" ]
-        |> with "link" [ var "a", var "b" ]
-        |> with "reachable" [ var "b", var "c" ]
+      rule "reachable"
+        [ "a", "b" ]
+        [ with "link" [ var "a", var "b" ] ]
+    , rule "reachable"
+        [ "a", "c" ]
+        [ with "link"
+            [ var "a", var "b" ]
+            with
+            "reachable"
+            [ var "b", var "c" ]
+        ]
 
     -- next, we need to know what is a valid node so we can
-    , rule "node" [ "a" ]
-        |> with "link" [ var "a", var "b" ]
-    , rule "node" [ "b" ]
-        |> with "link" [ var "a", var "b" ]
+    , rule "node"
+        [ "a" ]
+        [ with "link" [ var "a", var "b" ] ]
+    , rule "node"
+        [ "b" ]
+        [ with "link" [ var "a", var "b" ] ]
 
     -- finally, we just say "a set of two nodes is unreachable if they're
     -- individually in `node` but not together in `reachable`"
-    , rule "unreachable" [ "a", "b" ]
-        |> with "node" [ var "a" ]
-        |> with "node" [ var "b" ]
-        |> without "reachable" [ var "a", var "b" ]
+    , rule "unreachable"
+        [ "a", "b" ]
+        [ with "node" [ var "a" ]
+        , with "node" [ var "b" ]
+        , without "reachable" [ var "a", var "b" ]
+        ]
     ]
 
 -}
-without : String -> List Term -> Rule -> Rule
-without name terms (Rule head body) =
-    Rule head (BodyAtom Negative (Atom name terms) :: body)
+without : String -> List Term -> BodyAtom
+without name terms =
+    BodyAtom Negative (Atom name terms)
 
 
 planRule : Rule -> Result Problem Database.QueryPlan
@@ -689,9 +703,9 @@ type Op
     | Lt
 
 
-filter : Filter -> Rule -> Rule
-filter filter_ (Rule head body) =
-    Rule head (Filter filter_ :: body)
+filter : Filter -> BodyAtom
+filter =
+    Filter
 
 
 eq : String -> Term -> Filter
@@ -899,15 +913,15 @@ parserHelp soFar =
 
 ruleParser : Parser Rule
 ruleParser =
-    Parser.succeed (List.foldl (\with_ rule_ -> with_ rule_))
+    Parser.succeed (\( name, headTerms ) bodyTerms -> rule name headTerms bodyTerms)
         |= ruleHeadParser
         |. spacesAndComments
         |= ruleBodyParser
 
 
-ruleHeadParser : Parser Rule
+ruleHeadParser : Parser ( String, List String )
 ruleHeadParser =
-    Parser.succeed rule
+    Parser.succeed Tuple.pair
         |= Parser.inContext NameOfRule nameParser
         |. spacesAndComments
         |= Parser.sequence
@@ -921,7 +935,7 @@ ruleHeadParser =
         |> Parser.inContext RuleHead
 
 
-ruleBodyParser : Parser (List (Rule -> Rule))
+ruleBodyParser : Parser (List BodyAtom)
 ruleBodyParser =
     Parser.sequence
         { start = hornToken
@@ -937,7 +951,7 @@ ruleBodyParser =
         }
 
 
-bodyAtomParser : Parser (Rule -> Rule)
+bodyAtomParser : Parser BodyAtom
 bodyAtomParser =
     Parser.succeed
         (\negative name body ->
@@ -970,14 +984,14 @@ notParser =
         ]
 
 
-filterParser : Parser (Rule -> Rule)
+filterParser : Parser BodyAtom
 filterParser =
     Parser.andThen
         (\firstFilter -> Parser.loop firstFilter filterParserHelp)
         filterClauseParser
 
 
-filterParserHelp : Filter -> Parser (Parser.Step Filter (Rule -> Rule))
+filterParserHelp : Filter -> Parser (Parser.Step Filter BodyAtom)
 filterParserHelp lastFilter =
     Parser.oneOf
         [ Parser.succeed (\nextFilter -> Parser.Loop (or lastFilter nextFilter))
